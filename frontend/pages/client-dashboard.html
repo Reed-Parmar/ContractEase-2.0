@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Dashboard - ContractEase</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="./client-dashboard.html" class="navbar-logo">📋 ContractEase</a>
+      <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+      <div class="navbar-menu" id="navbarMenu">
+        <a href="./client-dashboard.html" class="navbar-link">Dashboard</a>
+        <a href="#" class="navbar-link">Messages</a>
+        <a href="#" class="navbar-link">Help</a>
+        <div class="navbar-user">
+          <div class="user-avatar">AC</div>
+          <button class="logout-btn" id="logoutBtn">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <h1 class="welcome-message">Welcome, Acme Corp!</h1>
+      <p class="dashboard-subtitle">Review and sign your pending contracts</p>
+    </div>
+
+    <!-- Contracts Pending Signature -->
+    <div class="dashboard-section">
+      <h2 class="section-title">📋 Contracts Pending Your Signature</h2>
+      <div class="section-grid" id="pendingSignatureGrid">
+        <div class="contract-card">
+          <div class="contract-header">
+            <div>
+              <div class="contract-title">Service Agreement 2024</div>
+              <div class="contract-date">Received: Jan 12, 2024</div>
+            </div>
+            <div class="badge badge-warning">Action Required</div>
+          </div>
+          <div class="contract-details">
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">From:</span>
+              <span class="contract-detail-value">John Doe Consulting</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Amount:</span>
+              <span class="contract-detail-value">$5,000</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Days Left:</span>
+              <span class="contract-detail-value">3 days</span>
+            </div>
+          </div>
+          <div class="contract-actions">
+            <button class="btn btn-secondary btn-sm">Review & Sign</button>
+            <button class="btn btn-outline btn-sm">View PDF</button>
+          </div>
+        </div>
+
+        <div class="contract-card">
+          <div class="contract-header">
+            <div>
+              <div class="contract-title">NDA Agreement</div>
+              <div class="contract-date">Received: Jan 8, 2024</div>
+            </div>
+            <div class="badge badge-warning">Action Required</div>
+          </div>
+          <div class="contract-details">
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">From:</span>
+              <span class="contract-detail-value">TechStart Legal</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Amount:</span>
+              <span class="contract-detail-value">Confidential</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Days Left:</span>
+              <span class="contract-detail-value">5 days</span>
+            </div>
+          </div>
+          <div class="contract-actions">
+            <button class="btn btn-secondary btn-sm">Review & Sign</button>
+            <button class="btn btn-outline btn-sm">View PDF</button>
+          </div>
+        </div>
+
+        <div class="contract-card">
+          <div class="contract-header">
+            <div>
+              <div class="contract-title">Maintenance Services</div>
+              <div class="contract-date">Received: Jan 1, 2024</div>
+            </div>
+            <div class="badge badge-error">Overdue</div>
+          </div>
+          <div class="contract-details">
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">From:</span>
+              <span class="contract-detail-value">Global Solutions</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Amount:</span>
+              <span class="contract-detail-value">$3,000/month</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Overdue By:</span>
+              <span class="contract-detail-value">2 days</span>
+            </div>
+          </div>
+          <div class="contract-actions">
+            <button class="btn btn-primary btn-sm">Sign Now</button>
+            <button class="btn btn-outline btn-sm">View PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Already Signed Contracts -->
+    <div class="dashboard-section">
+      <h2 class="section-title">✅ Signed Contracts</h2>
+      <div class="section-grid" id="signedContractsGrid">
+        <div class="contract-card">
+          <div class="contract-header">
+            <div>
+              <div class="contract-title">Website Development</div>
+              <div class="contract-date">Signed: Dec 28, 2023</div>
+            </div>
+            <div class="badge badge-secondary">Completed</div>
+          </div>
+          <div class="contract-details">
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">From:</span>
+              <span class="contract-detail-value">Creative Labs</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Amount:</span>
+              <span class="contract-detail-value">$12,000</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Signed By:</span>
+              <span class="contract-detail-value">Alice Johnson</span>
+            </div>
+          </div>
+          <div class="contract-actions">
+            <button class="btn btn-outline btn-sm">Download</button>
+            <button class="btn btn-outline btn-sm">View</button>
+          </div>
+        </div>
+
+        <div class="contract-card">
+          <div class="contract-header">
+            <div>
+              <div class="contract-title">License Agreement</div>
+              <div class="contract-date">Signed: Dec 15, 2023</div>
+            </div>
+            <div class="badge badge-secondary">Completed</div>
+          </div>
+          <div class="contract-details">
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">From:</span>
+              <span class="contract-detail-value">SoftwareCo</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Amount:</span>
+              <span class="contract-detail-value">$2,500/year</span>
+            </div>
+            <div class="contract-detail-row">
+              <span class="contract-detail-label">Signed By:</span>
+              <span class="contract-detail-value">Mike Chen</span>
+            </div>
+          </div>
+          <div class="contract-actions">
+            <button class="btn btn-outline btn-sm">Download</button>
+            <button class="btn btn-outline btn-sm">View</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>

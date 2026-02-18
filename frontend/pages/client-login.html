@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Login - ContractEase</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/auth.css">
+</head>
+<body class="client-login">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>📋 ContractEase</h1>
+        <p>Client Portal Login</p>
+      </div>
+
+      <form class="auth-form" id="clientLoginForm">
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            class="form-input" 
+            placeholder="client@example.com"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="form-input" 
+            placeholder="••••••••"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="contractCode" class="form-label">Contract Code (Optional)</label>
+          <input 
+            type="text" 
+            id="contractCode" 
+            name="contractCode" 
+            class="form-input" 
+            placeholder="e.g., CT-2024-001"
+          >
+        </div>
+
+        <div class="remember-me-group">
+          <input 
+            type="checkbox" 
+            id="rememberMe" 
+            name="rememberMe" 
+            class="form-checkbox"
+          >
+          <label for="rememberMe" class="checkbox-label">Remember me</label>
+        </div>
+
+        <button type="submit" class="btn btn-secondary btn-block">Access Portal</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Need help? <a href="#">Contact support</a></p>
+        <p><a href="#">Forgot your password?</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/auth.js"></script>
+</body>
+</html>

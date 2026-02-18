@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Contract - ContractEase</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/contract.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="./client-dashboard.html" class="navbar-logo">📋 ContractEase</a>
+      <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+      <div class="navbar-menu" id="navbarMenu">
+        <a href="./client-dashboard.html" class="navbar-link">Dashboard</a>
+        <a href="#" class="navbar-link">Messages</a>
+        <a href="#" class="navbar-link">Help</a>
+        <div class="navbar-user">
+          <div class="user-avatar">AC</div>
+          <button class="logout-btn" id="logoutBtn">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <div class="editor-header">
+      <div class="editor-breadcrumb">
+        <a href="./client-dashboard.html" class="breadcrumb-link">Dashboard</a>
+        <span class="breadcrumb-separator">›</span>
+        <span>Sign Contract</span>
+      </div>
+      <h1 class="editor-title">Service Agreement 2024</h1>
+    </div>
+
+    <!-- Signing Status Alert -->
+    <div class="signing-status">
+      <div class="signing-status-icon">⚠️</div>
+      <div class="signing-status-content">
+        <h3>Action Required</h3>
+        <p>Please review and sign this contract by January 20, 2024</p>
+      </div>
+    </div>
+
+    <!-- Contract Preview -->
+    <div class="form-section">
+      <h2 class="form-section-title">Contract Content</h2>
+      
+      <div class="contract-preview">
+        <div class="preview-content">
+          <h2>Service Agreement 2024</h2>
+          <p>This Service Agreement ("Agreement") is entered into as of January 12, 2024, between <strong>John Doe Consulting</strong> (the "Provider") and <strong>Acme Corp</strong> (the "Client").</p>
+          
+          <h2>1. Services</h2>
+          <p>The Provider agrees to provide professional consulting services as described in the proposal dated January 10, 2024. Services include strategic planning, process optimization, and implementation support.</p>
+          
+          <h2>2. Term</h2>
+          <p>This Agreement shall commence on January 15, 2024, and shall continue for a period of three (3) months, unless terminated earlier in accordance with the provisions of this Agreement.</p>
+          
+          <h2>3. Compensation</h2>
+          <p>In consideration for the services provided, the Client shall pay the Provider a total fee of <strong>$5,000</strong>, payable as follows:</p>
+          <ul style="margin-left: var(--space-6); margin-bottom: var(--space-4);">
+            <li>50% ($2,500) upon execution of this Agreement</li>
+            <li>50% ($2,500) upon completion of services</li>
+          </ul>
+          
+          <h2>4. Confidentiality</h2>
+          <p>Both parties agree to maintain strict confidentiality with respect to any proprietary information, trade secrets, or confidential business information disclosed during the course of this engagement.</p>
+          
+          <h2>5. Limitation of Liability</h2>
+          <p>Neither party shall be liable to the other for any indirect, incidental, special, or consequential damages arising from this Agreement, even if advised of the possibility of such damages.</p>
+          
+          <h2>6. Termination</h2>
+          <p>Either party may terminate this Agreement with thirty (30) days' written notice to the other party. Upon termination, the Client shall pay the Provider for all work completed up to the date of termination.</p>
+          
+          <h2>7. Governing Law</h2>
+          <p>This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without regard to its conflict of law provisions.</p>
+          
+          <h2>Signature</h2>
+          <p>By signing below, each party acknowledges that they have read and agree to all terms and conditions of this Service Agreement.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="form-section">
+      <h2 class="form-section-title">Your Signature</h2>
+      
+      <p style="margin-bottom: var(--space-6); color: var(--text-secondary);">
+        Sign below to confirm your acceptance of this contract. Your signature will be legally binding.
+      </p>
+
+      <div class="signature-area">
+        <div class="signature-instructions">
+          Draw your signature in the box below using your mouse or touchpad
+        </div>
+        <div class="signature-canvas-wrapper">
+          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+        </div>
+        <div class="signature-actions">
+          <button class="btn btn-outline" id="clearSignatureBtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="signerName" class="form-label">Full Name</label>
+        <input 
+          type="text" 
+          id="signerName" 
+          class="form-input" 
+          placeholder="Your full name"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="signerEmail" class="form-label">Email Address</label>
+        <input 
+          type="email" 
+          id="signerEmail" 
+          class="form-input" 
+          placeholder="your@example.com"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="signerDate" class="form-label">Date of Signature</label>
+        <input 
+          type="date" 
+          id="signerDate" 
+          class="form-input"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-label">
+          <input 
+            type="checkbox" 
+            id="agreeTerms" 
+            class="form-checkbox"
+            required
+          >
+          <label for="agreeTerms">I have read and agree to all terms of this contract</label>
+        </div>
+      </div>
+
+      <div class="alert alert-success">
+        <strong>Secure & Protected:</strong> Your signature and personal information are encrypted and stored securely in compliance with industry standards.
+      </div>
+    </div>
+
+    <!-- Contract Details -->
+    <div class="form-section">
+      <h2 class="form-section-title">Contract Information</h2>
+      
+      <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
+        <span class="contract-detail-label">Contract ID:</span>
+        <span class="contract-detail-value">CT-2024-001</span>
+      </div>
+      <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
+        <span class="contract-detail-label">Sent by:</span>
+        <span class="contract-detail-value">John Doe Consulting</span>
+      </div>
+      <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
+        <span class="contract-detail-label">Received:</span>
+        <span class="contract-detail-value">January 12, 2024</span>
+      </div>
+      <div class="contract-detail-row" style="padding: var(--space-4) 0;">
+        <span class="contract-detail-label">Signature Deadline:</span>
+        <span class="contract-detail-value">January 20, 2024</span>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions" style="margin-bottom: var(--space-12);">
+      <button class="btn btn-outline" id="rejectBtn">Decline</button>
+      <button class="btn btn-secondary" id="signBtn">Sign Contract</button>
+    </div>
+  </div>
+
+  <script src="../js/contract.js"></script>
+</body>
+</html>

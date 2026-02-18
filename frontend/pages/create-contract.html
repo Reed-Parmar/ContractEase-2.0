@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Contract - ContractEase</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/contract.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="./user-dashboard.html" class="navbar-logo">📋 ContractEase</a>
+      <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+      <div class="navbar-menu" id="navbarMenu">
+        <a href="./user-dashboard.html" class="navbar-link">Dashboard</a>
+        <a href="./create-contract.html" class="navbar-link">Create Contract</a>
+        <a href="#" class="navbar-link">Templates</a>
+        <a href="#" class="navbar-link">Help</a>
+        <div class="navbar-user">
+          <div class="user-avatar">JD</div>
+          <button class="logout-btn" id="logoutBtn">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <div class="editor-header">
+      <div class="editor-breadcrumb">
+        <a href="./user-dashboard.html" class="breadcrumb-link">Dashboard</a>
+        <span class="breadcrumb-separator">›</span>
+        <span>Create Contract</span>
+      </div>
+      <h1 class="editor-title">Create New Contract</h1>
+    </div>
+
+    <!-- Step Progress -->
+    <div class="progress-steps" id="progressSteps">
+      <div class="progress-step active" data-step="1">
+        <span class="step-number">1</span>
+        <span>Select Type</span>
+      </div>
+      <div class="progress-step" data-step="2">
+        <span class="step-number">2</span>
+        <span>Contract Details</span>
+      </div>
+      <div class="progress-step" data-step="3">
+        <span class="step-number">3</span>
+        <span>Review</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Contract Type Selection -->
+    <div class="form-section" id="step-1">
+      <h2 class="form-section-title">Select Contract Type</h2>
+      <div class="contract-type-grid" id="contractTypeGrid">
+        <div class="contract-type-option" data-type="service">
+          <div class="contract-type-icon">💼</div>
+          <div class="contract-type-name">Service Agreement</div>
+          <div class="contract-type-description">For providing professional services</div>
+        </div>
+        <div class="contract-type-option" data-type="nda">
+          <div class="contract-type-icon">🔒</div>
+          <div class="contract-type-name">NDA Agreement</div>
+          <div class="contract-type-description">For confidentiality agreements</div>
+        </div>
+        <div class="contract-type-option" data-type="license">
+          <div class="contract-type-icon">📜</div>
+          <div class="contract-type-name">License Agreement</div>
+          <div class="contract-type-description">For software or content licensing</div>
+        </div>
+        <div class="contract-type-option" data-type="employment">
+          <div class="contract-type-icon">👔</div>
+          <div class="contract-type-name">Employment Contract</div>
+          <div class="contract-type-description">For employee agreements</div>
+        </div>
+        <div class="contract-type-option" data-type="partnership">
+          <div class="contract-type-icon">🤝</div>
+          <div class="contract-type-name">Partnership Agreement</div>
+          <div class="contract-type-description">For partnership arrangements</div>
+        </div>
+        <div class="contract-type-option" data-type="custom">
+          <div class="contract-type-icon">✏️</div>
+          <div class="contract-type-name">Custom Contract</div>
+          <div class="contract-type-description">Create your own template</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Contract Details -->
+    <div class="form-section hidden" id="step-2">
+      <h2 class="form-section-title">Contract Details</h2>
+      
+      <div class="form-group">
+        <label for="contractTitle" class="form-label">Contract Title</label>
+        <input 
+          type="text" 
+          id="contractTitle" 
+          class="form-input" 
+          placeholder="e.g., Web Development Services"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="clientName" class="form-label">Client Name</label>
+        <input 
+          type="text" 
+          id="clientName" 
+          class="form-input" 
+          placeholder="e.g., Acme Corporation"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="clientEmail" class="form-label">Client Email</label>
+        <input 
+          type="email" 
+          id="clientEmail" 
+          class="form-input" 
+          placeholder="client@example.com"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="contractAmount" class="form-label">Contract Amount</label>
+        <input 
+          type="text" 
+          id="contractAmount" 
+          class="form-input" 
+          placeholder="$0.00"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="dueDate" class="form-label">Due Date</label>
+        <input 
+          type="date" 
+          id="dueDate" 
+          class="form-input"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="contractDescription" class="form-label">Description</label>
+        <textarea 
+          id="contractDescription" 
+          class="form-textarea" 
+          placeholder="Enter contract description or terms"
+        ></textarea>
+      </div>
+
+      <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6);">Contract Clauses</h3>
+      <div class="toggle-group">
+        <div class="toggle-item">
+          <div class="toggle-label">
+            <div class="toggle-label-title">Payment Terms</div>
+            <div class="toggle-label-description">Include payment schedule and conditions</div>
+          </div>
+          <div class="toggle-switch active" data-clause="payment"></div>
+        </div>
+        
+        <div class="toggle-item">
+          <div class="toggle-label">
+            <div class="toggle-label-title">Liability Clause</div>
+            <div class="toggle-label-description">Define liability limitations</div>
+          </div>
+          <div class="toggle-switch" data-clause="liability"></div>
+        </div>
+        
+        <div class="toggle-item">
+          <div class="toggle-label">
+            <div class="toggle-label-title">Confidentiality</div>
+            <div class="toggle-label-description">Protect confidential information</div>
+          </div>
+          <div class="toggle-switch active" data-clause="confidentiality"></div>
+        </div>
+        
+        <div class="toggle-item">
+          <div class="toggle-label">
+            <div class="toggle-label-title">Termination Rights</div>
+            <div class="toggle-label-description">Allow early termination conditions</div>
+          </div>
+          <div class="toggle-switch" data-clause="termination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Review -->
+    <div class="form-section hidden" id="step-3">
+      <h2 class="form-section-title">Review Contract</h2>
+      
+      <div class="contract-preview">
+        <div class="preview-content" id="previewContent">
+          <h2 id="previewTitle">Service Agreement</h2>
+          <p>This agreement is entered into as of <span id="previewDate">January 15, 2024</span>, between you and the client named <span id="previewClient">Acme Corp</span>.</p>
+          
+          <h2>Terms and Conditions</h2>
+          <p>This contract outlines the services to be provided and the terms under which they will be delivered.</p>
+          
+          <h2>Payment Terms</h2>
+          <p>The total contract value is <span id="previewAmount">$5,000</span>, due by <span id="previewDue">February 15, 2024</span>.</p>
+          
+          <h2>Confidentiality</h2>
+          <p>Both parties agree to maintain the confidentiality of any proprietary information shared during the course of this engagement.</p>
+          
+          <h2>Signature</h2>
+          <p>By signing below, both parties acknowledge they have read and agree to all terms of this contract.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-success">
+        <strong>Ready to send!</strong> Your contract is ready to be sent to the client for review and signature.
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button class="btn btn-outline" id="prevBtn" style="display: none;">← Previous</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+      <button class="btn btn-secondary hidden" id="submitBtn" style="display: none;">Send to Client</button>
+    </div>
+  </div>
+
+  <script src="../js/contract.js"></script>
+</body>
+</html>
