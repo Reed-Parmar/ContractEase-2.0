@@ -221,3 +221,5 @@ build/
 # Editor
 .vscode/
 .idea/
+
+docs
