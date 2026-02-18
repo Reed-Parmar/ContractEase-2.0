@@ -25,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
       toggle.classList.toggle('active');
       const clause = toggle.dataset.clause;
       console.log('Toggled clause:', clause, toggle.classList.contains('active'));
+      // Immediately reflect toggle change in preview if already on step 3
+      if (currentStep === 3) {
+        updatePreview();
+      }
     });
   });
 
@@ -239,6 +243,14 @@ function goToStep(step) {
   }
 }
 
+// Clause toggle → preview section mapping
+const CLAUSE_PREVIEW_MAP = {
+  payment: 'preview-payment',
+  liability: 'preview-liability',
+  confidentiality: 'preview-confidentiality',
+  termination: 'preview-termination',
+};
+
 // Update preview with entered data
 function updatePreview() {
   const contractTitle = document.getElementById('contractTitle');
@@ -265,6 +277,17 @@ function updatePreview() {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  });
+
+  // Show/hide clause sections based on toggle state
+  document.querySelectorAll('.toggle-switch').forEach((toggle) => {
+    const sectionId = CLAUSE_PREVIEW_MAP[toggle.dataset.clause];
+    if (sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.style.display = toggle.classList.contains('active') ? '' : 'none';
+      }
+    }
   });
 }
 

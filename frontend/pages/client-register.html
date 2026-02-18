@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Registration - ContractEase</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/auth.css">
+</head>
+
+<body class="client-login">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>📋 ContractEase</h1>
+                <p>Create Client Account</p>
+            </div>
+
+            <form class="auth-form" id="clientRegisterForm">
+                <div class="form-group">
+                    <label for="companyName" class="form-label">Company / Client Name</label>
+                    <input type="text" id="companyName" name="companyName" class="form-input" placeholder="Acme Corp"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="client@example.com"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword" class="form-label">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input"
+                        placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn btn-secondary btn-block">Create Account</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="client-login.html">Sign in</a></p>
+                <p>Are you a user? <a href="user-register.html">Register here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const clientRegisterForm = document.getElementById('clientRegisterForm');
+
+            clientRegisterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match. Please try again.');
+                    return;
+                }
+
+                alert('Client registration successful! Redirecting to login…');
+                window.location.href = 'client-login.html';
+            });
+        });
+    </script>
+</body>
+
+</html>
