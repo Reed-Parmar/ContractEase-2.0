@@ -222,4 +222,5 @@ build/
 .vscode/
 .idea/
 
-docs
+# Internal docs (analysis, changelogs, notes — not for GitHub)
+docs/
