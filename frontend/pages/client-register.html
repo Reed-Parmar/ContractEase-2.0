@@ -53,12 +53,16 @@
     </div>
 
     <script>
+        const API = 'http://localhost:8000';
+
         document.addEventListener('DOMContentLoaded', () => {
             const clientRegisterForm = document.getElementById('clientRegisterForm');
 
-            clientRegisterForm.addEventListener('submit', (e) => {
+            clientRegisterForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
+                const name = document.getElementById('companyName').value.trim();
+                const email = document.getElementById('email').value.trim();
                 const password = document.getElementById('password').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -67,8 +71,25 @@
                     return;
                 }
 
-                alert('Client registration successful! Redirecting to login…');
-                window.location.href = 'client-login.html';
+                try {
+                    const res = await fetch(`${API}/register/client`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, password }),
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && data.success) {
+                        alert('Registration successful!');
+                        window.location.href = 'client-login.html';
+                    } else {
+                        alert(data.detail || 'Registration failed.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Could not reach the server. Is the backend running?');
+                }
             });
         });
     </script>

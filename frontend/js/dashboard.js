@@ -1,4 +1,282 @@
-// Dashboard Handler
+// Dashboard Handler — data-driven via backend API
+
+const API = 'http://localhost:8000';
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function formatDate(isoString) {
+  if (!isoString) return '—';
+  const d = new Date(isoString);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatAmount(amount) {
+  if (amount == null) return '—';
+  return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0 });
+}
+
+function daysUntil(isoString) {
+  if (!isoString) return null;
+  const diff = Math.ceil((new Date(isoString) - new Date()) / 86400000);
+  return diff;
+}
+
+// ── Card renderers (match original HTML structure exactly) ────
+
+function renderUserDraftCard(c) {
+  return `
+    <div class="contract-card" data-id="${c._id}">
+      <div class="contract-header">
+        <div>
+          <div class="contract-title">${c.title}</div>
+          <div class="contract-date">Created: ${formatDate(c.createdAt)}</div>
+        </div>
+        <div class="badge badge-primary">Draft</div>
+      </div>
+      <div class="contract-details">
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Client:</span>
+          <span class="contract-detail-value">${c.clientName || '—'}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Amount:</span>
+          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Due:</span>
+          <span class="contract-detail-value">${formatDate(c.dueDate)}</span>
+        </div>
+      </div>
+      <div class="contract-actions">
+        <button class="btn btn-primary btn-sm edit-contract-btn">Edit</button>
+        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      </div>
+    </div>`;
+}
+
+function renderUserPendingCard(c) {
+  return `
+    <div class="contract-card" data-id="${c._id}">
+      <div class="contract-header">
+        <div>
+          <div class="contract-title">${c.title}</div>
+          <div class="contract-date">Sent: ${formatDate(c.createdAt)}</div>
+        </div>
+        <div class="badge badge-warning">Pending</div>
+      </div>
+      <div class="contract-details">
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Client:</span>
+          <span class="contract-detail-value">${c.clientName || '—'}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Amount:</span>
+          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Due:</span>
+          <span class="contract-detail-value">${formatDate(c.dueDate)}</span>
+        </div>
+      </div>
+      <div class="contract-actions">
+        <button class="btn btn-secondary btn-sm send-reminder-btn">Send Reminder</button>
+        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      </div>
+    </div>`;
+}
+
+function renderUserSignedCard(c) {
+  return `
+    <div class="contract-card" data-id="${c._id}">
+      <div class="contract-header">
+        <div>
+          <div class="contract-title">${c.title}</div>
+          <div class="contract-date">Signed: ${formatDate(c.signedAt || c.createdAt)}</div>
+        </div>
+        <div class="badge badge-secondary">Signed</div>
+      </div>
+      <div class="contract-details">
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Client:</span>
+          <span class="contract-detail-value">${c.clientName || '—'}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Amount:</span>
+          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Signed:</span>
+          <span class="contract-detail-value">${formatDate(c.signedAt || c.createdAt)}</span>
+        </div>
+      </div>
+      <div class="contract-actions">
+        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      </div>
+    </div>`;
+}
+
+function renderClientPendingCard(c) {
+  const days = daysUntil(c.dueDate);
+  const overdue = days !== null && days < 0;
+  const badgeClass = overdue ? 'badge-error' : 'badge-warning';
+  const badgeText = overdue ? 'Overdue' : 'Action Required';
+  const daysText = overdue ? `Overdue by ${Math.abs(days)} day(s)` : days !== null ? `${days} day(s) left` : '—';
+
+  return `
+    <div class="contract-card" data-id="${c._id}">
+      <div class="contract-header">
+        <div>
+          <div class="contract-title">${c.title}</div>
+          <div class="contract-date">Received: ${formatDate(c.createdAt)}</div>
+        </div>
+        <div class="badge ${badgeClass}">${badgeText}</div>
+      </div>
+      <div class="contract-details">
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Amount:</span>
+          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">${overdue ? 'Overdue By:' : 'Days Left:'}</span>
+          <span class="contract-detail-value">${daysText}</span>
+        </div>
+      </div>
+      <div class="contract-actions">
+        <button class="btn btn-secondary btn-sm review-sign-btn">${overdue ? 'Sign Now' : 'Review & Sign'}</button>
+        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      </div>
+    </div>`;
+}
+
+function renderClientSignedCard(c) {
+  return `
+    <div class="contract-card" data-id="${c._id}">
+      <div class="contract-header">
+        <div>
+          <div class="contract-title">${c.title}</div>
+          <div class="contract-date">Signed: ${formatDate(c.signedAt || c.createdAt)}</div>
+        </div>
+        <div class="badge badge-secondary">Completed</div>
+      </div>
+      <div class="contract-details">
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Amount:</span>
+          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">Signed:</span>
+          <span class="contract-detail-value">${formatDate(c.signedAt || c.createdAt)}</span>
+        </div>
+      </div>
+      <div class="contract-actions">
+        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      </div>
+    </div>`;
+}
+
+function renderEmpty(text) {
+  return `<p style="color:var(--text-secondary);padding:var(--space-6);">${text}</p>`;
+}
+
+// ── Populate grids ───────────────────────────────────────────
+
+function fillGrid(gridId, cards, emptyMsg) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  if (cards.length === 0) {
+    grid.innerHTML = renderEmpty(emptyMsg);
+  } else {
+    grid.innerHTML = cards.join('');
+  }
+}
+
+// ── Bind card buttons (delegated) ────────────────────────────
+
+function bindCardButtons() {
+  document.querySelectorAll('.edit-contract-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.closest('.contract-card').dataset.id;
+      localStorage.setItem('selected_contract_id', id);
+      window.location.href = './create-contract.html';
+    });
+  });
+
+  document.querySelectorAll('.view-contract-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const card = e.target.closest('.contract-card');
+      const id = card.dataset.id;
+      localStorage.setItem('selected_contract_id', id);
+      // For clients, open the sign page; for users, open create-contract in view mode
+      const role = localStorage.getItem('user_role');
+      if (role === 'client') {
+        window.location.href = './sign-contract.html';
+      } else {
+        window.location.href = './create-contract.html';
+      }
+    });
+  });
+
+  document.querySelectorAll('.review-sign-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.closest('.contract-card').dataset.id;
+      localStorage.setItem('selected_contract_id', id);
+      window.location.href = './sign-contract.html';
+    });
+  });
+
+  document.querySelectorAll('.send-reminder-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const title = e.target.closest('.contract-card').querySelector('.contract-title').textContent;
+      alert('Reminder sent for: ' + title);
+    });
+  });
+}
+
+// ── Data fetching ────────────────────────────────────────────
+
+async function loadUserDashboard(userId) {
+  try {
+    const res = await fetch(`${API}/contracts/user/${userId}`);
+    if (!res.ok) throw new Error('Failed to load contracts');
+    const contracts = await res.json();
+
+    const drafts = contracts.filter((c) => c.status === 'draft');
+    const pending = contracts.filter((c) => c.status === 'sent' || c.status === 'pending');
+    const signed = contracts.filter((c) => c.status === 'signed');
+
+    fillGrid('draftContractsGrid', drafts.map(renderUserDraftCard), 'No draft contracts yet. Click "Create New Contract" to get started.');
+    fillGrid('pendingContractsGrid', pending.map(renderUserPendingCard), 'No contracts pending signature.');
+    fillGrid('signedContractsGrid', signed.map(renderUserSignedCard), 'No signed contracts yet.');
+
+    bindCardButtons();
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+  }
+}
+
+async function loadClientDashboard(clientId) {
+  try {
+    const res = await fetch(`${API}/contracts/client/${clientId}`);
+    if (!res.ok) throw new Error('Failed to load contracts');
+    const contracts = await res.json();
+
+    const pending = contracts.filter((c) => c.status === 'sent' || c.status === 'pending');
+    const signed = contracts.filter((c) => c.status === 'signed');
+
+    fillGrid('pendingSignatureGrid', pending.map(renderClientPendingCard), 'No contracts awaiting your signature.');
+    fillGrid('signedContractsGrid', signed.map(renderClientSignedCard), 'No signed contracts yet.');
+
+    bindCardButtons();
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+  }
+}
+
+// ── Main ─────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   // Mobile menu toggle
@@ -9,8 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileMenuToggle.addEventListener('click', () => {
       navbarMenu.classList.toggle('active');
     });
-
-    // Close menu when clicking on a link
     document.querySelectorAll('.navbar-menu .navbar-link').forEach((link) => {
       link.addEventListener('click', () => {
         navbarMenu.classList.remove('active');
@@ -18,173 +294,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Logout functionality
+  // Logout — read role BEFORE clearing
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to sign out?')) {
-        localStorage.clear();
-        // Determine which login page to go to based on role
         const userRole = localStorage.getItem('user_role') || 'user';
+        localStorage.clear();
         const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
         window.location.href = loginPage;
       }
     });
   }
 
-  // Add edit/view handlers for contract cards
-  const editButtons = document.querySelectorAll('.edit-contract-btn');
-  const viewButtons = document.querySelectorAll('.view-contract-btn');
+  // Auth guard
+  const userId = localStorage.getItem('user_id');
+  const userRole = localStorage.getItem('user_role') || 'user';
 
-  editButtons.forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const contractCard = e.target.closest('.contract-card');
-      const contractTitle = contractCard.querySelector('.contract-title').textContent;
-      console.log('Editing contract:', contractTitle);
-      // Navigate to create contract page or open editor
-      window.location.href = './create-contract.html';
-    });
-  });
+  if (!userId) {
+    const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
+    window.location.href = loginPage;
+    return;
+  }
 
-  viewButtons.forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const contractCard = e.target.closest('.contract-card');
-      const contractTitle = contractCard.querySelector('.contract-title').textContent;
-      console.log('Viewing contract:', contractTitle);
-      // In a real app, open contract details in modal or new page
-    });
-  });
-
-  // Sign/Decline handlers for client dashboard
-  const sendReminderBtns = document.querySelectorAll('.btn-secondary');
-  sendReminderBtns.forEach((btn) => {
-    if (btn.textContent.includes('Send Reminder')) {
-      btn.addEventListener('click', (e) => {
-        const contractCard = e.target.closest('.contract-card');
-        const contractTitle = contractCard.querySelector('.contract-title').textContent;
-        console.log('Reminder sent for:', contractTitle);
-        alert('Reminder sent to client');
-      });
-    }
-  });
-
-  // Handle contract signing
-  const reviewSignButtons = document.querySelectorAll('.btn-secondary');
-  reviewSignButtons.forEach((btn) => {
-    if (btn.textContent.includes('Review & Sign')) {
-      btn.addEventListener('click', (e) => {
-        const contractCard = e.target.closest('.contract-card');
-        const contractTitle = contractCard.querySelector('.contract-title').textContent;
-        console.log('Reviewing contract for signature:', contractTitle);
-        window.location.href = './sign-contract.html';
-      });
-    }
-  });
-
-  // Download buttons
-  const downloadBtns = document.querySelectorAll('.btn-outline');
-  downloadBtns.forEach((btn) => {
-    if (btn.textContent.includes('Download')) {
-      btn.addEventListener('click', (e) => {
-        const contractCard = e.target.closest('.contract-card');
-        const contractTitle = contractCard.querySelector('.contract-title').textContent;
-        console.log('Downloading contract:', contractTitle);
-        alert('Contract downloaded: ' + contractTitle + '.pdf');
-      });
-    }
-  });
-
-  // Set user name in welcome message
+  // Welcome message
   const userName = localStorage.getItem('user_name') || 'User';
   const welcomeMessage = document.querySelector('.welcome-message');
-  if (welcomeMessage && welcomeMessage.textContent.includes('!')) {
+  if (welcomeMessage) {
     welcomeMessage.textContent = `Welcome back, ${capitalizeFirstLetter(userName)}!`;
   }
 
-  // Check if user is authenticated
-  if (!localStorage.getItem('user_email')) {
-    console.log('No user session found, redirecting to login');
-    window.location.href = './user-login.html';
+  // Load data from backend
+  if (userRole === 'client') {
+    loadClientDashboard(userId);
+  } else {
+    loadUserDashboard(userId);
   }
 });
-
-// Helper function
-function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// Mock data for contracts
-const contractsData = {
-  draft: [
-    {
-      id: 1,
-      title: 'Service Agreement',
-      date: 'Jan 15, 2024',
-      client: 'Acme Corp',
-      amount: '$5,000',
-      due: 'Feb 15, 2024',
-      status: 'Draft',
-    },
-    {
-      id: 2,
-      title: 'NDA Agreement',
-      date: 'Jan 10, 2024',
-      client: 'TechStart Inc',
-      amount: 'Confidential',
-      due: 'Jan 25, 2024',
-      status: 'Draft',
-    },
-  ],
-  pending: [
-    {
-      id: 3,
-      title: 'Consulting Agreement',
-      date: 'Jan 5, 2024',
-      client: 'Global Solutions',
-      amount: '$8,500',
-      due: 'Jan 20, 2024',
-      status: 'Pending',
-    },
-  ],
-  signed: [
-    {
-      id: 4,
-      title: 'Website Development',
-      date: 'Jan 3, 2024',
-      client: 'Creative Labs',
-      amount: '$12,000',
-      due: 'Jan 3, 2024',
-      status: 'Signed',
-    },
-    {
-      id: 5,
-      title: 'Maintenance Services',
-      date: 'Dec 28, 2023',
-      client: 'FinanceHub',
-      amount: '$3,000/month',
-      due: 'Dec 28, 2023',
-      status: 'Signed',
-    },
-  ],
-};
-
-// API simulation
-const dashboardAPI = {
-  getContracts: async (status) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(contractsData[status] || []);
-      }, 100);
-    });
-  },
-
-  deleteContract: async (contractId) => {
-    console.log('[API] Delete contract:', contractId);
-    return { success: true };
-  },
-
-  updateContractStatus: async (contractId, status) => {
-    console.log('[API] Update contract status:', contractId, status);
-    return { success: true };
-  },
-};

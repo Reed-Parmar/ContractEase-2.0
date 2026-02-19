@@ -24,6 +24,7 @@ class SignatureCreate(BaseModel):
     signatureImage: str = Field(
         ...,
         min_length=1,
+        max_length=700_000,
         description="Base64-encoded signature image",
         examples=["data:image/png;base64,iVBOR..."],
     )

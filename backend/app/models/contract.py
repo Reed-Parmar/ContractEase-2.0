@@ -36,6 +36,7 @@ class ContractStatus(str, Enum):
     sent = "sent"
     signed = "signed"
     declined = "declined"
+    pending = "pending"
 
 
 # ── Clause toggles (mirrors the frontend toggle switches) ─────
@@ -70,6 +71,9 @@ class ContractOut(BaseModel):
     status: ContractStatus
     userId: str
     clientId: str
+    clientName: Optional[str] = None
+    clientEmail: Optional[str] = None
     createdAt: datetime
+    signedAt: Optional[datetime] = None
 
     model_config = {"populate_by_name": True}

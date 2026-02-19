@@ -26,7 +26,7 @@
 
   <div class="dashboard-container">
     <div class="dashboard-header">
-      <h1 class="welcome-message">Welcome, Acme Corp!</h1>
+      <h1 class="welcome-message">Welcome!</h1>
       <p class="dashboard-subtitle">Review and sign your pending contracts</p>
     </div>
 
@@ -34,89 +34,7 @@
     <div class="dashboard-section">
       <h2 class="section-title">📋 Contracts Pending Your Signature</h2>
       <div class="section-grid" id="pendingSignatureGrid">
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Service Agreement 2024</div>
-              <div class="contract-date">Received: Jan 12, 2024</div>
-            </div>
-            <div class="badge badge-warning">Action Required</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">From:</span>
-              <span class="contract-detail-value">John Doe Consulting</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$5,000</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Days Left:</span>
-              <span class="contract-detail-value">3 days</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-secondary btn-sm">Review & Sign</button>
-            <button class="btn btn-outline btn-sm">View PDF</button>
-          </div>
-        </div>
-
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">NDA Agreement</div>
-              <div class="contract-date">Received: Jan 8, 2024</div>
-            </div>
-            <div class="badge badge-warning">Action Required</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">From:</span>
-              <span class="contract-detail-value">TechStart Legal</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">Confidential</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Days Left:</span>
-              <span class="contract-detail-value">5 days</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-secondary btn-sm">Review & Sign</button>
-            <button class="btn btn-outline btn-sm">View PDF</button>
-          </div>
-        </div>
-
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Maintenance Services</div>
-              <div class="contract-date">Received: Jan 1, 2024</div>
-            </div>
-            <div class="badge badge-error">Overdue</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">From:</span>
-              <span class="contract-detail-value">Global Solutions</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$3,000/month</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Overdue By:</span>
-              <span class="contract-detail-value">2 days</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-primary btn-sm">Sign Now</button>
-            <button class="btn btn-outline btn-sm">View PDF</button>
-          </div>
-        </div>
+        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
       </div>
     </div>
 
@@ -124,61 +42,7 @@
     <div class="dashboard-section">
       <h2 class="section-title">✅ Signed Contracts</h2>
       <div class="section-grid" id="signedContractsGrid">
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Website Development</div>
-              <div class="contract-date">Signed: Dec 28, 2023</div>
-            </div>
-            <div class="badge badge-secondary">Completed</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">From:</span>
-              <span class="contract-detail-value">Creative Labs</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$12,000</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Signed By:</span>
-              <span class="contract-detail-value">Alice Johnson</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-outline btn-sm">Download</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
-
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">License Agreement</div>
-              <div class="contract-date">Signed: Dec 15, 2023</div>
-            </div>
-            <div class="badge badge-secondary">Completed</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">From:</span>
-              <span class="contract-detail-value">SoftwareCo</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$2,500/year</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Signed By:</span>
-              <span class="contract-detail-value">Mike Chen</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-outline btn-sm">Download</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
+        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
       </div>
     </div>
   </div>

@@ -34,4 +34,5 @@ async def create_user(payload: UserCreate):
 
     # Return the created user (without password)
     doc["_id"] = str(result.inserted_id)
+    doc.pop("password", None)
     return doc

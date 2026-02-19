@@ -22,7 +22,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, examples=["John Doe"])
     email: EmailStr = Field(..., examples=["john@example.com"])
-    password: str = Field(..., min_length=1, examples=["secret123"])
+    password: str = Field(..., min_length=8, max_length=128, examples=["secret123"])
 
 
 # ── Full user document returned by the API ────────────────────

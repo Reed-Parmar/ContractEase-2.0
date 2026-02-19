@@ -30,18 +30,23 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid contract ID format")
 
-    contract = await contracts_collection.find_one({"_id": oid})
+    # Atomic conditional update: only transition sent → signed
+    updated_contract = await contracts_collection.find_one_and_update(
+        {"_id": oid, "status": ContractStatus.sent.value},
+        {"$set": {"status": ContractStatus.signed.value}},
+    )
 
-    if not contract:
-        raise HTTPException(status_code=404, detail="Contract not found")
-
-    if contract["status"] != ContractStatus.sent.value:
+    if updated_contract is None:
+        # Distinguish "not found" from "wrong status"
+        existing = await contracts_collection.find_one({"_id": oid})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Contract not found")
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot sign — contract status is '{contract['status']}' (must be 'sent')",
+            detail=f"Cannot sign — contract status is '{existing['status']}' (must be 'sent')",
         )
 
-    # Create signature document
+    # Create signature document only after the atomic status change succeeded
     sig_doc = {
         "contractId": contract_id,
         "signerName": payload.signerName,
@@ -51,12 +56,6 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     }
 
     result = await signatures_collection.insert_one(sig_doc)
-
-    # Update contract status to 'signed'
-    await contracts_collection.update_one(
-        {"_id": oid},
-        {"$set": {"status": ContractStatus.signed.value}},
-    )
 
     sig_doc["_id"] = str(result.inserted_id)
     return sig_doc

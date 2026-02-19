@@ -1,48 +1,76 @@
 // Authentication Handler
 
+const AUTH_API = 'http://localhost:8000';
+
 document.addEventListener('DOMContentLoaded', () => {
   const userLoginForm = document.getElementById('userLoginForm');
   const clientLoginForm = document.getElementById('clientLoginForm');
 
   // User Login
   if (userLoginForm) {
-    userLoginForm.addEventListener('submit', (e) => {
+    userLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const rememberMe = document.getElementById('rememberMe').checked;
 
-      // Simulate authentication
-      console.log('User Login:', { email, rememberMe });
+      try {
+        const res = await fetch(`${AUTH_API}/login/user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
 
-      // Store user session
-      localStorage.setItem('user_email', email);
-      localStorage.setItem('user_role', 'user');
-      localStorage.setItem('user_name', email.split('@')[0]);
+        if (!res.ok) {
+          alert(data.detail || 'Login failed');
+          return;
+        }
 
-      // Redirect to dashboard
-      window.location.href = './user-dashboard.html';
+        // Store session
+        localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('user_email', data.email);
+        localStorage.setItem('user_role', 'user');
+        localStorage.setItem('user_name', data.name);
+
+        window.location.href = './user-dashboard.html';
+      } catch (err) {
+        console.error(err);
+        alert('Could not reach the server. Is the backend running?');
+      }
     });
   }
 
   // Client Login
   if (clientLoginForm) {
-    clientLoginForm.addEventListener('submit', (e) => {
+    clientLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const contractCode = document.getElementById('contractCode').value;
 
-      // Simulate authentication
-      console.log('Client Login:', { email, contractCode });
+      try {
+        const res = await fetch(`${AUTH_API}/login/client`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
 
-      // Store client session
-      localStorage.setItem('user_email', email);
-      localStorage.setItem('user_role', 'client');
-      localStorage.setItem('user_name', email.split('@')[0]);
+        if (!res.ok) {
+          alert(data.detail || 'Login failed');
+          return;
+        }
 
-      // Redirect to dashboard
-      window.location.href = './client-dashboard.html';
+        // Store session
+        localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('user_email', data.email);
+        localStorage.setItem('user_role', 'client');
+        localStorage.setItem('user_name', data.name);
+
+        window.location.href = './client-dashboard.html';
+      } catch (err) {
+        console.error(err);
+        alert('Could not reach the server. Is the backend running?');
+      }
     });
   }
 
@@ -50,13 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      // Clear session
-      localStorage.removeItem('user_email');
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('user_name');
-
-      // Redirect to login
-      const userRole = localStorage.getItem('user_role');
+      const userRole = localStorage.getItem('user_role') || 'user';
+      localStorage.clear();
       const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
       window.location.href = loginPage;
     });
@@ -75,34 +98,3 @@ document.addEventListener('DOMContentLoaded', () => {
     userInitials.textContent = initials;
   }
 });
-
-// API Helper
-const api = {
-  login: async (email, password, role) => {
-    try {
-      // Simulate API call
-      console.log(`[API] ${role} login:`, { email });
-      return { success: true, message: 'Login successful' };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, message: 'Login failed' };
-    }
-  },
-
-  logout: async () => {
-    try {
-      // Simulate API call
-      console.log('[API] User logout');
-      localStorage.clear();
-      return { success: true };
-    } catch (error) {
-      console.error('Logout error:', error);
-      return { success: false };
-    }
-  },
-};
-
-// Export for use in other scripts
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { api };
-}

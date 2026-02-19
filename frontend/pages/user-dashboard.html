@@ -27,7 +27,7 @@
 
   <div class="dashboard-container">
     <div class="dashboard-header">
-      <h1 class="welcome-message">Welcome back, John!</h1>
+      <h1 class="welcome-message">Welcome back!</h1>
       <p class="dashboard-subtitle">Manage your contracts and track their status</p>
       <div class="dashboard-actions">
         <a href="./create-contract.html" class="btn btn-primary">+ Create New Contract</a>
@@ -38,62 +38,7 @@
     <div class="dashboard-section">
       <h2 class="section-title">Draft Contracts</h2>
       <div class="section-grid" id="draftContractsGrid">
-        <!-- Dynamic content will be inserted here -->
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Service Agreement</div>
-              <div class="contract-date">Created: Jan 15, 2024</div>
-            </div>
-            <div class="badge badge-primary">Draft</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Client:</span>
-              <span class="contract-detail-value">Acme Corp</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$5,000</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Due:</span>
-              <span class="contract-detail-value">Feb 15, 2024</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-primary btn-sm">Edit</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
-
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">NDA Agreement</div>
-              <div class="contract-date">Created: Jan 10, 2024</div>
-            </div>
-            <div class="badge badge-primary">Draft</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Client:</span>
-              <span class="contract-detail-value">TechStart Inc</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">Confidential</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Due:</span>
-              <span class="contract-detail-value">Jan 25, 2024</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-primary btn-sm">Edit</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
+        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
       </div>
     </div>
 
@@ -101,33 +46,7 @@
     <div class="dashboard-section">
       <h2 class="section-title">Pending Signature</h2>
       <div class="section-grid" id="pendingContractsGrid">
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Consulting Agreement</div>
-              <div class="contract-date">Sent: Jan 5, 2024</div>
-            </div>
-            <div class="badge badge-warning">Pending</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Client:</span>
-              <span class="contract-detail-value">Global Solutions</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$8,500</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Due:</span>
-              <span class="contract-detail-value">Jan 20, 2024</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-secondary btn-sm">Send Reminder</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
+        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
       </div>
     </div>
 
@@ -135,61 +54,7 @@
     <div class="dashboard-section">
       <h2 class="section-title">Signed Contracts</h2>
       <div class="section-grid" id="signedContractsGrid">
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Website Development</div>
-              <div class="contract-date">Signed: Jan 3, 2024</div>
-            </div>
-            <div class="badge badge-secondary">Signed</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Client:</span>
-              <span class="contract-detail-value">Creative Labs</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$12,000</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Signed:</span>
-              <span class="contract-detail-value">Jan 3, 2024</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-outline btn-sm">Download</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
-
-        <div class="contract-card">
-          <div class="contract-header">
-            <div>
-              <div class="contract-title">Maintenance Services</div>
-              <div class="contract-date">Signed: Dec 28, 2023</div>
-            </div>
-            <div class="badge badge-secondary">Signed</div>
-          </div>
-          <div class="contract-details">
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Client:</span>
-              <span class="contract-detail-value">FinanceHub</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Amount:</span>
-              <span class="contract-detail-value">$3,000/month</span>
-            </div>
-            <div class="contract-detail-row">
-              <span class="contract-detail-label">Signed:</span>
-              <span class="contract-detail-value">Dec 28, 2023</span>
-            </div>
-          </div>
-          <div class="contract-actions">
-            <button class="btn btn-outline btn-sm">Download</button>
-            <button class="btn btn-outline btn-sm">View</button>
-          </div>
-        </div>
+        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
       </div>
     </div>
   </div>
