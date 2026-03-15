@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import ALLOWED_ORIGINS
-from app.db.mongo import close_mongo_connection
+from app.db.mongo import close_mongo_connection, users_collection, clients_collection
 from app.routes import users, clients, contracts, signatures, register
 
 # ── App instance ──────────────────────────────────────────────
@@ -27,6 +27,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Startup: ensure database indexes ─────────────────────────
+@app.on_event("startup")
+async def ensure_indexes():
+    """Create required database indexes on startup (idempotent)."""
+    # Unique email index on users collection (n04 fix)
+    await users_collection.create_index("email", unique=True)
+    # Unique email index on clients collection (already enforced, kept for safety)
+    await clients_collection.create_index("email", unique=True)
 
 
 # ── Shutdown ──────────────────────────────────────────────────

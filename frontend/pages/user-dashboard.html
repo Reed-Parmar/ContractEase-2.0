@@ -18,7 +18,7 @@
         <a href="#" class="navbar-link">Templates</a>
         <a href="#" class="navbar-link">Help</a>
         <div class="navbar-user">
-          <div class="user-avatar">JD</div>
+          <div class="user-avatar" id="userInitials">??</div>
           <button class="logout-btn" id="logoutBtn">Sign Out</button>
         </div>
       </div>
@@ -57,8 +57,17 @@
         <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
       </div>
     </div>
+
+    <!-- Declined Contracts -->
+    <div class="dashboard-section">
+      <h2 class="section-title">Declined Contracts</h2>
+      <div class="section-grid" id="declinedContractsGrid">
+        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
+      </div>
+    </div>
   </div>
 
+  <script src="../js/config.js"></script>
   <script src="../js/dashboard.js"></script>
 </body>
 </html>

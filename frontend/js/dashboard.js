@@ -1,6 +1,5 @@
 // Dashboard Handler — data-driven via backend API
-
-const API = 'http://localhost:8000';
+// Requires: config.js (API_BASE, showToast)
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -90,14 +89,19 @@ function renderUserPendingCard(c) {
 }
 
 function renderUserSignedCard(c) {
+  const isDeclined = c.status === 'declined';
+  const badgeClass = isDeclined ? 'badge-error' : 'badge-secondary';
+  const badgeText = isDeclined ? 'Declined' : 'Signed';
+  const dateLabel = isDeclined ? 'Updated:' : 'Signed:';
+
   return `
     <div class="contract-card" data-id="${c._id}">
       <div class="contract-header">
         <div>
           <div class="contract-title">${c.title}</div>
-          <div class="contract-date">Signed: ${formatDate(c.signedAt || c.createdAt)}</div>
+          <div class="contract-date">${dateLabel} ${formatDate(c.signedAt || c.createdAt)}</div>
         </div>
-        <div class="badge badge-secondary">Signed</div>
+        <div class="badge ${badgeClass}">${badgeText}</div>
       </div>
       <div class="contract-details">
         <div class="contract-detail-row">
@@ -109,7 +113,7 @@ function renderUserSignedCard(c) {
           <span class="contract-detail-value">${formatAmount(c.amount)}</span>
         </div>
         <div class="contract-detail-row">
-          <span class="contract-detail-label">Signed:</span>
+          <span class="contract-detail-label">${dateLabel}</span>
           <span class="contract-detail-value">${formatDate(c.signedAt || c.createdAt)}</span>
         </div>
       </div>
@@ -125,6 +129,7 @@ function renderClientPendingCard(c) {
   const badgeClass = overdue ? 'badge-error' : 'badge-warning';
   const badgeText = overdue ? 'Overdue' : 'Action Required';
   const daysText = overdue ? `Overdue by ${Math.abs(days)} day(s)` : days !== null ? `${days} day(s) left` : '—';
+  const senderText = c.userName || c.userEmail || '—';
 
   return `
     <div class="contract-card" data-id="${c._id}">
@@ -136,6 +141,10 @@ function renderClientPendingCard(c) {
         <div class="badge ${badgeClass}">${badgeText}</div>
       </div>
       <div class="contract-details">
+        <div class="contract-detail-row">
+          <span class="contract-detail-label">From:</span>
+          <span class="contract-detail-value">${senderText}</span>
+        </div>
         <div class="contract-detail-row">
           <span class="contract-detail-label">Amount:</span>
           <span class="contract-detail-value">${formatAmount(c.amount)}</span>
@@ -153,14 +162,19 @@ function renderClientPendingCard(c) {
 }
 
 function renderClientSignedCard(c) {
+  const isDeclined = c.status === 'declined';
+  const badgeClass = isDeclined ? 'badge-error' : 'badge-secondary';
+  const badgeText = isDeclined ? 'Declined' : 'Completed';
+  const dateLabel = isDeclined ? 'Updated:' : 'Signed:';
+
   return `
     <div class="contract-card" data-id="${c._id}">
       <div class="contract-header">
         <div>
           <div class="contract-title">${c.title}</div>
-          <div class="contract-date">Signed: ${formatDate(c.signedAt || c.createdAt)}</div>
+          <div class="contract-date">${dateLabel} ${formatDate(c.signedAt || c.createdAt)}</div>
         </div>
-        <div class="badge badge-secondary">Completed</div>
+        <div class="badge ${badgeClass}">${badgeText}</div>
       </div>
       <div class="contract-details">
         <div class="contract-detail-row">
@@ -168,7 +182,7 @@ function renderClientSignedCard(c) {
           <span class="contract-detail-value">${formatAmount(c.amount)}</span>
         </div>
         <div class="contract-detail-row">
-          <span class="contract-detail-label">Signed:</span>
+          <span class="contract-detail-label">${dateLabel}</span>
           <span class="contract-detail-value">${formatDate(c.signedAt || c.createdAt)}</span>
         </div>
       </div>
@@ -201,6 +215,7 @@ function bindCardButtons() {
     btn.addEventListener('click', (e) => {
       const id = e.target.closest('.contract-card').dataset.id;
       localStorage.setItem('selected_contract_id', id);
+      localStorage.setItem('contract_page_mode', 'edit');
       window.location.href = './create-contract.html';
     });
   });
@@ -215,6 +230,7 @@ function bindCardButtons() {
       if (role === 'client') {
         window.location.href = './sign-contract.html';
       } else {
+        localStorage.setItem('contract_page_mode', 'view');
         window.location.href = './create-contract.html';
       }
     });
@@ -231,7 +247,7 @@ function bindCardButtons() {
   document.querySelectorAll('.send-reminder-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const title = e.target.closest('.contract-card').querySelector('.contract-title').textContent;
-      alert('Reminder sent for: ' + title);
+      showToast('Reminder queued for: ' + title, 'info');
     });
   });
 }
@@ -240,17 +256,19 @@ function bindCardButtons() {
 
 async function loadUserDashboard(userId) {
   try {
-    const res = await fetch(`${API}/contracts/user/${userId}`);
+    const res = await fetch(`${API_BASE}/contracts/user/${userId}`);
     if (!res.ok) throw new Error('Failed to load contracts');
     const contracts = await res.json();
 
     const drafts = contracts.filter((c) => c.status === 'draft');
     const pending = contracts.filter((c) => c.status === 'sent' || c.status === 'pending');
     const signed = contracts.filter((c) => c.status === 'signed');
+    const declined = contracts.filter((c) => c.status === 'declined');
 
     fillGrid('draftContractsGrid', drafts.map(renderUserDraftCard), 'No draft contracts yet. Click "Create New Contract" to get started.');
     fillGrid('pendingContractsGrid', pending.map(renderUserPendingCard), 'No contracts pending signature.');
     fillGrid('signedContractsGrid', signed.map(renderUserSignedCard), 'No signed contracts yet.');
+    fillGrid('declinedContractsGrid', declined.map(renderUserSignedCard), 'No declined contracts.');
 
     bindCardButtons();
   } catch (err) {
@@ -260,15 +278,17 @@ async function loadUserDashboard(userId) {
 
 async function loadClientDashboard(clientId) {
   try {
-    const res = await fetch(`${API}/contracts/client/${clientId}`);
+    const res = await fetch(`${API_BASE}/contracts/client/${clientId}`);
     if (!res.ok) throw new Error('Failed to load contracts');
     const contracts = await res.json();
 
     const pending = contracts.filter((c) => c.status === 'sent' || c.status === 'pending');
     const signed = contracts.filter((c) => c.status === 'signed');
+    const declined = contracts.filter((c) => c.status === 'declined');
 
     fillGrid('pendingSignatureGrid', pending.map(renderClientPendingCard), 'No contracts awaiting your signature.');
     fillGrid('signedContractsGrid', signed.map(renderClientSignedCard), 'No signed contracts yet.');
+    fillGrid('declinedContractsGrid', declined.map(renderClientSignedCard), 'No declined contracts.');
 
     bindCardButtons();
   } catch (err) {
@@ -322,6 +342,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const welcomeMessage = document.querySelector('.welcome-message');
   if (welcomeMessage) {
     welcomeMessage.textContent = `Welcome back, ${capitalizeFirstLetter(userName)}!`;
+  }
+
+  // Dynamic avatar initials
+  const userInitialsEl = document.getElementById('userInitials');
+  if (userInitialsEl) {
+    const initials = userName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    userInitialsEl.textContent = initials;
   }
 
   // Load data from backend

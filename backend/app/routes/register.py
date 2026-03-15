@@ -58,7 +58,13 @@ async def register_user(payload: RegisterBody):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     await users_collection.insert_one(doc)
-    return {"success": True}
+    return {
+        "success": True,
+        "user_id": str(doc["_id"]),
+        "name": payload.name,
+        "email": payload.email,
+        "role": "user",
+    }
 
 
 # ── POST /register/client ────────────────────────────────────
@@ -79,7 +85,13 @@ async def register_client(payload: RegisterBody):
     except DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    return {"success": True}
+    return {
+        "success": True,
+        "user_id": str(doc["_id"]),
+        "name": payload.name,
+        "email": payload.email,
+        "role": "client",
+    }
 
 
 # ── POST /login/user ─────────────────────────────────────────

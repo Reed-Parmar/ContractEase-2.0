@@ -36,6 +36,19 @@ def _serialize(doc: dict) -> dict:
     return doc
 
 
+async def _attach_sender_fields(doc: dict) -> dict:
+    """Ensure sender name/email are present in contract payloads."""
+    if (not doc.get("userName") or not doc.get("userEmail")) and doc.get("userId"):
+        sender = await users_collection.find_one(
+            {"_id": doc["userId"]},
+            {"name": 1, "email": 1},
+        )
+        if sender:
+            doc["userName"] = sender.get("name", "")
+            doc["userEmail"] = sender.get("email", "")
+    return doc
+
+
 # ── POST /contracts  ──────────────────────────────────────────
 @router.post("/", response_model=ContractOut, status_code=201)
 async def create_contract(payload: ContractCreate):
@@ -62,6 +75,8 @@ async def create_contract(payload: ContractCreate):
         "clauses": payload.clauses.model_dump(),
         "status": ContractStatus.draft.value,
         "userId": user_oid,
+        "userName": user.get("name", ""),
+        "userEmail": user.get("email", ""),
         "clientId": client_oid,
         "clientName": client.get("name", ""),
         "clientEmail": client.get("email", ""),
@@ -85,6 +100,7 @@ async def get_contracts_by_user(user_id: str):
     cursor = contracts_collection.find({"userId": user_oid}).sort("createdAt", -1)
     results = []
     async for doc in cursor:
+        doc = await _attach_sender_fields(doc)
         results.append(_serialize(doc))
     return results
 
@@ -97,6 +113,7 @@ async def get_contracts_by_client(client_id: str):
     cursor = contracts_collection.find({"clientId": client_oid}).sort("createdAt", -1)
     results = []
     async for doc in cursor:
+        doc = await _attach_sender_fields(doc)
         results.append(_serialize(doc))
     return results
 
@@ -111,6 +128,8 @@ async def get_contract(contract_id: str):
 
     if not doc:
         raise HTTPException(status_code=404, detail="Contract not found")
+
+    doc = await _attach_sender_fields(doc)
 
     return _serialize(doc)
 

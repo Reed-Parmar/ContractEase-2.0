@@ -18,10 +18,16 @@ MONGO_CONNECT_TIMEOUT_MS = int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "5000"))
 MONGO_MAX_POOL_SIZE = int(os.getenv("MONGO_MAX_POOL_SIZE", "100"))
 MONGO_MIN_POOL_SIZE = int(os.getenv("MONGO_MIN_POOL_SIZE", "10"))
 
-# CORS — comma-separated allowed origins (empty or "*" disables credentials)
+# CORS — comma-separated allowed origins
+# Added port 5500 variants for Live Server and 3000 for node-based servers
 ALLOWED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:5500").split(",")
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:5500,http://127.0.0.1:5500,"
+        "http://localhost:5501,http://127.0.0.1:5501",
+    ).split(",")
     if origin.strip()
 ]
 

@@ -70,6 +70,8 @@ class ContractOut(BaseModel):
     clauses: Clauses
     status: ContractStatus
     userId: str
+    userName: Optional[str] = None
+    userEmail: Optional[str] = None
     clientId: str
     clientName: Optional[str] = None
     clientEmail: Optional[str] = None

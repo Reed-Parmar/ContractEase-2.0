@@ -51,9 +51,8 @@
         </div>
     </div>
 
+    <script src="../js/config.js"></script>
     <script>
-        const API = 'http://localhost:8000';
-
         document.addEventListener('DOMContentLoaded', () => {
             const registerForm = document.getElementById('registerForm');
 
@@ -66,12 +65,12 @@
                 const confirmPassword = document.getElementById('confirmPassword').value;
 
                 if (password !== confirmPassword) {
-                    alert('Passwords do not match. Please try again.');
+                    showToast('Passwords do not match. Please try again.', 'error');
                     return;
                 }
 
                 try {
-                    const res = await fetch(`${API}/register/user`, {
+                    const res = await fetch(`${API_BASE}/register/user`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, email, password }),
@@ -80,14 +79,19 @@
                     const data = await res.json();
 
                     if (res.ok && data.success) {
-                        alert('Registration successful!');
-                        window.location.href = 'user-login.html';
+                        // Auto-login: store session and navigate directly to dashboard
+                        localStorage.setItem('user_id', data.user_id);
+                        localStorage.setItem('user_email', data.email);
+                        localStorage.setItem('user_role', 'user');
+                        localStorage.setItem('user_name', data.name);
+                        showToast('Account created! Welcome to ContractEase.', 'success');
+                        setTimeout(() => { window.location.href = 'user-dashboard.html'; }, 800);
                     } else {
-                        alert(data.detail || 'Registration failed.');
+                        showToast(data.detail || 'Registration failed.', 'error');
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('Could not reach the server. Is the backend running?');
+                    showToast('Could not reach the server. Is the backend running?', 'error');
                 }
             });
         });

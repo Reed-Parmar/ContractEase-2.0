@@ -414,3 +414,49 @@ p {
     display: none !important;
   }
 }
+
+/* ===== Toast Notification System ===== */
+/* Used by config.js showToast() — replaces browser alert() */
+.ce-toast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  min-width: 260px;
+  max-width: 380px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height-tight);
+  color: #ffffff;
+  z-index: 9999;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.ce-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Type variants */
+.ce-toast--error {
+  background-color: rgba(239, 68, 68, 0.92);   /* --error with slight transparency */
+}
+
+.ce-toast--success {
+  background-color: rgba(16, 185, 129, 0.92);  /* --success with slight transparency */
+}
+
+.ce-toast--warning {
+  background-color: rgba(245, 158, 11, 0.92);  /* --warning with slight transparency */
+}
+
+.ce-toast--info {
+  background-color: rgba(0, 102, 204, 0.92);   /* --primary with slight transparency */
+}

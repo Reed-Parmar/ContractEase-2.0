@@ -1,12 +1,13 @@
 // Contract Creation & Signing Handler
-
-const CONTRACT_API = 'http://localhost:8000';
+// Requires: config.js (API_BASE, showToast)
 
 let currentStep = 1;
 let selectedContractType = null;
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
+let hasSignatureInk = false;
+let selectedContractStatus = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   // ── Contract Type Selection ──────────────────────────────────
@@ -38,8 +39,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
       if (currentStep === 1 && !selectedContractType) {
-        alert('Please select a contract type');
+        showToast('Please select a contract type to continue.', 'warning');
         return;
+      }
+      // Validate Step 2 fields before advancing to Step 3
+      if (currentStep === 2) {
+        const title = document.getElementById('contractTitle')?.value?.trim();
+        const email = document.getElementById('clientEmail')?.value?.trim();
+        if (!title) {
+          showToast('Please enter a contract title.', 'warning');
+          return;
+        }
+        if (!email) {
+          showToast('Please enter the client email address.', 'warning');
+          return;
+        }
       }
       goToStep(currentStep + 1);
     });
@@ -80,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const rect = signatureCanvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
+      hasSignatureInk = true;
 
       ctx.strokeStyle = '#1f2937';
       ctx.lineWidth = 2;
@@ -115,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const touch = e.touches[0];
       const x = touch.clientX - rect.left;
       const y = touch.clientY - rect.top;
+      hasSignatureInk = true;
 
       ctx.strokeStyle = '#1f2937';
       ctx.lineWidth = 2;
@@ -141,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (signatureCanvas) {
         const ctx = signatureCanvas.getContext('2d');
         ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        hasSignatureInk = false;
       }
     });
   }
@@ -170,11 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to sign out?')) {
-        const role = localStorage.getItem('user_role') || 'user';
-        localStorage.clear();
-        window.location.href = role === 'client' ? './client-login.html' : './user-login.html';
-      }
+      const role = localStorage.getItem('user_role') || 'user';
+      localStorage.clear();
+      window.location.href = role === 'client' ? './client-login.html' : './user-login.html';
     });
   }
 
@@ -183,6 +198,33 @@ document.addEventListener('DOMContentLoaded', () => {
   if (signerDate) {
     signerDate.value = new Date().toISOString().split('T')[0];
   }
+
+  const signerName = document.getElementById('signerName');
+  if (signerName && !signerName.value) {
+    signerName.value = localStorage.getItem('user_name') || '';
+  }
+
+  const signerEmail = document.getElementById('signerEmail');
+  if (signerEmail && !signerEmail.value) {
+    signerEmail.value = localStorage.getItem('user_email') || '';
+  }
+
+  // Dynamic avatar initials
+  const userInitialsEl = document.getElementById('userInitials');
+  if (userInitialsEl) {
+    const userName = localStorage.getItem('user_name') || '?';
+    const initials = userName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    userInitialsEl.textContent = initials;
+  }
+
+  // ── If create-contract page, load selected contract for edit/view ──
+  loadCreateContractPage();
 
   // ── If sign-contract page, load contract data ────────────────
   loadSignContractPage();
@@ -242,7 +284,8 @@ function updatePreview() {
     document.getElementById('previewClient').textContent = clientName.value || 'Client';
   }
   if (contractAmount) {
-    document.getElementById('previewAmount').textContent = contractAmount.value || '$0';
+    const raw = parseFloat(contractAmount.value);
+    document.getElementById('previewAmount').textContent = isNaN(raw) ? '$0' : '$' + raw.toLocaleString('en-US', { minimumFractionDigits: 0 });
   }
   if (dueDate) {
     const val = dueDate.value;
@@ -273,18 +316,94 @@ function updatePreview() {
   });
 }
 
+async function loadCreateContractPage() {
+  const contractTitleEl = document.getElementById('contractTitle');
+  if (!contractTitleEl) return; // Not on the create-contract page
+
+  const mode = localStorage.getItem('contract_page_mode');
+  const contractId = localStorage.getItem('selected_contract_id');
+
+  // Clear immediately — next visit to this page must start fresh (new contract)
+  localStorage.removeItem('contract_page_mode');
+  localStorage.removeItem('selected_contract_id');
+
+  if (!contractId || !mode || (mode !== 'edit' && mode !== 'view')) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/contracts/${contractId}`);
+    if (!res.ok) return;
+
+    const c = await res.json();
+
+    contractTitleEl.value = c.title || '';
+
+    const clientNameEl = document.getElementById('clientName');
+    if (clientNameEl) clientNameEl.value = c.clientName || '';
+
+    const clientEmailEl = document.getElementById('clientEmail');
+    if (clientEmailEl) clientEmailEl.value = c.clientEmail || '';
+
+    const contractAmountEl = document.getElementById('contractAmount');
+    if (contractAmountEl) contractAmountEl.value = c.amount != null ? String(c.amount) : '';
+
+    const dueDateEl = document.getElementById('dueDate');
+    if (dueDateEl && c.dueDate) {
+      dueDateEl.value = new Date(c.dueDate).toISOString().split('T')[0];
+    }
+
+    const contractDescriptionEl = document.getElementById('contractDescription');
+    if (contractDescriptionEl) contractDescriptionEl.value = c.description || '';
+
+    if (c.type) {
+      selectedContractType = c.type;
+      document.querySelectorAll('.contract-type-option').forEach((opt) => {
+        opt.classList.toggle('selected', opt.dataset.type === c.type);
+      });
+    }
+
+    document.querySelectorAll('.toggle-switch').forEach((toggle) => {
+      const clauseKey = toggle.dataset.clause;
+      const active = !!c.clauses?.[clauseKey];
+      toggle.classList.toggle('active', active);
+    });
+
+    if (mode === 'view') {
+      // View mode: jump to Step 3 (preview), hide all navigation so form is read-only
+      updatePreview();
+      goToStep(3);
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      if (prevBtn) prevBtn.style.display = 'none';
+      if (nextBtn) nextBtn.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'none';
+
+      // Update page title to reflect view mode
+      const editorTitle = document.querySelector('.editor-title');
+      if (editorTitle) editorTitle.textContent = c.title || 'View Contract';
+    } else {
+      // Edit mode: jump to Step 2 which shows clause toggles
+      goToStep(2);
+
+      const editorTitle = document.querySelector('.editor-title');
+      if (editorTitle) editorTitle.textContent = 'Edit: ' + (c.title || 'Contract');
+    }
+  } catch (err) {
+    console.error('Failed to load contract for edit/view:', err);
+  }
+}
+
 // ── Submit contract (create in backend) ──────────────────────
 
 async function submitContract() {
   const contractTitle = document.getElementById('contractTitle')?.value?.trim();
   const clientEmail = document.getElementById('clientEmail')?.value?.trim();
-  const clientName = document.getElementById('clientName')?.value?.trim();
   const contractAmount = document.getElementById('contractAmount')?.value?.trim();
   const dueDate = document.getElementById('dueDate')?.value;
   const contractDescription = document.getElementById('contractDescription')?.value?.trim();
 
   if (!contractTitle || !clientEmail) {
-    alert('Please fill in the contract title and client email.');
+    showToast('Please fill in the contract title and client email.', 'warning');
     return;
   }
 
@@ -298,7 +417,7 @@ async function submitContract() {
 
   const userId = localStorage.getItem('user_id');
   if (!userId) {
-    alert('You must be logged in to create a contract.');
+    showToast('You must be logged in to create a contract.', 'error');
     window.location.href = './user-login.html';
     return;
   }
@@ -306,38 +425,41 @@ async function submitContract() {
   // Look up client by email
   let clientId = null;
   try {
-    const lookupRes = await fetch(`${CONTRACT_API}/clients/by-email?email=${encodeURIComponent(clientEmail)}`);
+    const lookupRes = await fetch(`${API_BASE}/clients/by-email?email=${encodeURIComponent(clientEmail)}`);
     if (lookupRes.ok) {
       const lookupData = await lookupRes.json();
       clientId = lookupData.user_id;
     }
   } catch (_) { /* ignore */ }
 
-  // If client not found, auto-register them
+  // If client not found, auto-create their account so the contract can be sent
   if (!clientId) {
     try {
-      const regRes = await fetch(`${CONTRACT_API}/register/client`, {
+      // Derive a display name from the email prefix (e.g. "jane.doe" → "Jane Doe")
+      const namePart = clientEmail.split('@')[0].replace(/[._\-]+/g, ' ');
+      const derivedName = namePart.replace(/\b\w/g, (ch) => ch.toUpperCase());
+      const autoRes = await fetch(`${API_BASE}/register/client`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: clientName || clientEmail.split('@')[0], email: clientEmail, password: 'default123' }),
+        body: JSON.stringify({ name: derivedName, email: clientEmail, password: 'client123' }),
       });
-      if (regRes.ok) {
-        const lookupRes2 = await fetch(`${CONTRACT_API}/clients/by-email?email=${encodeURIComponent(clientEmail)}`);
-        if (lookupRes2.ok) {
-          const lookupData2 = await lookupRes2.json();
-          clientId = lookupData2.user_id;
-        }
+      if (autoRes.ok) {
+        const autoData = await autoRes.json();
+        clientId = autoData.user_id;
+        showToast(`Client account created. They can sign in with password: client123`, 'info');
+      } else {
+        const autoErr = await autoRes.json();
+        showToast(autoErr.detail || 'Could not create client account.', 'error');
+        return;
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      showToast('Could not reach the server to create the client account.', 'error');
+      return;
+    }
   }
 
-  if (!clientId) {
-    alert('Could not find or register the client. Please ensure the client has an account.');
-    return;
-  }
-
-  // Parse amount — strip $ / commas
-  const parsedAmount = parseFloat((contractAmount || '0').replace(/[$,]/g, '')) || 0;
+  // Parse amount — input is type="number" so value is already numeric
+  const parsedAmount = parseFloat(contractAmount || '0') || 0;
 
   const payload = {
     title: contractTitle,
@@ -351,7 +473,7 @@ async function submitContract() {
   };
 
   try {
-    const res = await fetch(`${CONTRACT_API}/contracts/`, {
+    const res = await fetch(`${API_BASE}/contracts/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -359,20 +481,24 @@ async function submitContract() {
 
     if (!res.ok) {
       const err = await res.json();
-      alert(err.detail || 'Failed to create contract.');
+      showToast(err.detail || 'Failed to create contract.', 'error');
       return;
     }
 
     const created = await res.json();
 
     // Also mark it as sent immediately (since the button says "Send to Client")
-    await fetch(`${CONTRACT_API}/contracts/${created._id}/send`, { method: 'PUT' });
+    await fetch(`${API_BASE}/contracts/${created._id}/send`, { method: 'PUT' });
 
-    alert('Contract sent successfully to ' + clientEmail);
-    window.location.href = './user-dashboard.html';
+    // Clear stale edit/view state so the next "Create New Contract" starts fresh
+    localStorage.removeItem('selected_contract_id');
+    localStorage.removeItem('contract_page_mode');
+
+    showToast('Contract sent to ' + clientEmail, 'success');
+    setTimeout(() => { window.location.href = './user-dashboard.html'; }, 1200);
   } catch (err) {
     console.error(err);
-    alert('Could not reach the server.');
+    showToast('Could not reach the server.', 'error');
   }
 }
 
@@ -389,9 +515,11 @@ async function loadSignContractPage() {
   if (!contractId) return;
 
   try {
-    const res = await fetch(`${CONTRACT_API}/contracts/${contractId}`);
+    const res = await fetch(`${API_BASE}/contracts/${contractId}`);
     if (!res.ok) return;
     const c = await res.json();
+    selectedContractStatus = c.status;
+    const isSignable = c.status === 'sent' || c.status === 'pending';
 
     // Update page title
     if (editorTitle) editorTitle.textContent = c.title;
@@ -400,7 +528,18 @@ async function loadSignContractPage() {
     const statusContent = document.querySelector('.signing-status-content');
     if (statusContent) {
       const dueStr = c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
-      statusContent.innerHTML = `<h3>Action Required</h3><p>Please review and sign this contract by ${dueStr}</p>`;
+      if (isSignable) {
+        statusContent.innerHTML = `<h3>Action Required</h3><p>Please review and sign this contract by ${dueStr}</p>`;
+      } else if (c.status === 'signed') {
+        const signedStr = c.signedAt
+          ? new Date(c.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+          : '—';
+        statusContent.innerHTML = `<h3>Already Signed</h3><p>This contract was signed on ${signedStr}.</p>`;
+      } else if (c.status === 'declined') {
+        statusContent.innerHTML = '<h3>Contract Declined</h3><p>This contract has already been declined and can no longer be signed.</p>';
+      } else {
+        statusContent.innerHTML = `<h3>Status: ${c.status}</h3><p>This contract is not currently available for signing.</p>`;
+      }
     }
 
     // Update contract preview content
@@ -427,65 +566,120 @@ async function loadSignContractPage() {
       previewContent.innerHTML = html;
     }
 
-    // Update contract info section
-    const infoRows = document.querySelectorAll('.form-section:last-of-type .contract-detail-row');
+    // Update contract info section (uses stable id added to the HTML)
+    const infoRows = document.querySelectorAll('#contractInfoSection .contract-detail-row');
     if (infoRows.length >= 4) {
       infoRows[0].querySelector('.contract-detail-value').textContent = c._id;
-      infoRows[1].querySelector('.contract-detail-value').textContent = '—';
+      infoRows[1].querySelector('.contract-detail-value').textContent = c.userName || c.userEmail || '—';
       infoRows[2].querySelector('.contract-detail-value').textContent = new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       infoRows[3].querySelector('.contract-detail-value').textContent = c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+    }
+
+    if (!isSignable) {
+      // Hide the signature form and action buttons entirely
+      const signatureSectionEl = document.getElementById('signatureSection');
+      const formActionsEl = document.querySelector('.form-actions');
+      if (signatureSectionEl) signatureSectionEl.style.display = 'none';
+      if (formActionsEl) formActionsEl.style.display = 'none';
+
+      // For signed contracts, fetch and display the stored signature
+      if (c.status === 'signed') {
+        try {
+          const sigRes = await fetch(`${API_BASE}/contracts/${contractId}/signature`);
+          if (sigRes.ok) {
+            const sig = await sigRes.json();
+            const el = (id) => document.getElementById(id);
+            if (el('signedByName')) el('signedByName').textContent = sig.signerName || '—';
+            if (el('signedByEmail')) el('signedByEmail').textContent = sig.signerEmail || '—';
+            if (el('signedByDate')) {
+              el('signedByDate').textContent = sig.signedAt
+                ? new Date(sig.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                : '—';
+            }
+            if (el('signatureImageDisplay') && sig.signatureImage) {
+              el('signatureImageDisplay').src = sig.signatureImage;
+            }
+            const signedDetailsEl = document.getElementById('signedDetailsSection');
+            if (signedDetailsEl) signedDetailsEl.style.display = 'block';
+          }
+        } catch (_) { /* signature display is best-effort */ }
+      }
     }
   } catch (err) {
     console.error('Failed to load contract for signing:', err);
   }
 }
 
+function canvasContainsDrawing(canvas) {
+  if (!canvas) return false;
+
+  if (hasSignatureInk) return true;
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return false;
+
+  const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 3; i < pixelData.length; i += 4) {
+    if (pixelData[i] !== 0) return true;
+  }
+
+  return false;
+}
+
 // ── Sign contract ────────────────────────────────────────────
 
 async function signContract() {
+  if (selectedContractStatus && selectedContractStatus !== 'sent' && selectedContractStatus !== 'pending') {
+    showToast('This contract can no longer be signed.', 'error');
+    return;
+  }
+
   const signerName = document.getElementById('signerName')?.value?.trim();
   const signerEmail = document.getElementById('signerEmail')?.value?.trim();
   const agreeTerms = document.getElementById('agreeTerms')?.checked;
   const signatureCanvas = document.getElementById('signatureCanvas');
 
   if (!signerName || !signerEmail || !agreeTerms) {
-    alert('Please fill in all required fields and agree to the terms');
+    showToast('Please fill in all required fields and agree to the terms.', 'warning');
     return;
   }
 
-  if (signatureCanvas) {
-    const signatureData = signatureCanvas.toDataURL();
-    if (signatureData === 'data:,') {
-      alert('Please draw your signature');
-      return;
-    }
+  if (!canvasContainsDrawing(signatureCanvas)) {
+    showToast('Please draw your signature in the box above.', 'warning');
+    return;
   }
+
+  const signatureData = signatureCanvas.toDataURL('image/png');
 
   const contractId = localStorage.getItem('selected_contract_id');
   if (!contractId) {
-    alert('No contract selected.');
+    showToast('No contract selected.', 'error');
     return;
   }
 
   try {
-    const res = await fetch(`${CONTRACT_API}/contracts/${contractId}/status`, {
-      method: 'PATCH',
+    const res = await fetch(`${API_BASE}/contracts/${contractId}/sign`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'signed' }),
+      body: JSON.stringify({
+        signerName,
+        signerEmail,
+        signatureImage: signatureData,
+      }),
     });
 
     if (!res.ok) {
       const err = await res.json();
-      alert(err.detail || 'Failed to sign contract.');
+      showToast(err.detail || 'Failed to sign contract.', 'error');
       return;
     }
 
-    alert('Contract signed successfully! You will receive a confirmation email shortly.');
+    showToast('Contract signed successfully!', 'success');
     localStorage.removeItem('selected_contract_id');
-    window.location.href = './client-dashboard.html';
+    setTimeout(() => { window.location.href = './client-dashboard.html'; }, 1200);
   } catch (err) {
     console.error(err);
-    alert('Could not reach the server.');
+    showToast('Could not reach the server.', 'error');
   }
 }
 
@@ -496,12 +690,12 @@ async function declineContract() {
 
   const contractId = localStorage.getItem('selected_contract_id');
   if (!contractId) {
-    alert('No contract selected.');
+    showToast('No contract selected.', 'error');
     return;
   }
 
   try {
-    const res = await fetch(`${CONTRACT_API}/contracts/${contractId}/status`, {
+    const res = await fetch(`${API_BASE}/contracts/${contractId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'declined' }),
@@ -509,15 +703,15 @@ async function declineContract() {
 
     if (!res.ok) {
       const err = await res.json();
-      alert(err.detail || 'Failed to decline contract.');
+      showToast(err.detail || 'Failed to decline contract.', 'error');
       return;
     }
 
-    alert('Contract declined. The other party has been notified.');
+    showToast('Contract declined.', 'info');
     localStorage.removeItem('selected_contract_id');
-    window.location.href = './client-dashboard.html';
+    setTimeout(() => { window.location.href = './client-dashboard.html'; }, 1200);
   } catch (err) {
     console.error(err);
-    alert('Could not reach the server.');
+    showToast('Could not reach the server.', 'error');
   }
 }
