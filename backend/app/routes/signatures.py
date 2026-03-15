@@ -61,7 +61,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 
     # Create signature document only after the atomic status change succeeded
     sig_doc = {
-        "contractId": contract_id,
+        "contractId": oid,
         "signerName": payload.signerName,
         "signerEmail": payload.signerEmail,
         "signatureImage": payload.signatureImage,
@@ -71,6 +71,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     result = await signatures_collection.insert_one(sig_doc)
 
     sig_doc["_id"] = str(result.inserted_id)
+    sig_doc["contractId"] = str(sig_doc["contractId"])
     return sig_doc
 
 
@@ -78,8 +79,20 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 @router.get("/{contract_id}/signature")
 async def get_contract_signature(contract_id: str):
     """Retrieve the stored signature record for a signed contract."""
-    sig = await signatures_collection.find_one({"contractId": contract_id})
+    try:
+        oid = ObjectId(contract_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid contract ID format")
+
+    sig = await signatures_collection.find_one({
+        "$or": [
+            {"contractId": oid},
+            {"contractId": contract_id},  # legacy records created before ObjectId migration
+        ]
+    })
     if not sig:
         raise HTTPException(status_code=404, detail="No signature found for this contract")
     sig["_id"] = str(sig["_id"])
+    if isinstance(sig.get("contractId"), ObjectId):
+        sig["contractId"] = str(sig["contractId"])
     return sig

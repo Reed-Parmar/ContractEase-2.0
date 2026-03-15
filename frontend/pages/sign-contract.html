@@ -141,7 +141,7 @@
       </div>
       <div style="margin-top:var(--space-4);">
         <p class="form-label" style="margin-bottom:var(--space-2);">Signature:</p>
-        <img id="signatureImageDisplay" src="" alt="Signature"
+        <img id="signatureImageDisplay" src="data:," alt="Signature"
           style="border:1px solid var(--border);border-radius:var(--radius-md);max-width:320px;height:auto;display:block;background:#fff;">
       </div>
     </div>
@@ -152,19 +152,19 @@
       
       <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
         <span class="contract-detail-label">Contract ID:</span>
-        <span class="contract-detail-value">—</span>
+        <span class="contract-detail-value" id="contractId">—</span>
       </div>
       <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
         <span class="contract-detail-label">Sent by:</span>
-        <span class="contract-detail-value">—</span>
+        <span class="contract-detail-value" id="sentBy">—</span>
       </div>
       <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
         <span class="contract-detail-label">Received:</span>
-        <span class="contract-detail-value">—</span>
+        <span class="contract-detail-value" id="receivedAt">—</span>
       </div>
       <div class="contract-detail-row" style="padding: var(--space-4) 0;">
         <span class="contract-detail-label">Signature Deadline:</span>
-        <span class="contract-detail-value">—</span>
+        <span class="contract-detail-value" id="signatureDeadline">—</span>
       </div>
     </div>
 

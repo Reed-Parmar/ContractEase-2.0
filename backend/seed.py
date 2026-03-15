@@ -220,7 +220,7 @@ async def seed() -> None:
                 sig_label = f"{client_doc['email']}_{str(contract['_id'])}"
                 signature_docs.append({
                     "_id":            ObjectId(),
-                    "contractId":     str(contract["_id"]),
+                    "contractId":     contract["_id"],
                     "signerName":     client_doc["name"],
                     "signerEmail":    client_doc["email"],
                     "signatureImage": _make_sketch_png(sig_label),

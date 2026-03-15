@@ -331,7 +331,12 @@ async function loadCreateContractPage() {
 
   try {
     const res = await fetch(`${API_BASE}/contracts/${contractId}`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(
+        `Failed to load contract (${res.status} ${res.statusText})${errorText ? `: ${errorText}` : ''}`,
+      );
+    }
 
     const c = await res.json();
 
@@ -390,6 +395,7 @@ async function loadCreateContractPage() {
     }
   } catch (err) {
     console.error('Failed to load contract for edit/view:', err);
+    showToast('Could not load the selected contract. Please try again from the dashboard.', 'error');
   }
 }
 
@@ -488,7 +494,24 @@ async function submitContract() {
     const created = await res.json();
 
     // Also mark it as sent immediately (since the button says "Send to Client")
-    await fetch(`${API_BASE}/contracts/${created._id}/send`, { method: 'PUT' });
+    const sendRes = await fetch(`${API_BASE}/contracts/${created._id}/send`, { method: 'PUT' });
+    if (!sendRes.ok) {
+      const sendErrorText = await sendRes.text();
+      let sendMessage = `Failed to send contract (${sendRes.status} ${sendRes.statusText})`;
+
+      if (sendErrorText) {
+        try {
+          const sendErrorJson = JSON.parse(sendErrorText);
+          sendMessage = sendErrorJson.detail || sendErrorJson.message || sendMessage;
+        } catch {
+          sendMessage = sendErrorText;
+        }
+      }
+
+      console.error('Failed to send contract:', sendMessage);
+      showToast(sendMessage, 'error');
+      return;
+    }
 
     // Clear stale edit/view state so the next "Create New Contract" starts fresh
     localStorage.removeItem('selected_contract_id');
@@ -566,13 +589,19 @@ async function loadSignContractPage() {
       previewContent.innerHTML = html;
     }
 
-    // Update contract info section (uses stable id added to the HTML)
-    const infoRows = document.querySelectorAll('#contractInfoSection .contract-detail-row');
-    if (infoRows.length >= 4) {
-      infoRows[0].querySelector('.contract-detail-value').textContent = c._id;
-      infoRows[1].querySelector('.contract-detail-value').textContent = c.userName || c.userEmail || '—';
-      infoRows[2].querySelector('.contract-detail-value').textContent = new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      infoRows[3].querySelector('.contract-detail-value').textContent = c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+    // Update contract info section using stable element IDs
+    const contractIdValueEl = document.getElementById('contractId');
+    const sentByValueEl = document.getElementById('sentBy');
+    const receivedAtValueEl = document.getElementById('receivedAt');
+    const signatureDeadlineValueEl = document.getElementById('signatureDeadline');
+
+    if (contractIdValueEl) contractIdValueEl.textContent = c._id;
+    if (sentByValueEl) sentByValueEl.textContent = c.userName || c.userEmail || '—';
+    if (receivedAtValueEl) {
+      receivedAtValueEl.textContent = new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    if (signatureDeadlineValueEl) {
+      signatureDeadlineValueEl.textContent = c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
     }
 
     if (!isSignable) {

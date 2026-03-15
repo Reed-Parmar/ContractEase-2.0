@@ -5,7 +5,7 @@ MongoDB document example
 ────────────────────────
 {
   "_id":             ObjectId("..."),
-  "contractId":      "665c...",
+    "contractId":      ObjectId("665c..."),
   "signerName":      "Jane Smith",
   "signerEmail":     "jane@acme.com",
   "signatureImage":  "data:image/png;base64,iVBOR...",

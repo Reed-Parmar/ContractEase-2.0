@@ -438,6 +438,16 @@ p {
   pointer-events: none;
 }
 
+.ce-toast:focus,
+.ce-toast:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  outline: 3px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 3px;
+  box-shadow: var(--shadow-lg), 0 0 0 6px rgba(15, 23, 42, 0.35);
+}
+
 .ce-toast--visible {
   opacity: 1;
   transform: translateY(0);
@@ -455,6 +465,7 @@ p {
 
 .ce-toast--warning {
   background-color: rgba(245, 158, 11, 0.92);  /* --warning with slight transparency */
+  color: #78350f;
 }
 
 .ce-toast--info {
