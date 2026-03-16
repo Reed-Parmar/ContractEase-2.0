@@ -1,0 +1,140 @@
+/* Print-first styles used by WeasyPrint for legal contract PDFs. */
+@page {
+  size: A4;
+  margin: 24mm 18mm;
+}
+
+body {
+  margin: 0;
+  color: #1f2937;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+.contract-document {
+  width: 100%;
+}
+
+.document-header {
+  border-bottom: 2px solid #111827;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+}
+
+.document-header h1 {
+  margin: 0;
+  font-size: 20pt;
+  letter-spacing: 0.3px;
+}
+
+.document-date {
+  margin-top: 6px;
+  color: #4b5563;
+  font-size: 10pt;
+}
+
+.contract-section {
+  margin-bottom: 18px;
+}
+
+.contract-section h2 {
+  border-bottom: 1px solid #d1d5db;
+  font-family: "Arial", sans-serif;
+  font-size: 12pt;
+  letter-spacing: 0.2px;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.contract-section h3 {
+  font-family: "Arial", sans-serif;
+  font-size: 10pt;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.party-grid {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.party-grid article {
+  display: table-cell;
+  vertical-align: top;
+  width: 50%;
+  padding-right: 10px;
+}
+
+ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li {
+  margin-bottom: 6px;
+}
+
+.signatures-section {
+  page-break-inside: avoid;
+}
+
+.signature-grid {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.signature-block {
+  border: 1px solid #d1d5db;
+  display: table-cell;
+  min-height: 140px;
+  padding: 10px;
+  vertical-align: top;
+  width: 50%;
+}
+
+.signature-block + .signature-block {
+  border-left: none;
+}
+
+.signature-label {
+  font-family: "Arial", sans-serif;
+  font-size: 9.5pt;
+  font-weight: 700;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.signature-image {
+  display: block;
+  max-height: 70px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.signature-placeholder {
+  border-top: 1px dashed #9ca3af;
+  color: #6b7280;
+  font-size: 10pt;
+  margin-top: 35px;
+  padding-top: 8px;
+}
+
+.signature-name {
+  border-top: 1px solid #9ca3af;
+  margin-top: 10px;
+  padding-top: 6px;
+}
+
+.document-footer {
+  border-top: 1px solid #d1d5db;
+  color: #6b7280;
+  font-size: 9pt;
+  margin-top: 24px;
+  padding-top: 8px;
+  text-align: center;
+}

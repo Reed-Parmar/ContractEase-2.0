@@ -275,6 +275,15 @@
   justify-content: flex-end;
 }
 
+.btn-download {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.5rem;
+}
+
+.btn-download:hover:not(:disabled) {
+  background-color: #eef2f7;
+}
+
 /* Empty State */
 .empty-state {
   display: flex;

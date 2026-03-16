@@ -35,6 +35,72 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function isDownloadableStatus(status) {
+  return status === 'signed' || status === 'finalized';
+}
+
+function parseFileNameFromDisposition(dispositionHeader) {
+  if (!dispositionHeader) return '';
+
+  const utf8Match = dispositionHeader.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match && utf8Match[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch (_) {
+      return utf8Match[1];
+    }
+  }
+
+  const simpleMatch = dispositionHeader.match(/filename="?([^";]+)"?/i);
+  return simpleMatch && simpleMatch[1] ? simpleMatch[1] : '';
+}
+
+async function downloadSignedContract(contractId, buttonEl = null) {
+  if (!contractId) {
+    showToast('Contract ID is missing for download.', 'error');
+    return;
+  }
+
+  const originalText = buttonEl ? buttonEl.textContent : '';
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.textContent = 'Downloading...';
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/contracts/${contractId}/download`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Download failed with status ${response.status}`);
+    }
+
+    const pdfBlob = await response.blob();
+    const disposition = response.headers.get('content-disposition') || '';
+    const fileName = parseFileNameFromDisposition(disposition) || `contract_${contractId}.pdf`;
+
+    const objectUrl = window.URL.createObjectURL(pdfBlob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    anchor.style.display = 'none';
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.error('Contract download failed:', error);
+    showToast('PDF download is not available yet. Backend endpoint will be added in next phase.', 'info');
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.textContent = originalText;
+    }
+  }
+}
+
 // ── Card renderers (Modern SaaS Design) ────────────────────────
 
 function renderUserDraftCard(c) {
@@ -96,10 +162,15 @@ function renderUserPendingCard(c) {
 }
 
 function renderUserSignedCard(c) {
+  const isFinalized = c.status === 'finalized';
   const isDeclined = c.status === 'declined';
+  const isDownloadable = isDownloadableStatus(c.status);
   const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
-  const badgeText = isDeclined ? 'Declined' : 'Signed';
+  const badgeText = isDeclined ? 'Declined' : isFinalized ? 'Finalized' : 'Signed';
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
+  const downloadButton = isDownloadable
+    ? '<button class="btn btn-ghost btn-sm btn-download download-contract-btn">Download Contract</button>'
+    : '';
 
   return `
     <div class="contract-card" data-id="${c._id}">
@@ -124,6 +195,7 @@ function renderUserSignedCard(c) {
       </div>
       <div class="contract-card-footer">
         <button class="btn btn-outline btn-sm view-contract-btn">View Document</button>
+        ${downloadButton}
       </div>
     </div>`;
 }
@@ -165,11 +237,16 @@ function renderClientPendingCard(c) {
 }
 
 function renderClientSignedCard(c) {
+  const isFinalized = c.status === 'finalized';
   const isDeclined = c.status === 'declined';
+  const isDownloadable = isDownloadableStatus(c.status);
   const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
-  const badgeText = isDeclined ? 'Declined' : 'Completed';
+  const badgeText = isDeclined ? 'Declined' : isFinalized ? 'Finalized' : 'Completed';
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
   const senderText = escapeHtml(c.userName) || escapeHtml(c.userEmail) || '—';
+  const downloadButton = isDownloadable
+    ? '<button class="btn btn-ghost btn-sm btn-download download-contract-btn">Download Contract</button>'
+    : '';
 
   return `
     <div class="contract-card" data-id="${c._id}">
@@ -194,6 +271,7 @@ function renderClientSignedCard(c) {
       </div>
       <div class="contract-card-footer">
         <button class="btn btn-outline btn-sm view-contract-btn">View Document</button>
+        ${downloadButton}
       </div>
     </div>`;
 }
@@ -292,6 +370,14 @@ function bindCardButtons() {
       }
     });
   });
+
+  document.querySelectorAll('.download-contract-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      const card = e.target.closest('.contract-card');
+      const id = card ? card.dataset.id : '';
+      await downloadSignedContract(id, btn);
+    });
+  });
 }
 
 // ── Data fetching ────────────────────────────────────────────
@@ -304,7 +390,7 @@ async function loadUserDashboard(userId) {
 
     const drafts = contracts.filter((c) => c.status === 'draft');
     const pending = contracts.filter((c) => c.status === 'sent' || c.status === 'pending');
-    const signed = contracts.filter((c) => c.status === 'signed');
+    const signed = contracts.filter((c) => c.status === 'signed' || c.status === 'finalized');
     const declined = contracts.filter((c) => c.status === 'declined');
 
     // Update Counts
@@ -332,7 +418,7 @@ async function loadClientDashboard(clientId) {
     const contracts = await res.json();
 
     const pending = contracts.filter((c) => c.status === 'sent' || c.status === 'pending');
-    const signed = contracts.filter((c) => c.status === 'signed');
+    const signed = contracts.filter((c) => c.status === 'signed' || c.status === 'finalized');
     const declined = contracts.filter((c) => c.status === 'declined');
 
     fillGrid('pendingSignatureGrid', pending.map(renderClientPendingCard), 'You are all caught up', 'No contracts are currently awaiting your signature.', '🤝');
