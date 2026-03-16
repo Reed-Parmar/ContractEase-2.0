@@ -3,179 +3,210 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Contract - ContractEase</title>
+  <title>Sign Document - ContractEase</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/dashboard.css">
   <link rel="stylesheet" href="../css/contract.css">
 </head>
-<body>
+<body class="bg-page dashboard-layout">
+  
   <nav class="navbar">
     <div class="navbar-container">
-      <a href="./client-dashboard.html" class="navbar-logo">📋 ContractEase</a>
-      <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+      <a href="client-dashboard.html" class="navbar-logo">
+        <span class="navbar-logo-icon"></span>
+        ContractEase <span style="font-weight: 400; font-size: 0.9em; opacity: 0.9; color: var(--text-sub);">Portal</span>
+      </a>
+      
+      <button class="mobile-menu-toggle" id="mobileMenuBtn">☰</button>
+      
       <div class="navbar-menu" id="navbarMenu">
-        <a href="./client-dashboard.html" class="navbar-link">Dashboard</a>
-        <a href="#" class="navbar-link">Messages</a>
-        <a href="#" class="navbar-link">Help</a>
+        <a href="client-dashboard.html" class="navbar-link">Dashboard</a>
+        
         <div class="navbar-user">
-          <div class="user-avatar" id="userInitials">??</div>
-          <button class="logout-btn" id="logoutBtn">Sign Out</button>
+          <div class="user-avatar" id="userAvatar" style="background: var(--secondary-light); color: var(--secondary); border-color: var(--secondary);">C</div>
+          <button id="logoutBtn" class="logout-btn">Sign Out</button>
         </div>
       </div>
     </div>
   </nav>
 
-  <div class="dashboard-container">
-    <div class="editor-header">
-      <div class="editor-breadcrumb">
-        <a href="./client-dashboard.html" class="breadcrumb-link">Dashboard</a>
-        <span class="breadcrumb-separator">›</span>
-        <span>Sign Contract</span>
-      </div>
-      <h1 class="editor-title">Loading contract…</h1>
-    </div>
-
-    <!-- Signing Status Alert -->
-    <div class="signing-status">
-      <div class="signing-status-icon">⚠️</div>
-      <div class="signing-status-content">
-        <h3>Loading…</h3>
-        <p>Please wait while the contract is being retrieved.</p>
-      </div>
-    </div>
-
-    <!-- Contract Preview -->
-    <div class="form-section">
-      <h2 class="form-section-title">Contract Content</h2>
-      
-      <div class="contract-preview">
-        <div class="preview-content">
-          <p style="color:var(--text-secondary);">Loading contract content…</p>
+  <main class="dashboard-main dashboard-container">
+    <div class="contract-editor">
+      <div class="editor-header">
+        <div class="editor-breadcrumb">
+          <a href="client-dashboard.html" class="breadcrumb-link">Dashboard</a>
+          <span class="breadcrumb-separator">/</span>
+          <span>Sign Document</span>
         </div>
+        <h1 class="editor-title">Loading document…</h1>
       </div>
-    </div>
 
-    <!-- Signature Section -->
-    <div class="form-section" id="signatureSection">
-      <h2 class="form-section-title">Your Signature</h2>
-      
-      <p style="margin-bottom: var(--space-6); color: var(--text-secondary);">
-        Sign below to confirm your acceptance of this contract. Your signature will be legally binding.
-      </p>
-
-      <div class="signature-area">
-        <div class="signature-instructions">
-          Draw your signature in the box below using your mouse or touchpad
-        </div>
-        <div class="signature-canvas-wrapper">
-          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
-        </div>
-        <div class="signature-actions">
-          <button class="btn btn-outline" id="clearSignatureBtn">Clear</button>
+      <!-- Signing Status Alert -->
+      <div class="signing-status">
+        <div class="signing-status-icon">⏳</div>
+        <div class="signing-status-content">
+          <h3>Retrieving secure document</h3>
+          <p>Please wait while the contract is loaded.</p>
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="signerName" class="form-label">Full Name</label>
-        <input 
-          type="text" 
-          id="signerName" 
-          class="form-input" 
-          placeholder="Your full name"
-          required
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="signerEmail" class="form-label">Email Address</label>
-        <input 
-          type="email" 
-          id="signerEmail" 
-          class="form-input" 
-          placeholder="your@example.com"
-          required
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="signerDate" class="form-label">Date of Signature</label>
-        <input 
-          type="date" 
-          id="signerDate" 
-          class="form-input"
-          required
-        >
-      </div>
-
-      <div class="form-group">
-        <div class="checkbox-label">
-          <input 
-            type="checkbox" 
-            id="agreeTerms" 
-            class="form-checkbox"
-            required
-          >
-          <label for="agreeTerms">I have read and agree to all terms of this contract</label>
+      <!-- Contract Preview -->
+      <div class="form-section">
+        <h2 class="form-section-title">Document Preview</h2>
+        
+        <div class="contract-preview">
+          <div class="preview-content">
+            <p style="color:var(--text-sub); text-align: center;">Loading contract content…</p>
+          </div>
         </div>
       </div>
 
-      <div class="alert alert-success">
-        <strong>Review Carefully:</strong> Once signed, this contract becomes legally binding. Please ensure you have read all terms.
+      <!-- Contract Details Summary -->
+      <div class="form-section" id="contractInfoSection">
+        <h2 class="form-section-title">Document Information</h2>
+        
+        <div class="contract-meta" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-6);">
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Contract ID</span>
+            <span class="meta-value" id="contractId" style="font-family: monospace;">—</span>
+          </div>
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Sent By</span>
+            <span class="meta-value" id="sentBy">—</span>
+          </div>
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Received Date</span>
+            <span class="meta-value" id="receivedAt">—</span>
+          </div>
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Signature Deadline</span>
+            <span class="meta-value" id="signatureDeadline">—</span>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Signed Details (shown only for already-signed contracts) -->
-    <div class="form-section" id="signedDetailsSection" style="display:none;">
-      <h2 class="form-section-title">Signature Details</h2>
-      <div class="contract-detail-row" style="padding:var(--space-4) 0;border-bottom:1px solid var(--border);">
-        <span class="contract-detail-label">Signed By:</span>
-        <span class="contract-detail-value" id="signedByName">—</span>
-      </div>
-      <div class="contract-detail-row" style="padding:var(--space-4) 0;border-bottom:1px solid var(--border);">
-        <span class="contract-detail-label">Signer Email:</span>
-        <span class="contract-detail-value" id="signedByEmail">—</span>
-      </div>
-      <div class="contract-detail-row" style="padding:var(--space-4) 0;border-bottom:1px solid var(--border);">
-        <span class="contract-detail-label">Signed On:</span>
-        <span class="contract-detail-value" id="signedByDate">—</span>
-      </div>
-      <div style="margin-top:var(--space-4);">
-        <p class="form-label" style="margin-bottom:var(--space-2);">Signature:</p>
-        <img id="signatureImageDisplay" src="data:," alt="Signature"
-          style="border:1px solid var(--border);border-radius:var(--radius-md);max-width:320px;height:auto;display:block;background:#fff;">
-      </div>
-    </div>
+      <!-- Signed Details (shown only for already-signed contracts) -->
+      <div class="form-section" id="signedDetailsSection" style="display:none; border-color: var(--success); background-color: #f8fafc;">
+        <h2 class="form-section-title" style="color: var(--success);">Execution Details</h2>
+        
+        <div class="contract-meta" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-6);">
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Electronically Signed By</span>
+            <span class="meta-value" id="signedByName">—</span>
+          </div>
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Signer Email Address</span>
+            <span class="meta-value" id="signedByEmail">—</span>
+          </div>
+          <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="meta-label">Timestamp</span>
+            <span class="meta-value" id="signedByDate">—</span>
+          </div>
+        </div>
 
-    <!-- Contract Details -->
-    <div class="form-section" id="contractInfoSection">
-      <h2 class="form-section-title">Contract Information</h2>
-      
-      <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
-        <span class="contract-detail-label">Contract ID:</span>
-        <span class="contract-detail-value" id="contractId">—</span>
+        <div>
+          <span class="meta-label" style="display:block; margin-bottom:var(--space-2);">Certified Signature</span>
+          <img id="signatureImageDisplay" src="data:," alt="Signature Data"
+            style="border:1px solid var(--border); border-radius:var(--radius-md); max-width:100%; height:auto; display:block; background:#fff; box-shadow: var(--shadow-sm);">
+        </div>
       </div>
-      <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
-        <span class="contract-detail-label">Sent by:</span>
-        <span class="contract-detail-value" id="sentBy">—</span>
-      </div>
-      <div class="contract-detail-row" style="padding: var(--space-4) 0; border-bottom: 1px solid var(--border);">
-        <span class="contract-detail-label">Received:</span>
-        <span class="contract-detail-value" id="receivedAt">—</span>
-      </div>
-      <div class="contract-detail-row" style="padding: var(--space-4) 0;">
-        <span class="contract-detail-label">Signature Deadline:</span>
-        <span class="contract-detail-value" id="signatureDeadline">—</span>
-      </div>
-    </div>
 
-    <!-- Form Actions -->
-    <div class="form-actions" style="margin-bottom: var(--space-12);">
-      <button class="btn btn-outline" id="rejectBtn">Decline</button>
-      <button class="btn btn-secondary" id="signBtn">Sign Contract</button>
+      <!-- Signature Section (Hidden if signed/declined) -->
+      <div id="signatureSection">
+        <div class="form-section">
+          <h2 class="form-section-title">Execution & Signature</h2>
+          
+          <p style="margin-bottom: var(--space-6); color: var(--text-sub);">
+            By applying your signature below, you acknowledge and agree to the terms outlined within this legally binding agreement.
+          </p>
+
+          <div class="signature-area">
+            <div class="signature-instructions">
+              Draw your signature inside the secure box below
+            </div>
+            <div class="signature-canvas-wrapper">
+              <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+            </div>
+            <div class="signature-actions">
+              <button class="btn btn-outline btn-sm" id="clearSignatureBtn">Clear Signature</button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+            <div class="form-group">
+              <label for="signerName" class="form-label">Full Legal Name <span style="color:var(--danger)">*</span></label>
+              <input 
+                type="text" 
+                id="signerName" 
+                class="form-input" 
+                placeholder="Printed Name"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="signerEmail" class="form-label">Email Address <span style="color:var(--danger)">*</span></label>
+              <input 
+                type="email" 
+                id="signerEmail" 
+                class="form-input" 
+                placeholder="Authorized Email"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="form-group" style="max-width: 50%;">
+            <label for="signerDate" class="form-label">Date of Execution</label>
+            <input 
+              type="date" 
+              id="signerDate" 
+              class="form-input"
+              readonly
+              style="background-color: var(--bg-page);"
+            >
+          </div>
+
+          <div class="form-group" style="background-color: var(--bg-page); padding: var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <div class="checkbox-label" style="align-items: flex-start; margin: 0;">
+              <input 
+                type="checkbox" 
+                id="agreeTerms" 
+                class="form-checkbox"
+                required
+                style="margin-top: 4px;"
+              >
+              <label for="agreeTerms">I have fully read, understood, and agree to be contractually bound by all terms, conditions, and standard clauses contained within this document.</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions" style="margin-bottom: var(--space-12);">
+          <div class="form-actions-left">
+            <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" id="rejectBtn">Decline Document</button>
+            <span style="font-size: var(--font-size-sm); color: var(--text-sub); display: flex; align-items: center; margin-left: var(--space-4);">This action cannot be undone.</span>
+          </div>
+          <div class="form-actions-right">
+            <button class="btn btn-primary" id="signBtn">Accept & Sign <span style="margin-left:8px;">✍️</span></button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <script src="../js/config.js"></script>
   <script src="../js/contract.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Mobile menu
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if(mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          document.getElementById('navbarMenu').classList.toggle('active');
+        });
+      }
+    });
+  </script>
 </body>
 </html>

@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', () => {
       const userRole = localStorage.getItem('user_role') || 'user';
       localStorage.clear();
+      sessionStorage.clear();
       const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
       window.location.href = loginPage;
     });

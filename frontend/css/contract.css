@@ -1,228 +1,381 @@
-/* ===== Contract Pages Styles ===== */
+/* ===== Contract Pages & Wizard Styles ===== */
 
-/* Contract Creation & Editor */
 .contract-editor {
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .editor-header {
   margin-bottom: var(--space-8);
+  text-align: center;
 }
 
 .editor-title {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-3xl);
   font-weight: 700;
+  color: var(--text);
   margin-bottom: var(--space-2);
+  letter-spacing: -0.025em;
 }
 
 .editor-breadcrumb {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: var(--text-sub);
+  margin-bottom: var(--space-4);
+  font-weight: 500;
 }
 
 .breadcrumb-separator {
-  color: var(--text-muted);
+  color: var(--text-sub);
+  opacity: 0.5;
 }
 
 .breadcrumb-link {
   color: var(--primary);
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.2s;
 }
 
 .breadcrumb-link:hover {
-  text-decoration: underline;
+  color: var(--primary-hover);
+}
+
+/* Step Progress Bar */
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-10);
+  padding: 0 var(--space-4);
+  position: relative;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.progress-steps::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: var(--space-10);
+  right: var(--space-10);
+  height: 2px;
+  background-color: var(--border);
+  z-index: 0;
+  transform: translateY(-50%);
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text-sub);
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-sub);
+  transition: all 0.3s ease;
+}
+
+.progress-step.active .step-number {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.progress-step.active .step-label {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.progress-step.completed .step-number {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.progress-step.completed .step-label {
+  color: var(--success);
 }
 
 /* Form Sections */
 .form-section {
-  background-color: var(--background);
+  background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
   margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .form-section-title {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-4);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--space-8);
+  color: var(--text);
   border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-4);
 }
 
 /* Contract Type Selection */
 .contract-type-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-}
-
-@media (min-width: 768px) {
-  .contract-type-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .contract-type-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .contract-type-option {
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  padding: var(--space-6) var(--space-5);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: var(--background);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--surface);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .contract-type-option:hover {
   border-color: var(--primary);
-  background-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .contract-type-option.selected {
   border-color: var(--primary);
   background-color: var(--primary-light);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.contract-type-option.selected::before {
+  content: '✓';
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  color: var(--primary);
+  font-weight: bold;
+  background: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .contract-type-icon {
-  font-size: 1.75rem;
-  margin-bottom: var(--space-2);
+  font-size: 2.5rem;
+  margin-bottom: var(--space-4);
+  display: inline-block;
+  padding: var(--space-3);
+  background: var(--bg-page);
+  border-radius: var(--radius-full);
+}
+
+.contract-type-option.selected .contract-type-icon {
+  background: white;
 }
 
 .contract-type-name {
   font-weight: 600;
+  font-size: var(--font-size-lg);
+  color: var(--text);
   margin-bottom: var(--space-2);
 }
 
 .contract-type-description {
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: var(--text-sub);
+  line-height: var(--line-height-snug);
 }
 
 /* Toggle Switches */
 .toggle-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 .toggle-item {
   display: flex;
-  align-items: start;
+  align-items: center;
   justify-content: space-between;
-  padding: var(--space-4);
-  background-color: var(--surface);
-  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.2s;
+}
+
+.toggle-item:hover {
+  border-color: var(--primary-hover);
 }
 
 .toggle-label {
   flex: 1;
+  padding-right: var(--space-4);
 }
 
 .toggle-label-title {
   font-weight: 600;
+  color: var(--text);
   margin-bottom: var(--space-1);
 }
 
 .toggle-label-description {
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: var(--text-sub);
 }
 
 .toggle-switch {
   position: relative;
-  width: 50px;
-  height: 28px;
+  width: 48px;
+  height: 26px;
   background-color: var(--border);
   border-radius: 999px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .toggle-switch.active {
-  background-color: var(--secondary);
+  background-color: var(--primary);
 }
 
 .toggle-switch::after {
   content: '';
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   background-color: white;
   border-radius: 50%;
   top: 2px;
   left: 2px;
-  transition: left 0.2s ease;
+  transition: left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .toggle-switch.active::after {
   left: 24px;
 }
 
-/* Contract Preview */
+/* Contract Preview Wrapper */
 .contract-preview {
-  background-color: var(--surface);
+  background-color: #f8fafc;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
   margin-bottom: var(--space-8);
+  display: flex;
+  justify-content: center;
 }
 
 .preview-content {
-  background-color: var(--background);
-  padding: var(--space-8);
-  border-radius: var(--radius-md);
+  background-color: white;
+  padding: 3rem 4rem;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  max-width: 800px;
+  width: 100%;
   line-height: 1.8;
-  color: var(--text-primary);
+  color: #334155;
+  font-family: serif; 
 }
 
+/* All clause/section headings: uniform size + consistent 1px underline */
 .preview-content h2 {
-  margin-top: var(--space-6);
-  margin-bottom: var(--space-4);
+  font-family: var(--font-sans);
+  color: #0f172a;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  letter-spacing: -0.01em;
+}
+
+/* Document title — direct first child only: larger, centred, thicker rule */
+.preview-content > h2:first-child {
+  margin-top: 0;
+  text-align: center;
+  font-size: 1.375rem;
+  border-bottom: 2px solid #cbd5e1;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 
 .preview-content p {
-  margin-bottom: var(--space-4);
+  margin-bottom: 1.25rem;
+  text-align: justify;
 }
 
 /* Signature Area */
 .signature-area {
-  background-color: var(--background);
+  background-color: var(--bg-page);
   border: 2px dashed var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: var(--space-8);
   text-align: center;
   margin-bottom: var(--space-6);
 }
 
 .signature-canvas-wrapper {
-  background-color: var(--surface);
+  background-color: white;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  margin-bottom: var(--space-4);
+  margin: var(--space-4) auto;
+  max-width: 600px;
+  box-shadow: var(--shadow-sm);
 }
 
 .signature-canvas {
   display: block;
   cursor: crosshair;
   width: 100%;
-  height: 200px;
+  height: 250px;
 }
 
 .signature-instructions {
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: var(--text-sub);
   margin-bottom: var(--space-4);
 }
 
@@ -232,129 +385,110 @@
   justify-content: center;
 }
 
-.signature-actions .btn {
-  padding: var(--space-2) var(--space-6);
-  font-size: var(--font-size-sm);
-}
-
 /* Form Actions */
 .form-actions {
   display: flex;
   gap: var(--space-4);
   margin-top: var(--space-8);
-  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.form-actions-left,
+.form-actions-right {
+  display: flex;
+  gap: var(--space-4);
 }
 
 .form-actions .btn {
-  flex: 1;
-  min-width: 150px;
+  min-width: 140px;
 }
 
-@media (max-width: 767px) {
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .form-actions .btn {
-    width: 100%;
-  }
-}
-
-/* Signing Status */
+/* Signing Status (Client Side) */
 .signing-status {
-  background-color: var(--secondary-light);
-  border: 1px solid var(--secondary);
+  background-color: var(--warning-light);
+  border: 1px solid #fde047;
+  border-top-width: 4px;
   border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-5) var(--space-6);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-8);
 }
 
 .signing-status-icon {
-  font-size: var(--font-size-xl);
+  font-size: 1.5rem;
+  margin-top: 2px;
 }
 
 .signing-status-content h3 {
-  margin: 0;
+  color: #854d0e;
+  margin: 0 0 var(--space-1) 0;
   font-size: var(--font-size-base);
+  font-weight: 600;
 }
 
 .signing-status-content p {
+  color: #a16207;
   margin: 0;
   font-size: var(--font-size-sm);
 }
 
-/* Step Progress */
-.progress-steps {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-8);
-  overflow-x: auto;
-  padding-bottom: var(--space-4);
+.signing-status.signed {
+  background-color: #ecfdf5;
+  border-color: #34d399;
 }
+.signing-status.signed .signing-status-content h3 { color: #065f46; }
+.signing-status.signed .signing-status-content p { color: #047857; }
 
-.progress-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background-color: var(--surface);
-  border-radius: var(--radius-md);
-  white-space: nowrap;
-  font-size: var(--font-size-sm);
+.signing-status.declined {
+  background-color: var(--error-light);
+  border-color: #fca5a5;
 }
+.signing-status.declined .signing-status-content h3 { color: #991b1b; }
+.signing-status.declined .signing-status-content p { color: #b91c1c; }
 
-.progress-step.active {
-  background-color: var(--primary-light);
-  color: var(--primary);
-  font-weight: 600;
-}
-
-.progress-step.completed {
-  background-color: var(--secondary-light);
-  color: var(--secondary);
-  font-weight: 600;
-}
-
-.step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: var(--border);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-
-.progress-step.active .step-number {
-  background-color: var(--primary);
-  color: white;
-}
-
-.progress-step.completed .step-number {
-  background-color: var(--secondary);
-  color: white;
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 767px) {
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .progress-steps::before {
+    display: none;
+  }
+  
+  .progress-step {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+  }
+  
+  .progress-steps {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
   .form-section {
-    padding: var(--space-4);
+    padding: var(--space-5);
   }
 
-  .contract-preview {
-    padding: var(--space-4);
-  }
-
+  .contract-preview,
   .preview-content {
     padding: var(--space-4);
   }
 
-  .signature-canvas {
-    height: 150px;
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions-left,
+  .form-actions-right {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
   }
 }

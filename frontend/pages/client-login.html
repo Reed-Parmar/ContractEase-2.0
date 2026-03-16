@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,32 +7,60 @@
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/auth.css">
 </head>
-
-<body class="client-login">
-  <div class="auth-container">
-    <div class="auth-card">
-      <div class="auth-header">
-        <h1>📋 ContractEase</h1>
-        <p>Client Portal Login</p>
+<body class="bg-page">
+  <div class="auth-split client-auth">
+    <!-- Left Graphic Side -->
+    <div class="auth-graphic">
+      <div class="auth-graphic-logo">
+        <div class="auth-graphic-icon">🤝</div>
+        <span>ContractEase <span style="font-weight: 400; font-size: 0.9em; opacity: 0.9;">Portal</span></span>
       </div>
+      <div class="auth-graphic-content">
+        <h2>Review and sign securely.</h2>
+        <p>Your dedicated portal for reviewing proposals, managing ongoing agreements, and securely signing documents from providers.</p>
+      </div>
+    </div>
 
-      <form class="auth-form" id="clientLoginForm">
-        <div class="form-group">
-          <label for="email" class="form-label">Email Address</label>
-          <input type="email" id="email" name="email" class="form-input" placeholder="client@example.com" required>
+    <!-- Right Form Side -->
+    <div class="auth-content">
+      <div class="auth-card">
+        <!-- Mobile Logo -->
+        <div class="auth-mobile-logo">
+          <div class="auth-mobile-icon">🤝</div>
+          <span>ContractEase Portal</span>
         </div>
 
-        <div class="form-group">
-          <label for="password" class="form-label">Password</label>
-          <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+        <div class="auth-header">
+          <h1>Client Portal</h1>
+          <p>Sign in to view your documents.</p>
         </div>
 
-        <button type="submit" class="btn btn-secondary btn-block">Access Portal</button>
-      </form>
+        <form class="auth-form" id="clientLoginForm">
+          <div class="form-group">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" name="email" class="form-input" placeholder="client@example.com" required>
+          </div>
 
-      <div class="auth-footer">
-        <p>Don't have an account? <a href="client-register.html">Register</a></p>
-        <p>Are you a user? <a href="user-login.html">Log in here</a></p>
+          <div class="form-group" style="margin-bottom: var(--space-4);">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+          </div>
+
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox">
+              <span>Remember me</span>
+            </label>
+            <a href="#" class="text-secondary hover:text-secondary-hover font-medium">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn btn-secondary btn-block">Access Portal</button>
+        </form>
+
+        <div class="auth-footer">
+          <p>Don't have an account? <a href="client-register.html" class="text-secondary hover:text-secondary-hover">Register</a></p>
+          <p class="mt-2 text-muted">Are you a user? <a href="user-login.html" class="text-primary hover:text-primary-hover">Log in here</a></p>
+        </div>
       </div>
     </div>
   </div>
@@ -41,5 +68,4 @@
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
 </body>
-
 </html>

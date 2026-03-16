@@ -9,7 +9,33 @@ let lastY = 0;
 let hasSignatureInk = false;
 let selectedContractStatus = null;
 
+// Set to true when the page is opened in edit/view mode to prevent draft caching
+let isEditOrViewMode = false;
+
+const DRAFT_STORAGE_KEY = 'contract_wizard_draft';
+
 document.addEventListener('DOMContentLoaded', () => {
+  // ── Role-Based Route Protection ──────────────────────────────
+  const userRole = localStorage.getItem('user_role');
+  const currentPath = window.location.pathname;
+
+  if (!userRole) {
+    window.location.href = './user-login.html';
+    return;
+  }
+
+  // Prevent clients from accessing the creator wizard
+  if (userRole === 'client' && currentPath.includes('create-contract')) {
+    window.location.href = './client-dashboard.html';
+    return;
+  }
+
+  // Prevent users from accessing the client signing page
+  if (userRole === 'user' && currentPath.includes('sign-contract')) {
+    window.location.href = './user-dashboard.html';
+    return;
+  }
+
   // ── Contract Type Selection ──────────────────────────────────
   const contractTypeOptions = document.querySelectorAll('.contract-type-option');
   contractTypeOptions.forEach((option) => {
@@ -17,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
       contractTypeOptions.forEach((opt) => opt.classList.remove('selected'));
       option.classList.add('selected');
       selectedContractType = option.dataset.type;
+      saveDraft();
     });
   });
 
@@ -25,10 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
   toggleSwitches.forEach((toggle) => {
     toggle.addEventListener('click', () => {
       toggle.classList.toggle('active');
+      saveDraft();
       if (currentStep === 3) {
         updatePreview();
       }
     });
+  });
+
+  // ── Draft persistence — save on every field change ——————————————
+  ['contractTitle', 'clientName', 'clientEmail', 'contractAmount', 'dueDate', 'contractDescription'].forEach((fieldId) => {
+    const el = document.getElementById(fieldId);
+    if (el) {
+      el.addEventListener('input', saveDraft);
+      el.addEventListener('change', saveDraft);
+      // Clear inline error highlight as soon as the user starts correcting the field
+      el.addEventListener('input', () => clearFieldError(el));
+    }
   });
 
   // ── Step Navigation (Create Contract) ────────────────────────
@@ -42,16 +81,20 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Please select a contract type to continue.', 'warning');
         return;
       }
-      // Validate Step 2 fields before advancing to Step 3
+      // Validate Step 2 required fields before advancing to Step 3
       if (currentStep === 2) {
-        const title = document.getElementById('contractTitle')?.value?.trim();
-        const email = document.getElementById('clientEmail')?.value?.trim();
-        if (!title) {
-          showToast('Please enter a contract title.', 'warning');
-          return;
-        }
-        if (!email) {
-          showToast('Please enter the client email address.', 'warning');
+        const titleEl = document.getElementById('contractTitle');
+        const emailEl = document.getElementById('clientEmail');
+        [titleEl, emailEl].forEach((el) => { if (el) clearFieldError(el); });
+
+        const fieldErrors = [];
+        if (!titleEl?.value?.trim()) fieldErrors.push({ el: titleEl, msg: 'Contract title is required.' });
+        if (!emailEl?.value?.trim()) fieldErrors.push({ el: emailEl, msg: 'Client email address is required.' });
+
+        if (fieldErrors.length > 0) {
+          fieldErrors.forEach(({ el, msg }) => { if (el) setFieldError(el, msg); });
+          // Scroll viewport to the first invalid field so the user knows where to look
+          if (fieldErrors[0].el) fieldErrors[0].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
       }
@@ -70,7 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
       submitContract();
     });
   }
-
+  // ── Cancel Draft ────────────────────────────────────────────────────
+  const cancelDraftBtn = document.getElementById('cancelDraftBtn');
+  if (cancelDraftBtn) {
+    cancelDraftBtn.addEventListener('click', () => {
+      // Only wipe the draft when genuinely cancelling a new contract creation
+      if (!isEditOrViewMode) clearDraft();
+      window.location.href = './user-dashboard.html';
+    });
+  }
   // ── Signature Canvas (Sign Contract) ─────────────────────────
   const signatureCanvas = document.getElementById('signatureCanvas');
   if (signatureCanvas) {
@@ -189,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', () => {
       const role = localStorage.getItem('user_role') || 'user';
       localStorage.clear();
+      sessionStorage.clear();
       window.location.href = role === 'client' ? './client-login.html' : './user-login.html';
     });
   }
@@ -260,6 +312,92 @@ function goToStep(step) {
   if (step === 3) updatePreview();
 }
 
+// ── Draft persistence helpers ─────────────────────────────────
+
+/**
+ * Serialise current wizard state to localStorage so users don't lose
+ * data when navigating back or accidentally refreshing the page.
+ * Skipped when the page is in edit/view mode for an existing contract.
+ */
+function saveDraft() {
+  if (isEditOrViewMode) return;
+  const draft = {
+    contractType: selectedContractType,
+    contractTitle: document.getElementById('contractTitle')?.value || '',
+    clientName: document.getElementById('clientName')?.value || '',
+    clientEmail: document.getElementById('clientEmail')?.value || '',
+    contractAmount: document.getElementById('contractAmount')?.value || '',
+    dueDate: document.getElementById('dueDate')?.value || '',
+    contractDescription: document.getElementById('contractDescription')?.value || '',
+    clauses: {},
+  };
+  document.querySelectorAll('.toggle-switch[data-clause]').forEach((toggle) => {
+    draft.clauses[toggle.dataset.clause] = toggle.classList.contains('active');
+  });
+  localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+}
+
+/** Re-populate all wizard fields from a previously saved draft. */
+function restoreDraft() {
+  const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const draft = JSON.parse(raw);
+    if (draft.contractType) {
+      selectedContractType = draft.contractType;
+      document.querySelectorAll('.contract-type-option').forEach((opt) => {
+        opt.classList.toggle('selected', opt.dataset.type === draft.contractType);
+      });
+    }
+    ['contractTitle', 'clientName', 'clientEmail', 'contractAmount', 'dueDate', 'contractDescription'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && draft[id]) el.value = draft[id];
+    });
+    if (draft.clauses) {
+      document.querySelectorAll('.toggle-switch[data-clause]').forEach((toggle) => {
+        if (draft.clauses[toggle.dataset.clause] !== undefined) {
+          toggle.classList.toggle('active', draft.clauses[toggle.dataset.clause]);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Could not restore wizard draft:', err);
+  }
+}
+
+/** Remove the cached draft — called on successful send or intentional cancel. */
+function clearDraft() {
+  localStorage.removeItem(DRAFT_STORAGE_KEY);
+}
+
+// ── Field-level validation helpers ───────────────────────────
+
+/**
+ * Mark a form field as invalid and attach an inline error message below it.
+ * @param {HTMLElement} field
+ * @param {string} message
+ */
+function setFieldError(field, message) {
+  field.classList.add('input-error');
+  // Avoid appending a duplicate message on repeated validation attempts
+  if (!field.parentElement.querySelector('.form-error-msg')) {
+    const msg = document.createElement('span');
+    msg.className = 'form-error-msg';
+    msg.textContent = message;
+    field.parentElement.appendChild(msg);
+  }
+}
+
+/**
+ * Remove the invalid state and inline error message from a form field.
+ * @param {HTMLElement} field
+ */
+function clearFieldError(field) {
+  field.classList.remove('input-error');
+  const errMsg = field.parentElement?.querySelector('.form-error-msg');
+  if (errMsg) errMsg.remove();
+}
+
 // ── Clause toggle → preview section mapping ──────────────────
 
 const CLAUSE_PREVIEW_MAP = {
@@ -323,11 +461,20 @@ async function loadCreateContractPage() {
   const mode = localStorage.getItem('contract_page_mode');
   const contractId = localStorage.getItem('selected_contract_id');
 
+  // Detect edit/view mode BEFORE clearing localStorage items so the flag is set first
+  if (contractId && mode && (mode === 'edit' || mode === 'view')) {
+    isEditOrViewMode = true;
+  }
+
   // Clear immediately — next visit to this page must start fresh (new contract)
   localStorage.removeItem('contract_page_mode');
   localStorage.removeItem('selected_contract_id');
 
-  if (!contractId || !mode || (mode !== 'edit' && mode !== 'view')) return;
+  if (!isEditOrViewMode) {
+    // New contract — restore any unsaved wizard draft from a previous session
+    restoreDraft();
+    return;
+  }
 
   try {
     const res = await fetch(`${API_BASE}/contracts/${contractId}`);
@@ -409,7 +556,14 @@ async function submitContract() {
   const contractDescription = document.getElementById('contractDescription')?.value?.trim();
 
   if (!contractTitle || !clientEmail) {
-    showToast('Please fill in the contract title and client email.', 'warning');
+    // Highlight the specific fields that are missing so the user knows exactly what to fix
+    const titleEl = document.getElementById('contractTitle');
+    const emailEl = document.getElementById('clientEmail');
+    if (titleEl) clearFieldError(titleEl);
+    if (emailEl) clearFieldError(emailEl);
+    if (!contractTitle && titleEl) setFieldError(titleEl, 'Contract title is required.');
+    if (!clientEmail && emailEl) setFieldError(emailEl, 'Client email address is required.');
+    showToast('Please fill in all required fields.', 'warning');
     return;
   }
 
@@ -517,6 +671,7 @@ async function submitContract() {
     localStorage.removeItem('selected_contract_id');
     localStorage.removeItem('contract_page_mode');
 
+    clearDraft();
     showToast('Contract sent to ' + clientEmail, 'success');
     setTimeout(() => { window.location.href = './user-dashboard.html'; }, 1200);
   } catch (err) {

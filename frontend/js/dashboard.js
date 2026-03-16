@@ -4,6 +4,7 @@
 // ── Helpers ──────────────────────────────────────────────────
 
 function capitalizeFirstLetter(string) {
+  if (!string) return '';
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
@@ -24,35 +25,33 @@ function daysUntil(isoString) {
   return diff;
 }
 
-// ── Card renderers (match original HTML structure exactly) ────
+// ── Card renderers (Modern SaaS Design) ────────────────────────
 
 function renderUserDraftCard(c) {
   return `
     <div class="contract-card" data-id="${c._id}">
-      <div class="contract-header">
-        <div>
-          <div class="contract-title">${c.title}</div>
-          <div class="contract-date">Created: ${formatDate(c.createdAt)}</div>
-        </div>
-        <div class="badge badge-primary">Draft</div>
-      </div>
-      <div class="contract-details">
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Client:</span>
-          <span class="contract-detail-value">${c.clientName || '—'}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Amount:</span>
-          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Due:</span>
-          <span class="contract-detail-value">${formatDate(c.dueDate)}</span>
+      <div class="contract-card-header">
+        <div class="contract-card-top">
+          <div>
+            <div class="contract-title">${c.title}</div>
+            <div class="contract-client">${c.clientName || 'No Client Assigned'}</div>
+          </div>
+          <div class="badge badge-draft">Draft</div>
         </div>
       </div>
-      <div class="contract-actions">
-        <button class="btn btn-primary btn-sm edit-contract-btn">Edit</button>
+      <div class="contract-card-body contract-meta">
+        <div class="meta-row">
+          <span class="meta-label">Amount</span>
+          <span class="meta-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Created</span>
+          <span class="meta-value">${formatDate(c.createdAt)}</span>
+        </div>
+      </div>
+      <div class="contract-card-footer">
         <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+        <button class="btn btn-primary btn-sm edit-contract-btn">Edit</button>
       </div>
     </div>`;
 }
@@ -60,65 +59,61 @@ function renderUserDraftCard(c) {
 function renderUserPendingCard(c) {
   return `
     <div class="contract-card" data-id="${c._id}">
-      <div class="contract-header">
-        <div>
-          <div class="contract-title">${c.title}</div>
-          <div class="contract-date">Sent: ${formatDate(c.createdAt)}</div>
-        </div>
-        <div class="badge badge-warning">Pending</div>
-      </div>
-      <div class="contract-details">
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Client:</span>
-          <span class="contract-detail-value">${c.clientName || '—'}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Amount:</span>
-          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Due:</span>
-          <span class="contract-detail-value">${formatDate(c.dueDate)}</span>
+      <div class="contract-card-header">
+        <div class="contract-card-top">
+          <div>
+            <div class="contract-title">${c.title}</div>
+            <div class="contract-client">${c.clientName || 'Unknown Client'}</div>
+          </div>
+          <div class="badge badge-warning">Pending Action</div>
         </div>
       </div>
-      <div class="contract-actions">
-        <button class="btn btn-secondary btn-sm send-reminder-btn">Send Reminder</button>
-        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      <div class="contract-card-body contract-meta">
+        <div class="meta-row">
+          <span class="meta-label">Amount</span>
+          <span class="meta-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Due Date</span>
+          <span class="meta-value">${formatDate(c.dueDate)}</span>
+        </div>
+      </div>
+      <div class="contract-card-footer">
+        <button class="btn btn-outline btn-sm view-contract-btn">Details</button>
+        <button class="btn btn-secondary btn-sm send-reminder-btn">Remind Client</button>
       </div>
     </div>`;
 }
 
 function renderUserSignedCard(c) {
   const isDeclined = c.status === 'declined';
-  const badgeClass = isDeclined ? 'badge-error' : 'badge-secondary';
+  const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
   const badgeText = isDeclined ? 'Declined' : 'Signed';
-  const dateLabel = isDeclined ? 'Updated:' : 'Signed:';
+  const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
 
   return `
     <div class="contract-card" data-id="${c._id}">
-      <div class="contract-header">
-        <div>
-          <div class="contract-title">${c.title}</div>
-          <div class="contract-date">${dateLabel} ${formatDate(c.signedAt || c.createdAt)}</div>
-        </div>
-        <div class="badge ${badgeClass}">${badgeText}</div>
-      </div>
-      <div class="contract-details">
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Client:</span>
-          <span class="contract-detail-value">${c.clientName || '—'}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Amount:</span>
-          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">${dateLabel}</span>
-          <span class="contract-detail-value">${formatDate(c.signedAt || c.createdAt)}</span>
+      <div class="contract-card-header">
+        <div class="contract-card-top">
+          <div>
+            <div class="contract-title">${c.title}</div>
+            <div class="contract-client">${c.clientName || 'Unknown'}</div>
+          </div>
+          <div class="badge ${badgeClass}">${badgeText}</div>
         </div>
       </div>
-      <div class="contract-actions">
-        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      <div class="contract-card-body contract-meta">
+        <div class="meta-row">
+          <span class="meta-label">Amount</span>
+          <span class="meta-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">${dateLabel}</span>
+          <span class="meta-value">${formatDate(c.signedAt || c.createdAt)}</span>
+        </div>
+      </div>
+      <div class="contract-card-footer">
+        <button class="btn btn-outline btn-sm view-contract-btn">View Document</button>
       </div>
     </div>`;
 }
@@ -128,83 +123,96 @@ function renderClientPendingCard(c) {
   const overdue = days !== null && days < 0;
   const badgeClass = overdue ? 'badge-error' : 'badge-warning';
   const badgeText = overdue ? 'Overdue' : 'Action Required';
-  const daysText = overdue ? `Overdue by ${Math.abs(days)} day(s)` : days !== null ? `${days} day(s) left` : '—';
-  const senderText = c.userName || c.userEmail || '—';
+  const daysText = overdue ? `Overdue by ${Math.abs(days)} days` : days !== null ? `${days} days left` : '—';
+  const senderText = c.userName || c.userEmail || 'Unknown Sender';
 
   return `
     <div class="contract-card" data-id="${c._id}">
-      <div class="contract-header">
-        <div>
-          <div class="contract-title">${c.title}</div>
-          <div class="contract-date">Received: ${formatDate(c.createdAt)}</div>
-        </div>
-        <div class="badge ${badgeClass}">${badgeText}</div>
-      </div>
-      <div class="contract-details">
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">From:</span>
-          <span class="contract-detail-value">${senderText}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Amount:</span>
-          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">${overdue ? 'Overdue By:' : 'Days Left:'}</span>
-          <span class="contract-detail-value">${daysText}</span>
+      <div class="contract-card-header">
+        <div class="contract-card-top">
+          <div>
+            <div class="contract-title">${c.title}</div>
+            <div class="contract-client">From: ${senderText}</div>
+          </div>
+          <div class="badge ${badgeClass}">${badgeText}</div>
         </div>
       </div>
-      <div class="contract-actions">
+      <div class="contract-card-body contract-meta">
+        <div class="meta-row">
+          <span class="meta-label">Amount</span>
+          <span class="meta-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">${overdue ? 'Status' : 'Time Remaining'}</span>
+          <span class="meta-value" style="${overdue ? 'color: var(--danger);' : ''}">${daysText}</span>
+        </div>
+      </div>
+      <div class="contract-card-footer">
+        <button class="btn btn-outline btn-sm view-contract-btn">View Details</button>
         <button class="btn btn-secondary btn-sm review-sign-btn">${overdue ? 'Sign Now' : 'Review & Sign'}</button>
-        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
       </div>
     </div>`;
 }
 
 function renderClientSignedCard(c) {
   const isDeclined = c.status === 'declined';
-  const badgeClass = isDeclined ? 'badge-error' : 'badge-secondary';
+  const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
   const badgeText = isDeclined ? 'Declined' : 'Completed';
-  const dateLabel = isDeclined ? 'Updated:' : 'Signed:';
+  const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
 
   return `
     <div class="contract-card" data-id="${c._id}">
-      <div class="contract-header">
-        <div>
-          <div class="contract-title">${c.title}</div>
-          <div class="contract-date">${dateLabel} ${formatDate(c.signedAt || c.createdAt)}</div>
-        </div>
-        <div class="badge ${badgeClass}">${badgeText}</div>
-      </div>
-      <div class="contract-details">
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">Amount:</span>
-          <span class="contract-detail-value">${formatAmount(c.amount)}</span>
-        </div>
-        <div class="contract-detail-row">
-          <span class="contract-detail-label">${dateLabel}</span>
-          <span class="contract-detail-value">${formatDate(c.signedAt || c.createdAt)}</span>
+      <div class="contract-card-header">
+        <div class="contract-card-top">
+          <div>
+            <div class="contract-title">${c.title}</div>
+            <div class="contract-client">From: ${c.userName || c.userEmail || '—'}</div>
+          </div>
+          <div class="badge ${badgeClass}">${badgeText}</div>
         </div>
       </div>
-      <div class="contract-actions">
-        <button class="btn btn-outline btn-sm view-contract-btn">View</button>
+      <div class="contract-card-body contract-meta">
+        <div class="meta-row">
+          <span class="meta-label">Amount</span>
+          <span class="meta-value">${formatAmount(c.amount)}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">${dateLabel}</span>
+          <span class="meta-value">${formatDate(c.signedAt || c.createdAt)}</span>
+        </div>
+      </div>
+      <div class="contract-card-footer">
+        <button class="btn btn-outline btn-sm view-contract-btn">View Document</button>
       </div>
     </div>`;
 }
 
-function renderEmpty(text) {
-  return `<p style="color:var(--text-secondary);padding:var(--space-6);">${text}</p>`;
+function renderEmpty(title, text, icon = '📄') {
+  return `
+    <div class="empty-state">
+      <div class="empty-state-icon">${icon}</div>
+      <h3>${title}</h3>
+      <p>${text}</p>
+    </div>`;
 }
 
 // ── Populate grids ───────────────────────────────────────────
 
-function fillGrid(gridId, cards, emptyMsg) {
+function fillGrid(gridId, cards, emptyTitle, emptyMsg, emptyIcon) {
   const grid = document.getElementById(gridId);
   if (!grid) return;
   if (cards.length === 0) {
-    grid.innerHTML = renderEmpty(emptyMsg);
+    grid.innerHTML = renderEmpty(emptyTitle, emptyMsg, emptyIcon);
   } else {
     grid.innerHTML = cards.join('');
+  }
+}
+
+// Update counters
+function updateCount(id, count) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = count;
   }
 }
 
@@ -247,7 +255,7 @@ function bindCardButtons() {
   document.querySelectorAll('.send-reminder-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const title = e.target.closest('.contract-card').querySelector('.contract-title').textContent;
-      showToast('Reminder queued for: ' + title, 'info');
+      showToast('Reminder sent to client for: ' + title, 'success');
     });
   });
 }
@@ -265,14 +273,21 @@ async function loadUserDashboard(userId) {
     const signed = contracts.filter((c) => c.status === 'signed');
     const declined = contracts.filter((c) => c.status === 'declined');
 
-    fillGrid('draftContractsGrid', drafts.map(renderUserDraftCard), 'No draft contracts yet. Click "Create New Contract" to get started.');
-    fillGrid('pendingContractsGrid', pending.map(renderUserPendingCard), 'No contracts pending signature.');
-    fillGrid('signedContractsGrid', signed.map(renderUserSignedCard), 'No signed contracts yet.');
-    fillGrid('declinedContractsGrid', declined.map(renderUserSignedCard), 'No declined contracts.');
+    // Update Counts
+    updateCount('countDraft', drafts.length);
+    updateCount('countPending', pending.length);
+    updateCount('countSigned', signed.length);
+    updateCount('countDeclined', declined.length);
+
+    fillGrid('draftContractsGrid', drafts.map(renderUserDraftCard), 'No Drafts', 'You do not have any draft contracts. Click "New Contract" to start.', '📄');
+    fillGrid('pendingContractsGrid', pending.map(renderUserPendingCard), 'All Caught Up', 'No contracts are currently awaiting client signatures.', '⏳');
+    fillGrid('signedContractsGrid', signed.map(renderUserSignedCard), 'No Signed Documents', 'You have not completed any contracts yet.', '✅');
+    fillGrid('declinedContractsGrid', declined.map(renderUserSignedCard), 'No Declined Documents', 'None of your contracts have been declined.', '❌');
 
     bindCardButtons();
   } catch (err) {
     console.error('Dashboard load error:', err);
+    showToast('Failed to load dashboard data.', 'error');
   }
 }
 
@@ -286,41 +301,28 @@ async function loadClientDashboard(clientId) {
     const signed = contracts.filter((c) => c.status === 'signed');
     const declined = contracts.filter((c) => c.status === 'declined');
 
-    fillGrid('pendingSignatureGrid', pending.map(renderClientPendingCard), 'No contracts awaiting your signature.');
-    fillGrid('signedContractsGrid', signed.map(renderClientSignedCard), 'No signed contracts yet.');
-    fillGrid('declinedContractsGrid', declined.map(renderClientSignedCard), 'No declined contracts.');
+    fillGrid('pendingSignatureGrid', pending.map(renderClientPendingCard), 'You are all caught up', 'No contracts are currently awaiting your signature.', '🤝');
+    fillGrid('signedContractsGrid', signed.map(renderClientSignedCard), 'No Signed Contracts', 'You have not signed any contracts on the platform yet.', '✅');
+    fillGrid('declinedContractsGrid', declined.map(renderClientSignedCard), 'No Declined Documents', 'You have not declined any contracts.', '❌');
 
     bindCardButtons();
   } catch (err) {
     console.error('Dashboard load error:', err);
+    showToast('Failed to load dashboard data.', 'error');
   }
 }
 
 // ── Main ─────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Mobile menu toggle
-  const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-  const navbarMenu = document.getElementById('navbarMenu');
-
-  if (mobileMenuToggle && navbarMenu) {
-    mobileMenuToggle.addEventListener('click', () => {
-      navbarMenu.classList.toggle('active');
-    });
-    document.querySelectorAll('.navbar-menu .navbar-link').forEach((link) => {
-      link.addEventListener('click', () => {
-        navbarMenu.classList.remove('active');
-      });
-    });
-  }
-
-  // Logout — read role BEFORE clearing
+  // Logout handler
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to sign out?')) {
         const userRole = localStorage.getItem('user_role') || 'user';
         localStorage.clear();
+        sessionStorage.clear();
         const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
         window.location.href = loginPage;
       }
@@ -337,16 +339,30 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Welcome message
+  // Role crossover protection — a client must never land on the user dashboard
+  // and a user/freelancer must never land on the client portal.
+  const currentPath = window.location.pathname;
+  if (userRole === 'client' && currentPath.includes('user-dashboard')) {
+    window.location.href = './client-dashboard.html';
+    return;
+  }
+  if (userRole !== 'client' && currentPath.includes('client-dashboard')) {
+    window.location.href = './user-dashboard.html';
+    return;
+  }
+
+  // Header Info
   const userName = localStorage.getItem('user_name') || 'User';
-  const welcomeMessage = document.querySelector('.welcome-message');
-  if (welcomeMessage) {
-    welcomeMessage.textContent = `Welcome back, ${capitalizeFirstLetter(userName)}!`;
+  
+  // Set Display Name in Hero
+  const nameDisplay = document.getElementById('userNameDisplay');
+  if (nameDisplay) {
+    nameDisplay.textContent = capitalizeFirstLetter(userName);
   }
 
   // Dynamic avatar initials
-  const userInitialsEl = document.getElementById('userInitials');
-  if (userInitialsEl) {
+  const userAvatar = document.getElementById('userAvatar');
+  if (userAvatar) {
     const initials = userName
       .split(' ')
       .filter(Boolean)
@@ -354,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .join('')
       .toUpperCase()
       .slice(0, 2);
-    userInitialsEl.textContent = initials;
+    userAvatar.textContent = initials || 'U';
   }
 
   // Load data from backend

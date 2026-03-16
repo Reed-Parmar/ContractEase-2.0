@@ -1,101 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Registration - ContractEase</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/auth.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Registration - ContractEase</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/auth.css">
 </head>
-
-<body class="user-login">
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <h1>📋 ContractEase</h1>
-                <p>Create Your Account</p>
-            </div>
-
-            <form class="auth-form" id="registerForm">
-                <div class="form-group">
-                    <label for="fullName" class="form-label">Full Name</label>
-                    <input type="text" id="fullName" name="fullName" class="form-input" placeholder="John Doe" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="email" class="form-label">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com"
-                        required>
-                </div>
-
-                <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••"
-                        required>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword" class="form-label">Confirm Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input"
-                        placeholder="••••••••" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block">Create Account</button>
-            </form>
-
-            <div class="auth-footer">
-                <p>Already have an account? <a href="user-login.html">Sign in</a></p>
-                <p>Are you a client? <a href="client-register.html">Register here</a></p>
-            </div>
-        </div>
+<body class="bg-page">
+  <div class="auth-split">
+    <!-- Left Graphic Side -->
+    <div class="auth-graphic">
+      <div class="auth-graphic-logo">
+        <div class="auth-graphic-icon">📄</div>
+        <span>ContractEase</span>
+      </div>
+      <div class="auth-graphic-content">
+        <h2>Start managing contracts effortlessly.</h2>
+        <p>Join thousands of professionals who have streamlined their workflow with ContractEase's powerful set of tools.</p>
+      </div>
     </div>
 
-    <script src="../js/config.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const registerForm = document.getElementById('registerForm');
+    <!-- Right Form Side -->
+    <div class="auth-content">
+      <div class="auth-card">
+        <!-- Mobile Logo -->
+        <div class="auth-mobile-logo">
+          <div class="auth-mobile-icon">📄</div>
+          <span>ContractEase</span>
+        </div>
 
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+        <div class="auth-header">
+          <h1>Create an account</h1>
+          <p>Enter your details to get started.</p>
+        </div>
 
-                const name = document.getElementById('fullName').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const password = document.getElementById('password').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
+        <form class="auth-form" id="registerForm">
+          <div class="form-group">
+            <label for="fullName" class="form-label">Full Name</label>
+            <input type="text" id="fullName" name="fullName" class="form-input" placeholder="e.g. Jane Doe" required>
+          </div>
 
-                if (password !== confirmPassword) {
-                    showToast('Passwords do not match. Please try again.', 'error');
-                    return;
-                }
+          <div class="form-group">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
+          </div>
 
-                try {
-                    const res = await fetch(`${API_BASE}/register/user`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password }),
-                    });
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+          </div>
 
-                    const data = await res.json();
+          <div class="form-group" style="margin-bottom: var(--space-6);">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" placeholder="••••••••" required>
+          </div>
 
-                    if (res.ok && data.success) {
-                        // Auto-login: store session and navigate directly to dashboard
-                        localStorage.setItem('user_id', data.user_id);
-                        localStorage.setItem('user_email', data.email);
-                        localStorage.setItem('user_role', 'user');
-                        localStorage.setItem('user_name', data.name);
-                        showToast('Account created! Welcome to ContractEase.', 'success');
-                        setTimeout(() => { window.location.href = 'user-dashboard.html'; }, 800);
-                    } else {
-                        showToast(data.detail || 'Registration failed.', 'error');
-                    }
-                } catch (err) {
-                    console.error(err);
-                    showToast('Could not reach the server. Is the backend running?', 'error');
-                }
-            });
-        });
-    </script>
+          <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+        </form>
+
+        <div class="auth-footer">
+          <p>Already have an account? <a href="user-login.html" class="text-primary hover:text-primary-hover">Sign in</a></p>
+          <p class="mt-2 text-muted">Are you a client? <a href="client-register.html" class="text-primary hover:text-primary-hover">Register here</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const registerForm = document.getElementById('registerForm');
+
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (password !== confirmPassword) {
+          showToast('Passwords do not match. Please try again.', 'error');
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/register/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            // Auto-login: store session and navigate directly to dashboard
+            localStorage.setItem('user_id', data.user_id);
+            localStorage.setItem('user_email', data.email);
+            localStorage.setItem('user_role', 'user');
+            localStorage.setItem('user_name', data.name);
+            showToast('Account created! Welcome to ContractEase.', 'success');
+            setTimeout(() => { window.location.href = 'user-dashboard.html'; }, 800);
+          } else {
+            showToast(data.detail || 'Registration failed.', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Could not reach the server. Is the backend running?', 'error');
+        }
+      });
+    });
+  </script>
 </body>
-
 </html>

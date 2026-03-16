@@ -3,71 +3,152 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - ContractEase</title>
+  <title>User Dashboard - ContractEase</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/dashboard.css">
 </head>
-<body>
+<body class="bg-page dashboard-layout">
+  
   <nav class="navbar">
     <div class="navbar-container">
-      <a href="./user-dashboard.html" class="navbar-logo">📋 ContractEase</a>
-      <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+      <a href="user-dashboard.html" class="navbar-logo">
+        <span class="navbar-logo-icon"></span>
+        ContractEase
+      </a>
+      
+      <button class="mobile-menu-toggle" id="mobileMenuBtn">☰</button>
+      
       <div class="navbar-menu" id="navbarMenu">
-        <a href="./user-dashboard.html" class="navbar-link">Dashboard</a>
-        <a href="./create-contract.html" class="navbar-link">Create Contract</a>
-        <a href="#" class="navbar-link">Templates</a>
-        <a href="#" class="navbar-link">Help</a>
+        <a href="user-dashboard.html" class="navbar-link">Dashboard</a>
+        <a href="create-contract.html" class="navbar-link">Create Contract</a>
+        
         <div class="navbar-user">
-          <div class="user-avatar" id="userInitials">??</div>
-          <button class="logout-btn" id="logoutBtn">Sign Out</button>
+          <div class="user-avatar" id="userAvatar">U</div>
+          <button id="logoutBtn" class="logout-btn">Sign Out</button>
         </div>
       </div>
     </div>
   </nav>
 
-  <div class="dashboard-container">
+  <main class="dashboard-main dashboard-container">
     <div class="dashboard-header">
-      <h1 class="welcome-message">Welcome back!</h1>
-      <p class="dashboard-subtitle">Manage your contracts and track their status</p>
+      <div class="dashboard-title-group">
+        <h1 class="welcome-message">Welcome back, <span id="userNameDisplay">User</span></h1>
+        <p class="dashboard-subtitle text-sub">Here is a summary of your contracts and pending actions.</p>
+      </div>
       <div class="dashboard-actions">
-        <a href="./create-contract.html" class="btn btn-primary">+ Create New Contract</a>
+        <a href="create-contract.html" class="btn btn-primary">+ New Contract</a>
       </div>
     </div>
 
-    <!-- Draft Contracts -->
-    <div class="dashboard-section">
-      <h2 class="section-title">Draft Contracts</h2>
-      <div class="section-grid" id="draftContractsGrid">
-        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-primary">📄</div>
+        <div class="stat-content">
+          <div class="stat-label">Total Drafts</div>
+          <div class="stat-value" id="countDraft">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-warning">⏳</div>
+        <div class="stat-content">
+          <div class="stat-label">Pending Client</div>
+          <div class="stat-value" id="countPending">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-success">✅</div>
+        <div class="stat-content">
+          <div class="stat-label">Signed</div>
+          <div class="stat-value" id="countSigned">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-danger">❌</div>
+        <div class="stat-content">
+          <div class="stat-label">Declined</div>
+          <div class="stat-value" id="countDeclined">0</div>
+        </div>
       </div>
     </div>
 
-    <!-- Pending Contracts -->
-    <div class="dashboard-section">
-      <h2 class="section-title">Pending Signature</h2>
-      <div class="section-grid" id="pendingContractsGrid">
-        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
+    <!-- Tabs -->
+    <div class="dashboard-tabs" id="statusTabs">
+      <div class="dashboard-tab active" data-target="draftSection">Drafts</div>
+      <div class="dashboard-tab" data-target="pendingSection">Pending Action</div>
+      <div class="dashboard-tab" data-target="signedSection">Completed</div>
+      <div class="dashboard-tab" data-target="declinedSection">Declined</div>
+    </div>
+
+    <!-- Sections (Switched by Tabs in dashboard.js or new logic) -->
+    <!-- Note: We keep the id attributes corresponding to JS expectations -->
+    <div class="dashboard-section active" id="draftSection">
+      <div class="contract-grid" id="draftContractsGrid">
+        <!-- Draft contracts populated here -->
       </div>
     </div>
 
-    <!-- Signed Contracts -->
-    <div class="dashboard-section">
-      <h2 class="section-title">Signed Contracts</h2>
-      <div class="section-grid" id="signedContractsGrid">
-        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
+    <div class="dashboard-section" id="pendingSection">
+      <div class="contract-grid" id="pendingContractsGrid">
+        <!-- Pending contracts populated here -->
       </div>
     </div>
 
-    <!-- Declined Contracts -->
-    <div class="dashboard-section">
-      <h2 class="section-title">Declined Contracts</h2>
-      <div class="section-grid" id="declinedContractsGrid">
-        <p class="empty-state" style="color:var(--text-secondary);padding:var(--space-6);">Loading…</p>
+    <div class="dashboard-section" id="signedSection">
+      <div class="contract-grid" id="signedContractsGrid">
+        <!-- Signed contracts populated here -->
       </div>
+    </div>
+
+    <div class="dashboard-section" id="declinedSection">
+      <div class="contract-grid" id="declinedContractsGrid">
+        <!-- Declined contracts populated here -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Contract Action Modal -->
+  <div id="actionModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:#fff; padding: var(--space-6); border-radius: var(--radius-xl); max-width: 500px; width: 90%;">
+      <h2 style="margin-bottom: var(--space-4);" id="modalTitle">Contract Actions</h2>
+      <div id="modalBody" style="display: flex; flex-direction: column; gap: var(--space-4);">
+          <!-- Buttons dynamically added here -->
+      </div>
+      <button onclick="document.getElementById('actionModal').style.display='none'" class="btn btn-outline" style="margin-top: var(--space-6); width: 100%;">Close</button>
     </div>
   </div>
 
   <script src="../js/config.js"></script>
   <script src="../js/dashboard.js"></script>
+  <script>
+    // Tab switching logic for the UI
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('.dashboard-tab');
+      const sections = document.querySelectorAll('.dashboard-section');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          sections.forEach(s => s.classList.remove('active'));
+
+          tab.classList.add('active');
+          const target = tab.getAttribute('data-target');
+          if (target && document.getElementById(target)) {
+            document.getElementById(target).classList.add('active');
+          }
+        });
+      });
+      
+      // Mobile menu
+      const mobileBtn = document.getElementById('mobileMenuBtn');
+      if(mobileBtn) {
+        mobileBtn.addEventListener('click', () => {
+          document.getElementById('navbarMenu').classList.toggle('active');
+        });
+      }
+    });
+  </script>
 </body>
 </html>
