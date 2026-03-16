@@ -3,7 +3,8 @@ Routes for the **signatures** collection.
 Handles contract signing.
 """
 
-from datetime import datetime, timezone
+import asyncio
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 
@@ -22,6 +23,8 @@ if str(REPO_ROOT) not in sys.path:
 from pdf_gen_engine import generate_contract_pdf
 
 router = APIRouter(prefix="/contracts", tags=["Signatures"])
+
+PENDING_LOCK_TTL = timedelta(minutes=5)
 
 
 def _build_contract_terms(contract_doc: dict) -> list[str]:
@@ -47,6 +50,41 @@ def _build_contract_terms(contract_doc: dict) -> list[str]:
     return terms or ["Both parties agree to the terms captured in this contract."]
 
 
+async def cleanup_stale_pending_contracts(now: datetime | None = None) -> int:
+    """Reset stale pending contracts so they can be signed again."""
+    current_time = now or datetime.now(timezone.utc)
+    stale_before = current_time - PENDING_LOCK_TTL
+    result = await contracts_collection.update_many(
+        {
+            "status": ContractStatus.pending.value,
+            "$and": [
+                {
+                    "$or": [
+                        {"pendingAt": {"$lte": stale_before}},
+                        {"pendingAt": {"$exists": False}},
+                        {"pendingAt": None},
+                    ]
+                },
+                {
+                    "$or": [
+                        {"pdf_path": {"$exists": False}},
+                        {"pdf_path": None},
+                        {"pdf_path": ""},
+                    ]
+                },
+            ],
+        },
+        {
+            "$set": {
+                "status": ContractStatus.sent.value,
+                "pendingAt": None,
+                "signedAt": None,
+            }
+        },
+    )
+    return result.modified_count
+
+
 @router.on_event("startup")
 async def _ensure_signatures_collection() -> None:
     """Ensure signatures collection exists so it is visible in MongoDB tooling."""
@@ -56,6 +94,8 @@ async def _ensure_signatures_collection() -> None:
 
     await signatures_collection.create_index("contractId")
     await signatures_collection.create_index("signedAt")
+    await contracts_collection.create_index("pendingAt")
+    await cleanup_stale_pending_contracts()
 
 
 # ── POST /contracts/{id}/sign  ────────────────────────────────
@@ -75,19 +115,38 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         raise HTTPException(status_code=400, detail="Invalid contract ID format")
 
     signed_at = datetime.now(timezone.utc)
+    stale_before = signed_at - PENDING_LOCK_TTL
+    await cleanup_stale_pending_contracts(signed_at)
 
     # Lock signing so only one request can generate the final PDF.
     locked_contract = await contracts_collection.find_one_and_update(
         {
             "_id": oid,
-            "status": ContractStatus.sent.value,
-            "$or": [
-                {"pdf_path": {"$exists": False}},
-                {"pdf_path": None},
-                {"pdf_path": ""},
+            "$and": [
+                {
+                    "$or": [
+                        {"status": ContractStatus.sent.value},
+                        {
+                            "status": ContractStatus.pending.value,
+                            "pendingAt": {"$lte": stale_before},
+                        },
+                    ]
+                },
+                {
+                    "$or": [
+                        {"pdf_path": {"$exists": False}},
+                        {"pdf_path": None},
+                        {"pdf_path": ""},
+                    ]
+                },
             ],
         },
-        {"$set": {"status": ContractStatus.pending.value}},
+        {
+            "$set": {
+                "status": ContractStatus.pending.value,
+                "pendingAt": signed_at,
+            }
+        },
         return_document=ReturnDocument.AFTER,
     )
 
@@ -99,6 +158,9 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 
         if existing.get("status") == ContractStatus.signed.value and existing.get("pdf_path"):
             raise HTTPException(status_code=400, detail="Contract is already signed")
+
+        if existing.get("status") == ContractStatus.pending.value:
+            raise HTTPException(status_code=409, detail="Contract signing is already in progress")
 
         raise HTTPException(
             status_code=400,
@@ -116,6 +178,8 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 
     result = await signatures_collection.insert_one(sig_doc)
 
+    amount_value = locked_contract.get("amount")
+
     contract_payload = {
         "contract_id": str(locked_contract["_id"]),
         "title": locked_contract.get("title") or "Service Agreement",
@@ -127,7 +191,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         "client_name": locked_contract.get("clientName")
         or locked_contract.get("clientEmail")
         or payload.signerName,
-        "amount": locked_contract.get("amount") or "",
+        "amount": amount_value if amount_value is not None else None,
         "due_date": locked_contract.get("dueDate"),
         "signed_date": signed_at,
         "contract_terms": _build_contract_terms(locked_contract),
@@ -136,29 +200,61 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     }
 
     try:
-        pdf_path = generate_contract_pdf(contract_payload)
+        pdf_path = await asyncio.to_thread(generate_contract_pdf, contract_payload)
     except Exception as error:
         print(f"PDF generation failed for signed contract {contract_id}: {error}")
         await signatures_collection.delete_one({"_id": result.inserted_id})
         await contracts_collection.update_one(
             {"_id": oid},
-            {"$set": {"status": ContractStatus.sent.value, "signedAt": None}},
+            {
+                "$set": {
+                    "status": ContractStatus.sent.value,
+                    "signedAt": None,
+                    "pendingAt": None,
+                }
+            },
         )
         raise HTTPException(
             status_code=500,
             detail="Failed to generate signed contract PDF.",
         )
 
-    await contracts_collection.update_one(
-        {"_id": oid},
-        {
-            "$set": {
-                "status": ContractStatus.signed.value,
-                "signedAt": signed_at,
-                "pdf_path": pdf_path,
-            }
-        },
-    )
+    try:
+        update_result = await contracts_collection.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    "status": ContractStatus.signed.value,
+                    "signedAt": signed_at,
+                    "pendingAt": None,
+                    "pdf_path": pdf_path,
+                }
+            },
+        )
+        if update_result.matched_count == 0:
+            raise RuntimeError("Contract record disappeared before signed update could be saved")
+    except Exception as error:
+        print(f"Failed to persist signed contract state for {contract_id}: {error}")
+
+        try:
+            pdf_file = Path(str(pdf_path))
+            if pdf_file.exists():
+                pdf_file.unlink()
+        except Exception as cleanup_error:
+            print(f"Failed to delete generated PDF during rollback for {contract_id}: {cleanup_error}")
+
+        await signatures_collection.delete_one({"_id": result.inserted_id})
+        await contracts_collection.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    "status": ContractStatus.sent.value,
+                    "signedAt": None,
+                    "pendingAt": None,
+                }
+            },
+        )
+        raise HTTPException(status_code=500, detail="Failed to generate signed contract PDF.")
 
     sig_doc["_id"] = str(result.inserted_id)
     sig_doc["contractId"] = str(sig_doc["contractId"])

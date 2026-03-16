@@ -96,7 +96,9 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         or ""
     ).strip()
     contract_title = contract_data.get("contract_title") or contract_data.get("title") or "Service Agreement"
-    contract_amount = contract_data.get("contract_amount") or contract_data.get("amount") or ""
+    contract_amount = contract_data.get("contract_amount")
+    if contract_amount is None:
+        contract_amount = contract_data.get("amount")
     due_date = _to_display_date(contract_data.get("due_date"))
 
     payment_enabled = _resolve_clause_flag(contract_data, clauses, "payment", True)
@@ -126,11 +128,24 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         if termination_enabled
         else "This agreement remains active until the contracted work is completed or the parties otherwise agree in writing."
     )
-    payment_text = (
-        f"In consideration for the services provided, the Client agrees to pay the total amount of {contract_amount}. Payment shall be due no later than {due_date}."
-        if payment_enabled
-        else f"Commercial terms for this agreement total {contract_amount}, with the active date set for {due_date}."
-    )
+    if payment_enabled:
+        if contract_amount is None:
+            payment_text = (
+                f"Payment terms will be confirmed separately. The active date for this agreement is {due_date}."
+            )
+        else:
+            payment_text = (
+                f"In consideration for the services provided, the Client agrees to pay the total amount of {contract_amount}. Payment shall be due no later than {due_date}."
+            )
+    else:
+        if contract_amount is None:
+            payment_text = (
+                f"Commercial terms for this agreement will be confirmed separately, with the active date set for {due_date}."
+            )
+        else:
+            payment_text = (
+                f"Commercial terms for this agreement total {contract_amount}, with the active date set for {due_date}."
+            )
 
     return {
         "contract_title": contract_title,
