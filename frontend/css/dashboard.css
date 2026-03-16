@@ -6,6 +6,10 @@
   min-height: 100vh;
 }
 
+.navbar-user {
+  position: relative;
+}
+
 /* Centred wrapper used on all dashboard + contract pages */
 .dashboard-container {
   width: 100%;
@@ -127,16 +131,24 @@
 /* Tabs */
 .dashboard-tabs {
   display: flex;
-  gap: var(--space-6);
+  align-items: flex-end;
+  gap: var(--space-2);
   border-bottom: 1px solid var(--border);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
+  padding: 0 var(--space-1);
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
 }
 .dashboard-tabs::-webkit-scrollbar { display: none; } /* Chrome */
 
 .dashboard-tab {
-  padding-bottom: var(--space-3);
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: var(--space-3) var(--space-2) calc(var(--space-3) - 1px);
   font-weight: 600;
   font-size: var(--font-sm);
   color: var(--text-sub);
@@ -165,6 +177,7 @@
 /* Active Tab Section Handling */
 .dashboard-section {
   display: none;
+  padding-top: var(--space-2);
   animation: fadeIn 0.3s ease;
 }
 
@@ -182,6 +195,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-3);
+  align-items: stretch;
 }
 
 @media (min-width: 768px) {
@@ -271,8 +285,11 @@
   background-color: var(--bg-page);
   border-top: 1px solid var(--border-light);
   display: flex;
+  align-items: center;
+  margin-top: auto;
   gap: var(--space-2);
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .btn-download {
@@ -282,6 +299,36 @@
 
 .btn-download:hover:not(:disabled) {
   background-color: #eef2f7;
+}
+
+.logout-confirm-card {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 260px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-4);
+  z-index: 40;
+}
+
+.logout-confirm-card[hidden] {
+  display: none;
+}
+
+.logout-confirm-text {
+  color: var(--text-main);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  margin: 0 0 var(--space-4);
+}
+
+.logout-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 /* Empty State */
@@ -326,6 +373,21 @@
 }
 
 @media (max-width: 767px) {
+  .dashboard-tabs {
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+  }
+
+  .dashboard-tab {
+    padding: var(--space-2) var(--space-2) calc(var(--space-2) - 1px);
+  }
+
+  .logout-confirm-card {
+    left: 0;
+    right: auto;
+    width: min(260px, calc(100vw - 2rem));
+  }
+
   .mobile-menu-toggle { display: block; }
 
   .navbar-menu {

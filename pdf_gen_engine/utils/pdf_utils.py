@@ -74,14 +74,66 @@ def normalize_contract_terms(terms: Any) -> list[str]:
     return [value_text] if value_text else []
 
 
+def _resolve_clause_flag(
+    contract_data: Mapping[str, Any],
+    clauses: Mapping[str, Any],
+    key: str,
+    default: bool = False,
+) -> bool:
+    """Resolve a clause flag from nested or flat contract payloads."""
+    if key in clauses:
+        return bool(clauses.get(key))
+    return bool(contract_data.get(key, default)) if key in contract_data else default
+
+
 def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
     """Build a safe template context from incoming contract payload data."""
     terms_list = normalize_contract_terms(contract_data.get("contract_terms"))
+    clauses = contract_data.get("clauses") or {}
+    description_text = str(
+        contract_data.get("contract_description")
+        or contract_data.get("description")
+        or ""
+    ).strip()
+    contract_title = contract_data.get("contract_title") or contract_data.get("title") or "Service Agreement"
+    contract_amount = contract_data.get("contract_amount") or contract_data.get("amount") or ""
+    due_date = _to_display_date(contract_data.get("due_date"))
+
+    payment_enabled = _resolve_clause_flag(contract_data, clauses, "payment", True)
+    liability_enabled = _resolve_clause_flag(contract_data, clauses, "liability", False)
+    confidentiality_enabled = _resolve_clause_flag(contract_data, clauses, "confidentiality", False)
+    termination_enabled = _resolve_clause_flag(contract_data, clauses, "termination", False)
+
+    services_scope_text = (
+        description_text
+        or "The provider will deliver the agreed services in a professional and timely manner."
+    )
+    deliverables_text = (
+        f"The provider will deliver the agreed work product, revisions, and final materials required for {contract_title}."
+        + (
+            " All approved deliverables remain subject to the agreed limitation of liability."
+            if liability_enabled
+            else ""
+        )
+    )
+    confidentiality_text = (
+        "Both parties agree to maintain the confidentiality of proprietary information shared during the course of this engagement."
+        if confidentiality_enabled
+        else "No additional confidentiality clause was selected for this agreement."
+    )
+    termination_text = (
+        "Either party may terminate this agreement with written notice. All outstanding obligations must be fulfilled prior to termination."
+        if termination_enabled
+        else "This agreement remains active until the contracted work is completed or the parties otherwise agree in writing."
+    )
+    payment_text = (
+        f"In consideration for the services provided, the Client agrees to pay the total amount of {contract_amount}. Payment shall be due no later than {due_date}."
+        if payment_enabled
+        else f"Commercial terms for this agreement total {contract_amount}, with the active date set for {due_date}."
+    )
 
     return {
-        "contract_title": contract_data.get("contract_title")
-        or contract_data.get("title")
-        or "Service Agreement",
+        "contract_title": contract_title,
         "client_name": contract_data.get("client_name")
         or contract_data.get("client")
         or "Client",
@@ -92,11 +144,15 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         or str(contract_data.get("contract_terms", "")).strip()
         or "Terms will be provided by the contracting parties.",
         "contract_terms_list": terms_list,
-        "contract_amount": contract_data.get("contract_amount")
-        or contract_data.get("amount")
-        or "",
-        "due_date": _to_display_date(contract_data.get("due_date")),
+        "contract_amount": contract_amount,
+        "due_date": due_date,
         "signed_date": _to_display_date(contract_data.get("signed_date")),
+        "services_scope_text": services_scope_text,
+        "payment_text": payment_text,
+        "deliverables_text": deliverables_text,
+        "confidentiality_text": confidentiality_text,
+        "termination_text": termination_text,
+        "signature_text": "By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.",
         "signature_creator": normalize_signature_data(
             contract_data.get("signature_creator")
         ),

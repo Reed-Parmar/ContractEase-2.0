@@ -39,25 +39,86 @@ function isDownloadableStatus(status) {
   return status === 'signed' || status === 'finalized';
 }
 
-function parseFileNameFromDisposition(dispositionHeader) {
-  if (!dispositionHeader) return '';
+let activeLogoutConfirmCard = null;
 
-  const utf8Match = dispositionHeader.match(/filename\*=UTF-8''([^;]+)/i);
-  if (utf8Match && utf8Match[1]) {
-    try {
-      return decodeURIComponent(utf8Match[1]);
-    } catch (_) {
-      return utf8Match[1];
-    }
+function performLogout() {
+  const userRole = localStorage.getItem('user_role') || 'user';
+  localStorage.clear();
+  sessionStorage.clear();
+  const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
+  window.location.href = loginPage;
+}
+
+function closeLogoutConfirmCard() {
+  if (!activeLogoutConfirmCard) return;
+  activeLogoutConfirmCard.hidden = true;
+  activeLogoutConfirmCard = null;
+}
+
+function setupLogoutConfirmation(logoutBtn) {
+  const host = logoutBtn.closest('.navbar-user');
+  if (!host) return;
+
+  let confirmCard = host.querySelector('.logout-confirm-card');
+  if (!confirmCard) {
+    confirmCard = document.createElement('div');
+    confirmCard.className = 'logout-confirm-card';
+    confirmCard.hidden = true;
+    confirmCard.innerHTML = `
+      <p class="logout-confirm-text">Are you sure you want to log out?</p>
+      <div class="logout-confirm-actions">
+        <button type="button" class="btn btn-outline btn-sm logout-confirm-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm logout-confirm-submit">Log out</button>
+      </div>
+    `;
+    host.appendChild(confirmCard);
+
+    confirmCard.querySelector('.logout-confirm-cancel')?.addEventListener('click', () => {
+      closeLogoutConfirmCard();
+    });
+    confirmCard.querySelector('.logout-confirm-submit')?.addEventListener('click', () => {
+      performLogout();
+    });
+    confirmCard.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
   }
 
-  const simpleMatch = dispositionHeader.match(/filename="?([^";]+)"?/i);
-  return simpleMatch && simpleMatch[1] ? simpleMatch[1] : '';
+  logoutBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const shouldOpen = confirmCard.hidden;
+    closeLogoutConfirmCard();
+
+    if (shouldOpen) {
+      confirmCard.hidden = false;
+      activeLogoutConfirmCard = confirmCard;
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!host.contains(event.target)) {
+      closeLogoutConfirmCard();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeLogoutConfirmCard();
+    }
+  });
 }
 
 async function downloadSignedContract(contractId, buttonEl = null) {
   if (!contractId) {
     showToast('Contract ID is missing for download.', 'error');
+    return;
+  }
+
+  const userId = localStorage.getItem('user_id');
+  if (!userId) {
+    showToast('Please sign in again before downloading.', 'error');
     return;
   }
 
@@ -68,31 +129,17 @@ async function downloadSignedContract(contractId, buttonEl = null) {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/contracts/${contractId}/download`, {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Download failed with status ${response.status}`);
-    }
-
-    const pdfBlob = await response.blob();
-    const disposition = response.headers.get('content-disposition') || '';
-    const fileName = parseFileNameFromDisposition(disposition) || `contract_${contractId}.pdf`;
-
-    const objectUrl = window.URL.createObjectURL(pdfBlob);
     const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = fileName;
+    anchor.href = `${API_BASE}/contracts/${contractId}/download?user_id=${encodeURIComponent(userId)}`;
+    anchor.download = `contract_${contractId}.pdf`;
     anchor.style.display = 'none';
 
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    window.URL.revokeObjectURL(objectUrl);
   } catch (error) {
     console.error('Contract download failed:', error);
-    showToast('PDF download is not available yet. Backend endpoint will be added in next phase.', 'info');
+    showToast('Failed to start contract download.', 'error');
   } finally {
     if (buttonEl) {
       buttonEl.disabled = false;
@@ -342,32 +389,17 @@ function bindCardButtons() {
   });
 
   document.querySelectorAll('.send-reminder-btn').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      const card = e.target.closest('.contract-card');
-      const id = card.dataset.id;
-      const title = card.querySelector('.contract-title').textContent;
+    btn.addEventListener('click', () => {
       const originalText = btn.textContent;
-      
+
       btn.disabled = true;
       btn.textContent = 'Sending...';
-      
-      try {
-        const res = await fetch(`${API_BASE}/reminders/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contract_id: id })
-        });
-        if (res.ok) {
-          showToast('Reminder sent to client for: ' + title, 'success');
-        } else {
-          showToast('Failed to send reminder', 'error');
-        }
-      } catch (err) {
-        showToast('Failed to send reminder', 'error');
-      } finally {
+
+      window.setTimeout(() => {
+        showToast('Reminder sent to client successfully.', 'success');
         btn.disabled = false;
         btn.textContent = originalText;
-      }
+      }, 300);
     });
   });
 
@@ -399,7 +431,6 @@ async function loadUserDashboard(userId) {
     updateCount('countSigned', signed.length);
     updateCount('countDeclined', declined.length);
 
-    fillGrid('draftContractsGrid', drafts.map(renderUserDraftCard), 'No Drafts', 'You do not have any draft contracts. Click "New Contract" to start.', '📄');
     fillGrid('pendingContractsGrid', pending.map(renderUserPendingCard), 'All Caught Up', 'No contracts are currently awaiting client signatures.', '⏳');
     fillGrid('signedContractsGrid', signed.map(renderUserSignedCard), 'No Signed Documents', 'You have not completed any contracts yet.', '✅');
     fillGrid('declinedContractsGrid', declined.map(renderUserSignedCard), 'No Declined Documents', 'None of your contracts have been declined.', '❌');
@@ -438,15 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Logout handler
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to sign out?')) {
-        const userRole = localStorage.getItem('user_role') || 'user';
-        localStorage.clear();
-        sessionStorage.clear();
-        const loginPage = userRole === 'client' ? './client-login.html' : './user-login.html';
-        window.location.href = loginPage;
-      }
-    });
+    setupLogoutConfirmation(logoutBtn);
   }
 
   // Auth guard

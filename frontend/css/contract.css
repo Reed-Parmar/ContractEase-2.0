@@ -319,6 +319,7 @@
   line-height: 1.8;
   color: #334155;
   font-family: serif; 
+  counter-reset: preview-section;
 }
 
 /* All clause/section headings: uniform size + consistent 1px underline */
@@ -342,6 +343,15 @@
   border-bottom: 2px solid #cbd5e1;
   padding-bottom: 1rem;
   margin-bottom: 2rem;
+}
+
+.preview-section h2 {
+  margin-top: 0;
+}
+
+.preview-section h2::before {
+  counter-increment: preview-section;
+  content: counter(preview-section) '. ';
 }
 
 .preview-content p {

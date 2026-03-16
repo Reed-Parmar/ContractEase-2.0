@@ -176,7 +176,10 @@ p {
   color: white;
   box-shadow: var(--shadow-sm);
 }
-.btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  color: white;
+}
 
 .btn-secondary {
   background-color: var(--secondary);

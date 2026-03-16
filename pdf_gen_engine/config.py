@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 PDF_ENGINE_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = PDF_ENGINE_ROOT.parent
 
 PDF_TEMPLATE_PATH = Path(
     os.getenv(
@@ -29,7 +30,7 @@ PDF_STYLE_PATH = Path(
 PDF_STORAGE_PATH = Path(
     os.getenv(
         "PDF_STORAGE_PATH",
-        PDF_ENGINE_ROOT / "storage",
+        REPO_ROOT / "contracts_pdfs",
     )
 ).resolve()
 

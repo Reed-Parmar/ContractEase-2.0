@@ -419,14 +419,58 @@ function clearFieldError(field) {
   if (errMsg) errMsg.remove();
 }
 
-// ── Clause toggle → preview section mapping ──────────────────
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
-const CLAUSE_PREVIEW_MAP = {
-  payment: 'preview-payment',
-  liability: 'preview-liability',
-  confidentiality: 'preview-confidentiality',
-  termination: 'preview-termination',
-};
+function formatContractAmount(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '$0';
+  return '$' + numeric.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatContractDate(value) {
+  if (!value) return '—';
+  const dateValue = new Date(value);
+  if (Number.isNaN(dateValue.getTime())) return '—';
+  return dateValue.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function buildContractSectionCopy(details) {
+  const title = String(details.title || 'this agreement').trim() || 'this agreement';
+  const description = String(details.description || '').trim();
+  const clauses = details.clauses || {};
+  const amountText = formatContractAmount(details.amount);
+  const dueText = formatContractDate(details.dueDate);
+
+  return {
+    services: description || 'The provider will deliver the agreed services in a professional and timely manner.',
+    paymentHtml: clauses.payment === false
+      ? `Commercial terms for this agreement total <strong>${escapeHtml(amountText)}</strong>, with the active date set for <strong>${escapeHtml(dueText)}</strong>.`
+      : `In consideration for the services provided, the Client agrees to pay the total amount of <strong>${escapeHtml(amountText)}</strong>. Payment shall be due no later than <strong>${escapeHtml(dueText)}</strong>.`,
+    deliverables: `The provider will deliver the agreed work product, revisions, and final materials required for ${title}.${clauses.liability ? ' All approved deliverables remain subject to the agreed limitation of liability.' : ''}`,
+    confidentiality: clauses.confidentiality === false
+      ? 'No additional confidentiality clause was selected for this agreement.'
+      : 'Both parties agree to maintain the confidentiality of proprietary information shared during the course of this engagement.',
+    termination: clauses.termination === false
+      ? 'This agreement remains active until the contracted work is completed or the parties otherwise agree in writing.'
+      : 'Either party may terminate this agreement with written notice. All outstanding obligations must be fulfilled prior to termination.',
+    signatures: 'By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.',
+  };
+}
 
 // ── Update preview ───────────────────────────────────────────
 
@@ -435,22 +479,28 @@ function updatePreview() {
   const clientName = document.getElementById('clientName');
   const contractAmount = document.getElementById('contractAmount');
   const dueDate = document.getElementById('dueDate');
+  const contractDescription = document.getElementById('contractDescription');
+
+  const clauses = {
+    payment: !!document.querySelector('.toggle-switch[data-clause="payment"]')?.checked,
+    liability: !!document.querySelector('.toggle-switch[data-clause="liability"]')?.checked,
+    confidentiality: !!document.querySelector('.toggle-switch[data-clause="confidentiality"]')?.checked,
+    termination: !!document.querySelector('.toggle-switch[data-clause="termination"]')?.checked,
+  };
+
+  const sectionCopy = buildContractSectionCopy({
+    title: contractTitle?.value,
+    description: contractDescription?.value,
+    amount: contractAmount?.value,
+    dueDate: dueDate?.value,
+    clauses,
+  });
 
   if (contractTitle) {
     document.getElementById('previewTitle').textContent = contractTitle.value || 'Service Agreement';
   }
   if (clientName) {
     document.getElementById('previewClient').textContent = clientName.value || 'Client';
-  }
-  if (contractAmount) {
-    const raw = parseFloat(contractAmount.value);
-    document.getElementById('previewAmount').textContent = isNaN(raw) ? '$0' : '$' + raw.toLocaleString('en-US', { minimumFractionDigits: 0 });
-  }
-  if (dueDate) {
-    const val = dueDate.value;
-    document.getElementById('previewDue').textContent = val
-      ? new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      : '—';
   }
 
   const today = new Date();
@@ -463,16 +513,23 @@ function updatePreview() {
     });
   }
 
-  // Show / hide clause sections based on toggle state
-  document.querySelectorAll('.toggle-switch').forEach((toggle) => {
-    const sectionId = CLAUSE_PREVIEW_MAP[toggle.dataset.clause];
-    if (sectionId) {
-      const section = document.getElementById(sectionId);
-      if (section) {
-        section.style.display = toggle.checked ? '' : 'none';
-      }
-    }
-  });
+  const servicesText = document.getElementById('previewServicesText');
+  if (servicesText) servicesText.textContent = sectionCopy.services;
+
+  const paymentText = document.getElementById('previewPaymentText');
+  if (paymentText) paymentText.innerHTML = sectionCopy.paymentHtml;
+
+  const deliverablesText = document.getElementById('previewDeliverablesText');
+  if (deliverablesText) deliverablesText.textContent = sectionCopy.deliverables;
+
+  const confidentialityText = document.getElementById('previewConfidentialityText');
+  if (confidentialityText) confidentialityText.textContent = sectionCopy.confidentiality;
+
+  const terminationText = document.getElementById('previewTerminationText');
+  if (terminationText) terminationText.textContent = sectionCopy.termination;
+
+  const signatureText = document.getElementById('previewSignatureText');
+  if (signatureText) signatureText.textContent = sectionCopy.signatures;
 }
 
 async function loadCreateContractPage() {
@@ -744,24 +801,22 @@ async function loadSignContractPage() {
     // Update contract preview content
     const previewContent = document.querySelector('.preview-content');
     if (previewContent) {
-      let html = `<h2>${c.title}</h2>`;
-      html += `<p>This agreement is entered into as of ${new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.</p>`;
-      if (c.description) html += `<h2>Description</h2><p>${c.description}</p>`;
+      const sectionCopy = buildContractSectionCopy({
+        title: c.title,
+        description: c.description,
+        amount: c.amount,
+        dueDate: c.dueDate,
+        clauses: c.clauses || {},
+      });
 
-      if (c.clauses?.payment) {
-        html += `<h2>Payment Terms</h2><p>The total contract value is <strong>$${Number(c.amount).toLocaleString()}</strong>, due by ${c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}.</p>`;
-      }
-      if (c.clauses?.liability) {
-        html += `<h2>Limitation of Liability</h2><p>Neither party shall be liable for any indirect, incidental, or consequential damages arising from this agreement.</p>`;
-      }
-      if (c.clauses?.confidentiality) {
-        html += `<h2>Confidentiality</h2><p>Both parties agree to maintain the confidentiality of any proprietary information shared during the course of this engagement.</p>`;
-      }
-      if (c.clauses?.termination) {
-        html += `<h2>Termination</h2><p>Either party may terminate this agreement with written notice. All outstanding obligations must be fulfilled prior to termination.</p>`;
-      }
-
-      html += `<h2>Signature</h2><p>By signing below, each party acknowledges that they have read and agree to all terms and conditions.</p>`;
+      let html = `<h2>${escapeHtml(c.title || 'Service Agreement')}</h2>`;
+      html += `<p>This agreement is entered into as of ${escapeHtml(formatContractDate(c.createdAt))}.</p>`;
+      html += `<section class="preview-section"><h2>Services & Scope</h2><p>${escapeHtml(sectionCopy.services)}</p></section>`;
+      html += `<section class="preview-section"><h2>Compensation & Payment</h2><p>${sectionCopy.paymentHtml}</p></section>`;
+      html += `<section class="preview-section"><h2>Deliverables</h2><p>${escapeHtml(sectionCopy.deliverables)}</p></section>`;
+      html += `<section class="preview-section"><h2>Confidentiality</h2><p>${escapeHtml(sectionCopy.confidentiality)}</p></section>`;
+      html += `<section class="preview-section"><h2>Term & Termination</h2><p>${escapeHtml(sectionCopy.termination)}</p></section>`;
+      html += `<section class="preview-section"><h2>Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p></section>`;
       previewContent.innerHTML = html;
     }
 
