@@ -25,6 +25,16 @@ function daysUntil(isoString) {
   return diff;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ── Card renderers (Modern SaaS Design) ────────────────────────
 
 function renderUserDraftCard(c) {
@@ -33,8 +43,8 @@ function renderUserDraftCard(c) {
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
-            <div class="contract-title">${c.title}</div>
-            <div class="contract-client">${c.clientName || 'No Client Assigned'}</div>
+            <div class="contract-title">${escapeHtml(c.title)}</div>
+            <div class="contract-client">${escapeHtml(c.clientName) || 'No Client Assigned'}</div>
           </div>
           <div class="badge badge-draft">Draft</div>
         </div>
@@ -62,8 +72,8 @@ function renderUserPendingCard(c) {
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
-            <div class="contract-title">${c.title}</div>
-            <div class="contract-client">${c.clientName || 'Unknown Client'}</div>
+            <div class="contract-title">${escapeHtml(c.title)}</div>
+            <div class="contract-client">${escapeHtml(c.clientName) || 'Unknown Client'}</div>
           </div>
           <div class="badge badge-warning">Pending Action</div>
         </div>
@@ -96,8 +106,8 @@ function renderUserSignedCard(c) {
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
-            <div class="contract-title">${c.title}</div>
-            <div class="contract-client">${c.clientName || 'Unknown'}</div>
+            <div class="contract-title">${escapeHtml(c.title)}</div>
+            <div class="contract-client">${escapeHtml(c.clientName) || 'Unknown'}</div>
           </div>
           <div class="badge ${badgeClass}">${badgeText}</div>
         </div>
@@ -124,14 +134,14 @@ function renderClientPendingCard(c) {
   const badgeClass = overdue ? 'badge-error' : 'badge-warning';
   const badgeText = overdue ? 'Overdue' : 'Action Required';
   const daysText = overdue ? `Overdue by ${Math.abs(days)} days` : days !== null ? `${days} days left` : '—';
-  const senderText = c.userName || c.userEmail || 'Unknown Sender';
+  const senderText = escapeHtml(c.userName) || escapeHtml(c.userEmail) || 'Unknown Sender';
 
   return `
     <div class="contract-card" data-id="${c._id}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
-            <div class="contract-title">${c.title}</div>
+            <div class="contract-title">${escapeHtml(c.title)}</div>
             <div class="contract-client">From: ${senderText}</div>
           </div>
           <div class="badge ${badgeClass}">${badgeText}</div>
@@ -159,14 +169,15 @@ function renderClientSignedCard(c) {
   const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
   const badgeText = isDeclined ? 'Declined' : 'Completed';
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
+  const senderText = escapeHtml(c.userName) || escapeHtml(c.userEmail) || '—';
 
   return `
     <div class="contract-card" data-id="${c._id}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
-            <div class="contract-title">${c.title}</div>
-            <div class="contract-client">From: ${c.userName || c.userEmail || '—'}</div>
+            <div class="contract-title">${escapeHtml(c.title)}</div>
+            <div class="contract-client">From: ${senderText}</div>
           </div>
           <div class="badge ${badgeClass}">${badgeText}</div>
         </div>
@@ -253,9 +264,32 @@ function bindCardButtons() {
   });
 
   document.querySelectorAll('.send-reminder-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const title = e.target.closest('.contract-card').querySelector('.contract-title').textContent;
-      showToast('Reminder sent to client for: ' + title, 'success');
+    btn.addEventListener('click', async (e) => {
+      const card = e.target.closest('.contract-card');
+      const id = card.dataset.id;
+      const title = card.querySelector('.contract-title').textContent;
+      const originalText = btn.textContent;
+      
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      
+      try {
+        const res = await fetch(`${API_BASE}/reminders/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contract_id: id })
+        });
+        if (res.ok) {
+          showToast('Reminder sent to client for: ' + title, 'success');
+        } else {
+          showToast('Failed to send reminder', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to send reminder', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     });
   });
 }

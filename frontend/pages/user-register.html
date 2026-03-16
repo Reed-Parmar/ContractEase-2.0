@@ -95,6 +95,10 @@
           const data = await res.json();
 
           if (res.ok && data.success) {
+            if (!data.user_id || !data.email || !data.name) {
+              showToast('Incomplete server response', 'error');
+              return;
+            }
             // Auto-login: store session and navigate directly to dashboard
             localStorage.setItem('user_id', data.user_id);
             localStorage.setItem('user_email', data.email);

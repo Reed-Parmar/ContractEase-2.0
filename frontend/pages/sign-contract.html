@@ -17,9 +17,9 @@
         ContractEase <span style="font-weight: 400; font-size: 0.9em; opacity: 0.9; color: var(--text-sub);">Portal</span>
       </a>
       
-      <button class="mobile-menu-toggle" id="mobileMenuBtn">☰</button>
+      <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-controls="navbarMenu" aria-expanded="false" aria-label="Open mobile menu">☰</button>
       
-      <div class="navbar-menu" id="navbarMenu">
+      <div class="navbar-menu" id="navbarMenu" aria-hidden="true">
         <a href="client-dashboard.html" class="navbar-link">Dashboard</a>
         
         <div class="navbar-user">
@@ -46,7 +46,7 @@
         <div class="signing-status-icon">⏳</div>
         <div class="signing-status-content">
           <h3>Retrieving secure document</h3>
-          <p>Please wait while the contract is loaded.</p>
+          <p>Please wait while the document is loaded.</p>
         </div>
       </div>
 
@@ -56,7 +56,7 @@
         
         <div class="contract-preview">
           <div class="preview-content">
-            <p style="color:var(--text-sub); text-align: center;">Loading contract content…</p>
+            <p style="color:var(--text-sub); text-align: center;">Loading document preview…</p>
           </div>
         </div>
       </div>
@@ -122,14 +122,23 @@
 
           <div class="signature-area">
             <div class="signature-instructions">
-              Draw your signature inside the secure box below
+              Draw your signature inside the secure box below, or <button type="button" id="toggleTypedSignatureBtn" class="btn-link" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;">type your signature</button>
             </div>
-            <div class="signature-canvas-wrapper">
-              <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+            
+            <div id="drawSignatureWrapper">
+              <div class="signature-canvas-wrapper">
+                <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+              </div>
+              <div class="signature-actions">
+                <button class="btn btn-outline btn-sm" id="clearSignatureBtn">Clear Signature</button>
+              </div>
             </div>
-            <div class="signature-actions">
-              <button class="btn btn-outline btn-sm" id="clearSignatureBtn">Clear Signature</button>
+
+            <div id="typedSignatureWrapper" style="display:none; margin-top: var(--space-4);">
+              <label for="typedSignatureInput" class="form-label" style="margin-bottom: var(--space-2);">Type Signature Details (Legal Name)</label>
+              <input type="text" id="typedSignatureInput" class="form-input" placeholder="Type your full legal name here" aria-label="Type your signature">
             </div>
+            <input type="hidden" id="signatureTypeFlag" value="draw">
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
@@ -203,7 +212,11 @@
       const mobileBtn = document.getElementById('mobileMenuBtn');
       if(mobileBtn) {
         mobileBtn.addEventListener('click', () => {
-          document.getElementById('navbarMenu').classList.toggle('active');
+          const menu = document.getElementById('navbarMenu');
+          menu.classList.toggle('active');
+          const isActive = menu.classList.contains('active');
+          mobileBtn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+          menu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
         });
       }
     });

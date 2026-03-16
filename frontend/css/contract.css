@@ -264,6 +264,8 @@
 }
 
 .toggle-switch {
+  appearance: none;
+  -webkit-appearance: none;
   position: relative;
   width: 48px;
   height: 26px;
@@ -272,9 +274,10 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
   flex-shrink: 0;
+  margin: 0;
 }
 
-.toggle-switch.active {
+.toggle-switch:checked {
   background-color: var(--primary);
 }
 
@@ -291,7 +294,7 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.toggle-switch.active::after {
+.toggle-switch:checked::after {
   left: 24px;
 }
 
@@ -485,7 +488,6 @@
   .form-actions-left,
   .form-actions-right {
     width: 100%;
-    justify-content: stretch;
   }
   
   .form-actions .btn {

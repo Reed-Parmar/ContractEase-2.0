@@ -17,9 +17,9 @@
         ContractEase
       </a>
       
-      <button class="mobile-menu-toggle" id="mobileMenuBtn">☰</button>
+      <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-controls="navbarMenu" aria-expanded="false" aria-label="Open mobile menu">☰</button>
       
-      <div class="navbar-menu" id="navbarMenu">
+      <div class="navbar-menu" id="navbarMenu" aria-hidden="true">
         <a href="user-dashboard.html" class="navbar-link">Dashboard</a>
         <a href="create-contract.html" class="navbar-link active">Create Contract</a>
         
@@ -61,37 +61,43 @@
       <!-- Step 1: Contract Type Selection -->
       <div class="form-section" id="step-1">
         <h2 class="form-section-title">Select Contract Type</h2>
-        <div class="contract-type-grid" id="contractTypeGrid">
-          <div class="contract-type-option" data-type="service">
+        <div class="contract-type-grid" id="contractTypeGrid" role="radiogroup">
+          <label class="contract-type-option" data-type="service">
+            <input type="radio" name="contractType" value="service" style="opacity:0; position:absolute; width:0; height:0;">
             <div class="contract-type-icon">💼</div>
             <div class="contract-type-name">Service Agreement</div>
             <div class="contract-type-description">For providing professional B2B services</div>
-          </div>
-          <div class="contract-type-option" data-type="nda">
+          </label>
+          <label class="contract-type-option" data-type="nda">
+            <input type="radio" name="contractType" value="nda" style="opacity:0; position:absolute; width:0; height:0;">
             <div class="contract-type-icon">🔒</div>
             <div class="contract-type-name">NDA Agreement</div>
             <div class="contract-type-description">For mutual confidentiality</div>
-          </div>
-          <div class="contract-type-option" data-type="license">
+          </label>
+          <label class="contract-type-option" data-type="license">
+            <input type="radio" name="contractType" value="license" style="opacity:0; position:absolute; width:0; height:0;">
             <div class="contract-type-icon">📜</div>
             <div class="contract-type-name">License Agreement</div>
             <div class="contract-type-description">For software or content licensing</div>
-          </div>
-          <div class="contract-type-option" data-type="employment">
+          </label>
+          <label class="contract-type-option" data-type="employment">
+            <input type="radio" name="contractType" value="employment" style="opacity:0; position:absolute; width:0; height:0;">
             <div class="contract-type-icon">👔</div>
             <div class="contract-type-name">Employment</div>
             <div class="contract-type-description">For hiring new W2 employees</div>
-          </div>
-          <div class="contract-type-option" data-type="partnership">
+          </label>
+          <label class="contract-type-option" data-type="partnership">
+            <input type="radio" name="contractType" value="partnership" style="opacity:0; position:absolute; width:0; height:0;">
             <div class="contract-type-icon">🤝</div>
             <div class="contract-type-name">Partnership</div>
             <div class="contract-type-description">For LLC or business partnerships</div>
-          </div>
-          <div class="contract-type-option" data-type="custom">
+          </label>
+          <label class="contract-type-option" data-type="custom">
+            <input type="radio" name="contractType" value="custom" style="opacity:0; position:absolute; width:0; height:0;">
             <div class="contract-type-icon">✏️</div>
             <div class="contract-type-name">Custom Contract</div>
             <div class="contract-type-description">Start from a blank template</div>
-          </div>
+          </label>
         </div>
       </div>
 
@@ -112,12 +118,13 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
           <div class="form-group">
-            <label for="clientName" class="form-label">Client Name</label>
+            <label for="clientName" class="form-label">Client Name <span style="color:var(--danger)">*</span></label>
             <input 
               type="text" 
               id="clientName" 
               class="form-input" 
               placeholder="Company or Individual"
+              aria-required="true"
               required
             >
           </div>
@@ -171,37 +178,37 @@
 
         <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Include Standard Clauses</h3>
         <div class="toggle-group">
-          <div class="toggle-item">
+          <label class="toggle-item">
             <div class="toggle-label">
               <div class="toggle-label-title">Standard Payment Terms</div>
               <div class="toggle-label-description">Includes standard net-30 payment structure and late fees</div>
             </div>
-            <div class="toggle-switch active" data-clause="payment"></div>
-          </div>
+            <input type="checkbox" name="clause_payment" class="toggle-switch" data-clause="payment" checked>
+          </label>
           
-          <div class="toggle-item">
+          <label class="toggle-item">
             <div class="toggle-label">
               <div class="toggle-label-title">Limitation of Liability</div>
               <div class="toggle-label-description">Caps liability at the total amount paid under the contract</div>
             </div>
-            <div class="toggle-switch" data-clause="liability"></div>
-          </div>
+            <input type="checkbox" name="clause_liability" class="toggle-switch" data-clause="liability">
+          </label>
           
-          <div class="toggle-item">
+          <label class="toggle-item">
             <div class="toggle-label">
               <div class="toggle-label-title">Mutual Confidentiality</div>
               <div class="toggle-label-description">Standard 2-year mutual NDA clause included</div>
             </div>
-            <div class="toggle-switch active" data-clause="confidentiality"></div>
-          </div>
+            <input type="checkbox" name="clause_confidentiality" class="toggle-switch" data-clause="confidentiality" checked>
+          </label>
           
-          <div class="toggle-item">
+          <label class="toggle-item">
             <div class="toggle-label">
               <div class="toggle-label-title">Termination for Convenience</div>
               <div class="toggle-label-description">Allows either party to terminate with 30-days written notice</div>
             </div>
-            <div class="toggle-switch" data-clause="termination"></div>
-          </div>
+            <input type="checkbox" name="clause_termination" class="toggle-switch" data-clause="termination">
+          </label>
         </div>
       </div>
 
@@ -212,14 +219,14 @@
         <div class="contract-preview">
           <div class="preview-content" id="previewContent">
             <h2 id="previewTitle">Service Agreement</h2>
-            <p>This Agreement is officially entered into as of <strong id="previewDate">January 15, 2024</strong>, by and between the service provider and <strong id="previewClient">Acme Corp</strong> (hereinafter referred to as "Client").</p>
+            <p>This Agreement is officially entered into as of <strong id="previewDate"></strong>, by and between the service provider and <strong id="previewClient"></strong> (hereinafter referred to as "Client").</p>
 
             <h2>1. Services & Scope</h2>
             <p>The provider agrees to deliver the services as outlined in the description above in a professional and timely manner.</p>
 
             <div id="preview-payment">
               <h2>2. Compensation & Payment</h2>
-              <p>In consideration for the services provided, the Client agrees to pay the total amount of <strong id="previewAmount">$5,000</strong>. Payment shall be due no later than <strong id="previewDue">February 15, 2024</strong>.</p>
+              <p>In consideration for the services provided, the Client agrees to pay the total amount of <strong id="previewAmount"></strong>. Payment shall be due no later than <strong id="previewDue"></strong>.</p>
             </div>
 
             <div id="preview-liability">
@@ -271,7 +278,11 @@
       const mobileBtn = document.getElementById('mobileMenuBtn');
       if(mobileBtn) {
         mobileBtn.addEventListener('click', () => {
-          document.getElementById('navbarMenu').classList.toggle('active');
+          const menu = document.getElementById('navbarMenu');
+          menu.classList.toggle('active');
+          const isActive = menu.classList.contains('active');
+          mobileBtn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+          menu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
         });
       }
     });

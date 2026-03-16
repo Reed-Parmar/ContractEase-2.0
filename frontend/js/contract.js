@@ -50,8 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Toggle Switches ──────────────────────────────────────────
   const toggleSwitches = document.querySelectorAll('.toggle-switch');
   toggleSwitches.forEach((toggle) => {
-    toggle.addEventListener('click', () => {
-      toggle.classList.toggle('active');
+    toggle.addEventListener('change', () => {
       saveDraft();
       if (currentStep === 3) {
         updatePreview();
@@ -88,13 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
         [titleEl, emailEl].forEach((el) => { if (el) clearFieldError(el); });
 
         const fieldErrors = [];
-        if (!titleEl?.value?.trim()) fieldErrors.push({ el: titleEl, msg: 'Contract title is required.' });
-        if (!emailEl?.value?.trim()) fieldErrors.push({ el: emailEl, msg: 'Client email address is required.' });
+        if (titleEl && !titleEl.value.trim()) fieldErrors.push({ el: titleEl, msg: 'Contract title is required.' });
+        if (emailEl && !emailEl.value.trim()) fieldErrors.push({ el: emailEl, msg: 'Client email address is required.' });
 
         if (fieldErrors.length > 0) {
-          fieldErrors.forEach(({ el, msg }) => { if (el) setFieldError(el, msg); });
+          fieldErrors.forEach(({ el, msg }) => setFieldError(el, msg));
           // Scroll viewport to the first invalid field so the user knows where to look
-          if (fieldErrors[0].el) fieldErrors[0].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          fieldErrors[0].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
       }
@@ -209,6 +208,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = signatureCanvas.getContext('2d');
         ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
         hasSignatureInk = false;
+      }
+    });
+  }
+
+  // Toggle Signature Type
+  const toggleTypeBtn = document.getElementById('toggleTypedSignatureBtn');
+  if (toggleTypeBtn) {
+    toggleTypeBtn.addEventListener('click', () => {
+      const flag = document.getElementById('signatureTypeFlag');
+      const drawWrapper = document.getElementById('drawSignatureWrapper');
+      const typeWrapper = document.getElementById('typedSignatureWrapper');
+      
+      if (flag.value === 'draw') {
+        flag.value = 'type';
+        drawWrapper.style.display = 'none';
+        typeWrapper.style.display = 'block';
+        toggleTypeBtn.textContent = 'draw your signature';
+      } else {
+        flag.value = 'draw';
+        drawWrapper.style.display = 'block';
+        typeWrapper.style.display = 'none';
+        toggleTypeBtn.textContent = 'type your signature';
       }
     });
   }
@@ -332,7 +353,7 @@ function saveDraft() {
     clauses: {},
   };
   document.querySelectorAll('.toggle-switch[data-clause]').forEach((toggle) => {
-    draft.clauses[toggle.dataset.clause] = toggle.classList.contains('active');
+    draft.clauses[toggle.dataset.clause] = toggle.checked;
   });
   localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
 }
@@ -356,7 +377,7 @@ function restoreDraft() {
     if (draft.clauses) {
       document.querySelectorAll('.toggle-switch[data-clause]').forEach((toggle) => {
         if (draft.clauses[toggle.dataset.clause] !== undefined) {
-          toggle.classList.toggle('active', draft.clauses[toggle.dataset.clause]);
+          toggle.checked = draft.clauses[toggle.dataset.clause];
         }
       });
     }
@@ -448,7 +469,7 @@ function updatePreview() {
     if (sectionId) {
       const section = document.getElementById(sectionId);
       if (section) {
-        section.style.display = toggle.classList.contains('active') ? '' : 'none';
+        section.style.display = toggle.checked ? '' : 'none';
       }
     }
   });
@@ -516,7 +537,7 @@ async function loadCreateContractPage() {
     document.querySelectorAll('.toggle-switch').forEach((toggle) => {
       const clauseKey = toggle.dataset.clause;
       const active = !!c.clauses?.[clauseKey];
-      toggle.classList.toggle('active', active);
+      toggle.checked = active;
     });
 
     if (mode === 'view') {
@@ -569,10 +590,10 @@ async function submitContract() {
 
   // Read clause toggle states
   const clauses = {
-    payment: !!document.querySelector('.toggle-switch[data-clause="payment"]')?.classList.contains('active'),
-    liability: !!document.querySelector('.toggle-switch[data-clause="liability"]')?.classList.contains('active'),
-    confidentiality: !!document.querySelector('.toggle-switch[data-clause="confidentiality"]')?.classList.contains('active'),
-    termination: !!document.querySelector('.toggle-switch[data-clause="termination"]')?.classList.contains('active'),
+    payment: !!document.querySelector('.toggle-switch[data-clause="payment"]')?.checked,
+    liability: !!document.querySelector('.toggle-switch[data-clause="liability"]')?.checked,
+    confidentiality: !!document.querySelector('.toggle-switch[data-clause="confidentiality"]')?.checked,
+    termination: !!document.querySelector('.toggle-switch[data-clause="termination"]')?.checked,
   };
 
   const userId = localStorage.getItem('user_id');
@@ -822,18 +843,42 @@ async function signContract() {
   const signerEmail = document.getElementById('signerEmail')?.value?.trim();
   const agreeTerms = document.getElementById('agreeTerms')?.checked;
   const signatureCanvas = document.getElementById('signatureCanvas');
+  const signatureType = document.getElementById('signatureTypeFlag')?.value;
+  const typedSignature = document.getElementById('typedSignatureInput')?.value?.trim();
 
   if (!signerName || !signerEmail || !agreeTerms) {
     showToast('Please fill in all required fields and agree to the terms.', 'warning');
     return;
   }
 
-  if (!canvasContainsDrawing(signatureCanvas)) {
+  if (signatureType === 'draw' && !canvasContainsDrawing(signatureCanvas)) {
     showToast('Please draw your signature in the box above.', 'warning');
     return;
   }
+  
+  if (signatureType === 'type' && !typedSignature) {
+    showToast('Please type your legal name as your signature.', 'warning');
+    return;
+  }
 
-  const signatureData = signatureCanvas.toDataURL('image/png');
+  let signatureData;
+  if (signatureType === 'draw') {
+    signatureData = signatureCanvas.toDataURL('image/png');
+  } else {
+    // Generate simple canvas for typed signature
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = 400;
+    textCanvas.height = 150;
+    const tCtx = textCanvas.getContext('2d');
+    tCtx.fillStyle = '#ffffff';
+    tCtx.fillRect(0, 0, textCanvas.width, textCanvas.height);
+    tCtx.font = 'italic 48px serif';
+    tCtx.fillStyle = '#1f2937';
+    tCtx.textAlign = 'center';
+    tCtx.textBaseline = 'middle';
+    tCtx.fillText(typedSignature, 200, 75);
+    signatureData = textCanvas.toDataURL('image/png');
+  }
 
   const contractId = localStorage.getItem('selected_contract_id');
   if (!contractId) {

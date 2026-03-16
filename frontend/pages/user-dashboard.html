@@ -16,9 +16,9 @@
         ContractEase
       </a>
       
-      <button class="mobile-menu-toggle" id="mobileMenuBtn">☰</button>
+      <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-controls="navbarMenu" aria-expanded="false" aria-label="Open mobile menu">☰</button>
       
-      <div class="navbar-menu" id="navbarMenu">
+      <div class="navbar-menu" id="navbarMenu" aria-hidden="true">
         <a href="user-dashboard.html" class="navbar-link">Dashboard</a>
         <a href="create-contract.html" class="navbar-link">Create Contract</a>
         
@@ -74,34 +74,34 @@
     </div>
 
     <!-- Tabs -->
-    <div class="dashboard-tabs" id="statusTabs">
-      <div class="dashboard-tab active" data-target="draftSection">Drafts</div>
-      <div class="dashboard-tab" data-target="pendingSection">Pending Action</div>
-      <div class="dashboard-tab" data-target="signedSection">Completed</div>
-      <div class="dashboard-tab" data-target="declinedSection">Declined</div>
+    <div class="dashboard-tabs" id="statusTabs" role="tablist">
+      <button class="dashboard-tab active" data-target="draftSection" role="tab" aria-selected="true" tabindex="0">Drafts</button>
+      <button class="dashboard-tab" data-target="pendingSection" role="tab" aria-selected="false" tabindex="-1">Pending Action</button>
+      <button class="dashboard-tab" data-target="signedSection" role="tab" aria-selected="false" tabindex="-1">Completed</button>
+      <button class="dashboard-tab" data-target="declinedSection" role="tab" aria-selected="false" tabindex="-1">Declined</button>
     </div>
 
     <!-- Sections (Switched by Tabs in dashboard.js or new logic) -->
     <!-- Note: We keep the id attributes corresponding to JS expectations -->
-    <div class="dashboard-section active" id="draftSection">
+    <div class="dashboard-section active" id="draftSection" role="tabpanel" aria-labelledby="statusTabs">
       <div class="contract-grid" id="draftContractsGrid">
         <!-- Draft contracts populated here -->
       </div>
     </div>
 
-    <div class="dashboard-section" id="pendingSection">
+    <div class="dashboard-section" id="pendingSection" role="tabpanel" aria-labelledby="statusTabs">
       <div class="contract-grid" id="pendingContractsGrid">
         <!-- Pending contracts populated here -->
       </div>
     </div>
 
-    <div class="dashboard-section" id="signedSection">
+    <div class="dashboard-section" id="signedSection" role="tabpanel" aria-labelledby="statusTabs">
       <div class="contract-grid" id="signedContractsGrid">
         <!-- Signed contracts populated here -->
       </div>
     </div>
 
-    <div class="dashboard-section" id="declinedSection">
+    <div class="dashboard-section" id="declinedSection" role="tabpanel" aria-labelledby="statusTabs">
       <div class="contract-grid" id="declinedContractsGrid">
         <!-- Declined contracts populated here -->
       </div>
@@ -110,13 +110,13 @@
   </main>
 
   <!-- Contract Action Modal -->
-  <div id="actionModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div id="actionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1" aria-hidden="true" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
     <div class="modal-content" style="background:#fff; padding: var(--space-6); border-radius: var(--radius-xl); max-width: 500px; width: 90%;">
       <h2 style="margin-bottom: var(--space-4);" id="modalTitle">Contract Actions</h2>
       <div id="modalBody" style="display: flex; flex-direction: column; gap: var(--space-4);">
           <!-- Buttons dynamically added here -->
       </div>
-      <button onclick="document.getElementById('actionModal').style.display='none'" class="btn btn-outline" style="margin-top: var(--space-6); width: 100%;">Close</button>
+      <button id="closeModalBtn" onclick="document.getElementById('actionModal').style.display='none'; document.getElementById('actionModal').setAttribute('aria-hidden', 'true');" class="btn btn-outline" aria-label="Close" style="margin-top: var(--space-6); width: 100%;">Close</button>
     </div>
   </div>
 
@@ -145,7 +145,11 @@
       const mobileBtn = document.getElementById('mobileMenuBtn');
       if(mobileBtn) {
         mobileBtn.addEventListener('click', () => {
-          document.getElementById('navbarMenu').classList.toggle('active');
+          const menu = document.getElementById('navbarMenu');
+          menu.classList.toggle('active');
+          const isActive = menu.classList.contains('active');
+          mobileBtn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+          menu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
         });
       }
     });
