@@ -26,6 +26,8 @@ from pdf_gen_engine.config import PDF_STORAGE_PATH
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
+DEFAULT_CURRENCY = "₹"
+
 
 # ── Helper ────────────────────────────────────────────────────
 def _validate_object_id(value: str, label: str) -> ObjectId:
@@ -39,6 +41,8 @@ def _validate_object_id(value: str, label: str) -> ObjectId:
 def _serialize(doc: dict) -> dict:
     """Stringify ObjectId fields for JSON output."""
     doc["_id"] = str(doc["_id"])
+    doc["currency"] = doc.get("currency") or DEFAULT_CURRENCY
+    doc["signatures"] = doc.get("signatures") or {"creator": None, "client": None}
     if isinstance(doc.get("userId"), ObjectId):
         doc["userId"] = str(doc["userId"])
     if isinstance(doc.get("clientId"), ObjectId):
@@ -60,6 +64,7 @@ def _is_contract_owner(doc: dict, requester_oid: ObjectId, requester_id: str) ->
 def _build_pdf_payload(contract_doc: dict, signature_doc: Optional[dict] = None) -> dict:
     """Build the PDF service payload from a stored contract document."""
     amount_value = contract_doc.get("amount")
+    signature_fields = contract_doc.get("signatures") or {}
     return {
         "contract_id": str(contract_doc["_id"]),
         "title": contract_doc.get("title") or "Service Agreement",
@@ -72,10 +77,13 @@ def _build_pdf_payload(contract_doc: dict, signature_doc: Optional[dict] = None)
         or contract_doc.get("clientEmail")
         or "Client",
         "amount": amount_value if amount_value is not None else None,
+        "currency": contract_doc.get("currency") or DEFAULT_CURRENCY,
         "due_date": contract_doc.get("dueDate"),
         "signed_date": contract_doc.get("signedAt") or datetime.now(timezone.utc),
-        "signature_creator": "",
-        "signature_client": (signature_doc or {}).get("signatureImage") or "",
+        "signature_creator": signature_fields.get("creator") or "",
+        "signature_client": (signature_doc or {}).get("signatureImage")
+        or signature_fields.get("client")
+        or "",
     }
 
 
@@ -142,8 +150,13 @@ async def create_contract(payload: ContractCreate):
         "type": payload.type,
         "description": payload.description,
         "amount": payload.amount,
+        "currency": payload.currency,
         "dueDate": payload.dueDate,
         "clauses": payload.clauses.model_dump(),
+        "signatures": {
+            "creator": payload.creator_signature,
+            "client": None,
+        },
         "status": ContractStatus.draft.value,
         "userId": user_oid,
         "userName": user.get("name", ""),
@@ -310,10 +323,18 @@ async def send_contract(contract_id: str):
     """
 
     oid = _validate_object_id(contract_id, "contract")
+    creator_signature_filter = {
+        "$exists": True,
+        "$nin": [None, ""],
+    }
 
     # Atomic conditional update: only transition draft → sent
     result = await contracts_collection.find_one_and_update(
-        {"_id": oid, "status": ContractStatus.draft.value},
+        {
+            "_id": oid,
+            "status": ContractStatus.draft.value,
+            "signatures.creator": creator_signature_filter,
+        },
         {"$set": {"status": ContractStatus.sent.value}},
         return_document=ReturnDocument.AFTER,
     )
@@ -323,6 +344,12 @@ async def send_contract(contract_id: str):
         existing = await contracts_collection.find_one({"_id": oid})
         if not existing:
             raise HTTPException(status_code=404, detail="Contract not found")
+        existing_signatures = existing.get("signatures") or {}
+        if not str(existing_signatures.get("creator") or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Please sign the contract before sending.",
+            )
         raise HTTPException(
             status_code=400,
             detail=f"Cannot send — contract status is '{existing['status']}' (must be 'draft')",

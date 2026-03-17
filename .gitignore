@@ -224,3 +224,6 @@ build/
 
 # Internal docs (analysis, changelogs, notes — not for GitHub)
 docs/
+
+# Genterated Contracts
+contracts_pdfs/

@@ -44,13 +44,6 @@
     <!-- Stats Grid -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon stat-icon-primary">📄</div>
-        <div class="stat-content">
-          <div class="stat-label">Total Drafts</div>
-          <div class="stat-value" id="countDraft">0</div>
-        </div>
-      </div>
-      <div class="stat-card">
         <div class="stat-icon stat-icon-warning">⏳</div>
         <div class="stat-content">
           <div class="stat-label">Pending Client</div>
@@ -71,6 +64,13 @@
           <div class="stat-value" id="countDeclined">0</div>
         </div>
       </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-primary">📄</div>
+        <div class="stat-content">
+          <div class="stat-label">Total Drafts</div>
+          <div class="stat-value" id="countDraft">0</div>
+        </div>
+      </div>
     </div>
 
     <!-- Tabs -->
@@ -78,6 +78,7 @@
       <button class="dashboard-tab active" data-target="pendingSection" role="tab" aria-selected="true" tabindex="0">Pending Action</button>
       <button class="dashboard-tab" data-target="signedSection" role="tab" aria-selected="false" tabindex="-1">Completed</button>
       <button class="dashboard-tab" data-target="declinedSection" role="tab" aria-selected="false" tabindex="-1">Declined</button>
+      <button class="dashboard-tab" data-target="draftSection" role="tab" aria-selected="false" tabindex="-1">Drafts</button>
     </div>
 
     <!-- Sections (Switched by Tabs in dashboard.js or new logic) -->
@@ -97,6 +98,12 @@
     <div class="dashboard-section" id="declinedSection" role="tabpanel" aria-labelledby="statusTabs">
       <div class="contract-grid" id="declinedContractsGrid">
         <!-- Declined contracts populated here -->
+      </div>
+    </div>
+
+    <div class="dashboard-section" id="draftSection" role="tabpanel" aria-labelledby="statusTabs">
+      <div class="contract-grid" id="draftContractsGrid">
+        <!-- Draft contracts populated here -->
       </div>
     </div>
 

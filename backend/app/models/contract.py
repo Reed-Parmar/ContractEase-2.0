@@ -25,7 +25,7 @@ MongoDB document example
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -47,16 +47,29 @@ class Clauses(BaseModel):
     termination: bool = False
 
 
+class ContractSignatures(BaseModel):
+    creator: Optional[str] = None
+    client: Optional[str] = None
+
+
 # ── Request body for creating a contract ──────────────────────
 class ContractCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, examples=["Web Development Services"])
     type: str = Field(..., min_length=1, examples=["service"])
     description: Optional[str] = Field(None, examples=["Full-stack web development project"])
     amount: float = Field(..., ge=0, examples=[5000.00])
+    currency: Literal["₹", "$", "€"] = Field(default="₹", examples=["₹"])
     dueDate: datetime = Field(..., examples=["2026-03-15T00:00:00Z"])
     clauses: Clauses = Field(default_factory=Clauses)
     userId: str = Field(..., description="Reference to users collection")
     clientId: str = Field(..., description="Reference to clients collection")
+    creator_signature: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=700_000,
+        description="Base64-encoded creator signature image",
+        examples=["data:image/png;base64,iVBOR..."],
+    )
 
 
 # ── Full contract document returned by the API ────────────────
@@ -66,8 +79,10 @@ class ContractOut(BaseModel):
     type: str
     description: Optional[str] = None
     amount: float
+    currency: Literal["₹", "$", "€"] = "₹"
     dueDate: datetime
     clauses: Clauses
+    signatures: ContractSignatures = Field(default_factory=ContractSignatures)
     status: ContractStatus
     userId: str
     userName: Optional[str] = None

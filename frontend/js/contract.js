@@ -3,11 +3,13 @@
 
 let currentStep = 1;
 let selectedContractType = null;
-let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
-let hasSignatureInk = false;
 let selectedContractStatus = null;
+let creatorSignaturePad = null;
+let clientSignaturePad = null;
+let creatorSignatureData = '';
+
+const DEFAULT_CURRENCY = '₹';
+const SUPPORTED_CURRENCIES = new Set(['₹', '$', '€']);
 
 // Set to true when the page is opened in edit/view mode to prevent draft caching
 let isEditOrViewMode = false;
@@ -59,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Draft persistence — save on every field change ——————————————
-  ['contractTitle', 'clientName', 'clientEmail', 'contractAmount', 'dueDate', 'contractDescription'].forEach((fieldId) => {
+  ['contractTitle', 'clientName', 'clientEmail', 'contractAmount', 'currency', 'dueDate', 'contractDescription'].forEach((fieldId) => {
     const el = document.getElementById(fieldId);
     if (el) {
       el.addEventListener('input', saveDraft);
@@ -72,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Step Navigation (Create Contract) ────────────────────────
   const nextBtn = document.getElementById('nextBtn');
   const prevBtn = document.getElementById('prevBtn');
+  const saveDraftBtn = document.getElementById('saveDraftBtn');
   const submitBtn = document.getElementById('submitBtn');
 
   if (nextBtn) {
@@ -109,7 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (submitBtn) {
     submitBtn.addEventListener('click', () => {
-      submitContract();
+      submitContract(true);
+    });
+  }
+
+  if (saveDraftBtn) {
+    saveDraftBtn.addEventListener('click', () => {
+      submitContract(false);
     });
   }
   // ── Cancel Draft ────────────────────────────────────────────────────
@@ -121,93 +130,26 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = './user-dashboard.html';
     });
   }
-  // ── Signature Canvas (Sign Contract) ─────────────────────────
-  const signatureCanvas = document.getElementById('signatureCanvas');
-  if (signatureCanvas) {
-    const ctx = signatureCanvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-
-    const rect = signatureCanvas.getBoundingClientRect();
-    signatureCanvas.width = rect.width * dpr;
-    signatureCanvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    signatureCanvas.addEventListener('mousedown', (e) => {
-      isDrawing = true;
-      const rect = signatureCanvas.getBoundingClientRect();
-      lastX = e.clientX - rect.left;
-      lastY = e.clientY - rect.top;
-    });
-
-    signatureCanvas.addEventListener('mousemove', (e) => {
-      if (!isDrawing) return;
-      const rect = signatureCanvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      hasSignatureInk = true;
-
-      ctx.strokeStyle = '#1f2937';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-
-      lastX = x;
-      lastY = y;
-    });
-
-    signatureCanvas.addEventListener('mouseup', () => { isDrawing = false; });
-    signatureCanvas.addEventListener('mouseleave', () => { isDrawing = false; });
-
-    // Touch support
-    signatureCanvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      isDrawing = true;
-      const rect = signatureCanvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      lastX = touch.clientX - rect.left;
-      lastY = touch.clientY - rect.top;
-    });
-
-    signatureCanvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (!isDrawing) return;
-      const rect = signatureCanvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
-      hasSignatureInk = true;
-
-      ctx.strokeStyle = '#1f2937';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-
-      lastX = x;
-      lastY = y;
-    });
-
-    signatureCanvas.addEventListener('touchend', () => { isDrawing = false; });
-  }
+  clientSignaturePad = setupSignaturePad('signatureCanvas');
 
   // Clear Signature
+  const clearCreatorSignatureBtn = document.getElementById('clearCreatorSignatureBtn');
+  if (clearCreatorSignatureBtn) {
+    clearCreatorSignatureBtn.addEventListener('click', () => {
+      const creatorPad = ensureCreatorSignaturePad();
+      if (creatorPad) {
+        creatorPad.clear();
+      }
+      creatorSignatureData = '';
+      updatePreview();
+    });
+  }
+
   const clearSignatureBtn = document.getElementById('clearSignatureBtn');
   if (clearSignatureBtn) {
     clearSignatureBtn.addEventListener('click', () => {
-      const signatureCanvas = document.getElementById('signatureCanvas');
-      if (signatureCanvas) {
-        const ctx = signatureCanvas.getContext('2d');
-        ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-        hasSignatureInk = false;
+      if (clientSignaturePad) {
+        clientSignaturePad.clear();
       }
     });
   }
@@ -322,15 +264,20 @@ function goToStep(step) {
 
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
+  const saveDraftBtn = document.getElementById('saveDraftBtn');
   const submitBtn = document.getElementById('submitBtn');
 
   if (prevBtn) prevBtn.style.display = step > 1 ? 'inline-flex' : 'none';
   if (nextBtn) nextBtn.style.display = step < 3 ? 'inline-flex' : 'none';
+  if (saveDraftBtn) saveDraftBtn.style.display = step === 2 ? 'inline-flex' : 'none';
   if (submitBtn) submitBtn.style.display = step === 3 ? 'inline-flex' : 'none';
 
   currentStep = step;
 
-  if (step === 3) updatePreview();
+  if (step === 3) {
+    ensureCreatorSignaturePad();
+    updatePreview();
+  }
 }
 
 // ── Draft persistence helpers ─────────────────────────────────
@@ -348,6 +295,7 @@ function saveDraft() {
     clientName: document.getElementById('clientName')?.value || '',
     clientEmail: document.getElementById('clientEmail')?.value || '',
     contractAmount: document.getElementById('contractAmount')?.value || '',
+    currency: document.getElementById('currency')?.value || DEFAULT_CURRENCY,
     dueDate: document.getElementById('dueDate')?.value || '',
     contractDescription: document.getElementById('contractDescription')?.value || '',
     clauses: {},
@@ -370,7 +318,7 @@ function restoreDraft() {
         opt.classList.toggle('selected', opt.dataset.type === draft.contractType);
       });
     }
-    ['contractTitle', 'clientName', 'clientEmail', 'contractAmount', 'dueDate', 'contractDescription'].forEach((id) => {
+    ['contractTitle', 'clientName', 'clientEmail', 'contractAmount', 'currency', 'dueDate', 'contractDescription'].forEach((id) => {
       const el = document.getElementById(id);
       if (el && draft[id]) el.value = draft[id];
     });
@@ -419,6 +367,126 @@ function clearFieldError(field) {
   if (errMsg) errMsg.remove();
 }
 
+function setupSignaturePad(canvasId, onChange = null) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const cssWidth = rect.width || canvas.offsetWidth || 600;
+  const cssHeight = rect.height || canvas.offsetHeight || 250;
+
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  ctx.scale(dpr, dpr);
+
+  let isDrawingLocal = false;
+  let lastXLocal = 0;
+  let lastYLocal = 0;
+  let hasInkLocal = false;
+
+  const notifyChange = () => {
+    if (typeof onChange === 'function') {
+      onChange();
+    }
+  };
+
+  const drawLine = (x, y) => {
+    hasInkLocal = true;
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastXLocal, lastYLocal);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    lastXLocal = x;
+    lastYLocal = y;
+  };
+
+  const startDrawing = (x, y) => {
+    isDrawingLocal = true;
+    lastXLocal = x;
+    lastYLocal = y;
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawingLocal) return;
+    isDrawingLocal = false;
+    notifyChange();
+  };
+
+  canvas.addEventListener('mousedown', (event) => {
+    const canvasRect = canvas.getBoundingClientRect();
+    startDrawing(event.clientX - canvasRect.left, event.clientY - canvasRect.top);
+  });
+
+  canvas.addEventListener('mousemove', (event) => {
+    if (!isDrawingLocal) return;
+    const canvasRect = canvas.getBoundingClientRect();
+    drawLine(event.clientX - canvasRect.left, event.clientY - canvasRect.top);
+  });
+
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseleave', stopDrawing);
+
+  canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    const canvasRect = canvas.getBoundingClientRect();
+    const touch = event.touches[0];
+    startDrawing(touch.clientX - canvasRect.left, touch.clientY - canvasRect.top);
+  });
+
+  canvas.addEventListener('touchmove', (event) => {
+    event.preventDefault();
+    if (!isDrawingLocal) return;
+    const canvasRect = canvas.getBoundingClientRect();
+    const touch = event.touches[0];
+    drawLine(touch.clientX - canvasRect.left, touch.clientY - canvasRect.top);
+  });
+
+  canvas.addEventListener('touchend', stopDrawing);
+
+  return {
+    canvas,
+    clear() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInkLocal = false;
+      notifyChange();
+    },
+    hasDrawing() {
+      if (hasInkLocal) return true;
+
+      const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      for (let index = 3; index < pixelData.length; index += 4) {
+        if (pixelData[index] !== 0) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    toDataURL() {
+      return canvas.toDataURL('image/png');
+    },
+  };
+}
+
+function ensureCreatorSignaturePad() {
+  if (!creatorSignaturePad) {
+    creatorSignaturePad = setupSignaturePad('creatorSignatureCanvas', () => {
+      creatorSignatureData = creatorSignaturePad?.hasDrawing() ? creatorSignaturePad.toDataURL() : '';
+      updatePreview();
+    });
+  }
+
+  return creatorSignaturePad;
+}
+
 function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
@@ -429,32 +497,74 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-function formatContractAmount(value) {
+function normalizeCurrencySymbol(value, fallback = DEFAULT_CURRENCY) {
+  return SUPPORTED_CURRENCIES.has(value) ? value : fallback;
+}
+
+function getSelectedCurrency(fallback = DEFAULT_CURRENCY) {
+  return normalizeCurrencySymbol(document.getElementById('currency')?.value, fallback);
+}
+
+function parseContractDate(value) {
+  if (!value) return null;
+
+  const valueText = String(value).trim();
+  const dateOnlyMatch = valueText.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsedDate = new Date(valueText);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+function getCreatorSignatureValue() {
+  if (creatorSignaturePad?.hasDrawing()) {
+    return creatorSignaturePad.toDataURL();
+  }
+
+  return creatorSignatureData || '';
+}
+
+function formatContractAmount(value, currency = DEFAULT_CURRENCY, fallbackCurrency = DEFAULT_CURRENCY) {
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '$0';
-  return '$' + numeric.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
+  const symbol = normalizeCurrencySymbol(currency, fallbackCurrency);
+  if (!Number.isFinite(numeric)) return `${symbol}0.00`;
+  return `${symbol}${numeric.toFixed(2)}`;
 }
 
 function formatContractDate(value) {
-  if (!value) return '—';
-  const dateValue = new Date(value);
-  if (Number.isNaN(dateValue.getTime())) return '—';
-  return dateValue.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const dateValue = parseContractDate(value);
+  return dateValue ? dateValue.toLocaleDateString('en-GB') : '—';
+}
+
+function buildPreviewSignatureBlock(label, name, signatureData, placeholderText) {
+  return `
+    <div class="preview-signature-block">
+      <p class="preview-signature-label">${escapeHtml(label)}</p>
+      ${signatureData
+        ? `<img class="preview-signature-image" src="${escapeHtml(signatureData)}" alt="${escapeHtml(label)}">`
+        : `<p class="preview-signature-placeholder">${escapeHtml(placeholderText)}</p>`}
+      <p class="preview-signature-name">${escapeHtml(name || label)}</p>
+    </div>`;
+}
+
+function buildPreviewSignatureGrid({ creatorName, clientName, creatorSignature, clientSignature }) {
+  return `
+    <div class="preview-signature-grid">
+      ${buildPreviewSignatureBlock('Creator Signature', creatorName, creatorSignature, 'Pending creator signature')}
+      ${buildPreviewSignatureBlock('Client Signature', clientName, clientSignature, 'Pending client signature')}
+    </div>`;
 }
 
 function buildContractSectionCopy(details) {
   const title = String(details.title || 'this agreement').trim() || 'this agreement';
   const description = String(details.description || '').trim();
   const clauses = details.clauses || {};
-  const amountText = formatContractAmount(details.amount);
+  const amountText = formatContractAmount(details.amount, details.currency, DEFAULT_CURRENCY);
   const dueText = formatContractDate(details.dueDate);
+  const hasCreatorSignature = Boolean(String(details.creatorSignature || '').trim());
 
   return {
     services: description || 'The provider will deliver the agreed services in a professional and timely manner.',
@@ -468,7 +578,9 @@ function buildContractSectionCopy(details) {
     termination: clauses.termination === false
       ? 'This agreement remains active until the contracted work is completed or the parties otherwise agree in writing.'
       : 'Either party may terminate this agreement with written notice. All outstanding obligations must be fulfilled prior to termination.',
-    signatures: 'By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.',
+    signatures: hasCreatorSignature
+      ? 'The creator signature below authorizes this document for client review. The client signature will be added once the agreement is accepted.'
+      : 'By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.',
   };
 }
 
@@ -478,8 +590,10 @@ function updatePreview() {
   const contractTitle = document.getElementById('contractTitle');
   const clientName = document.getElementById('clientName');
   const contractAmount = document.getElementById('contractAmount');
+  const currency = document.getElementById('currency');
   const dueDate = document.getElementById('dueDate');
   const contractDescription = document.getElementById('contractDescription');
+  const creatorSignature = getCreatorSignatureValue();
 
   const clauses = {
     payment: !!document.querySelector('.toggle-switch[data-clause="payment"]')?.checked,
@@ -492,8 +606,10 @@ function updatePreview() {
     title: contractTitle?.value,
     description: contractDescription?.value,
     amount: contractAmount?.value,
+    currency: currency?.value,
     dueDate: dueDate?.value,
     clauses,
+    creatorSignature,
   });
 
   if (contractTitle) {
@@ -506,11 +622,7 @@ function updatePreview() {
   const today = new Date();
   const previewDate = document.getElementById('previewDate');
   if (previewDate) {
-    previewDate.textContent = today.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    previewDate.textContent = formatContractDate(today.toISOString());
   }
 
   const servicesText = document.getElementById('previewServicesText');
@@ -530,6 +642,16 @@ function updatePreview() {
 
   const signatureText = document.getElementById('previewSignatureText');
   if (signatureText) signatureText.textContent = sectionCopy.signatures;
+
+  const previewSignatureVisuals = document.getElementById('previewSignatureVisuals');
+  if (previewSignatureVisuals) {
+    previewSignatureVisuals.innerHTML = buildPreviewSignatureGrid({
+      creatorName: localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'Creator',
+      clientName: clientName?.value || 'Client',
+      creatorSignature,
+      clientSignature: '',
+    });
+  }
 }
 
 async function loadCreateContractPage() {
@@ -576,6 +698,11 @@ async function loadCreateContractPage() {
     const contractAmountEl = document.getElementById('contractAmount');
     if (contractAmountEl) contractAmountEl.value = c.amount != null ? String(c.amount) : '';
 
+    const currencyEl = document.getElementById('currency');
+    if (currencyEl) {
+      currencyEl.value = normalizeCurrencySymbol(c.currency, DEFAULT_CURRENCY);
+    }
+
     const dueDateEl = document.getElementById('dueDate');
     if (dueDateEl && c.dueDate) {
       dueDateEl.value = new Date(c.dueDate).toISOString().split('T')[0];
@@ -597,15 +724,19 @@ async function loadCreateContractPage() {
       toggle.checked = active;
     });
 
+    creatorSignatureData = c.signatures?.creator || '';
+
     if (mode === 'view') {
       // View mode: jump to Step 3 (preview), hide all navigation so form is read-only
       updatePreview();
       goToStep(3);
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
+      const saveDraftBtn = document.getElementById('saveDraftBtn');
       const submitBtn = document.getElementById('submitBtn');
       if (prevBtn) prevBtn.style.display = 'none';
       if (nextBtn) nextBtn.style.display = 'none';
+      if (saveDraftBtn) saveDraftBtn.style.display = 'none';
       if (submitBtn) submitBtn.style.display = 'none';
 
       // Update page title to reflect view mode
@@ -626,12 +757,14 @@ async function loadCreateContractPage() {
 
 // ── Submit contract (create in backend) ──────────────────────
 
-async function submitContract() {
+async function submitContract(sendForSignature = true) {
   const contractTitle = document.getElementById('contractTitle')?.value?.trim();
   const clientEmail = document.getElementById('clientEmail')?.value?.trim();
   const contractAmount = document.getElementById('contractAmount')?.value?.trim();
+  const currency = getSelectedCurrency();
   const dueDate = document.getElementById('dueDate')?.value;
   const contractDescription = document.getElementById('contractDescription')?.value?.trim();
+  const creatorSignature = getCreatorSignatureValue();
 
   if (!contractTitle || !clientEmail) {
     // Highlight the specific fields that are missing so the user knows exactly what to fix
@@ -642,6 +775,11 @@ async function submitContract() {
     if (!contractTitle && titleEl) setFieldError(titleEl, 'Contract title is required.');
     if (!clientEmail && emailEl) setFieldError(emailEl, 'Client email address is required.');
     showToast('Please fill in all required fields.', 'warning');
+    return;
+  }
+
+  if (sendForSignature && !creatorSignature) {
+    showToast('Please sign the contract before sending.', 'warning');
     return;
   }
 
@@ -704,10 +842,12 @@ async function submitContract() {
     type: selectedContractType || 'custom',
     description: contractDescription || '',
     amount: parsedAmount,
+    currency,
     dueDate: dueDate ? new Date(dueDate).toISOString() : new Date().toISOString(),
     clauses: clauses,
     userId: userId,
     clientId: clientId,
+    creator_signature: creatorSignature || null,
   };
 
   try {
@@ -725,24 +865,26 @@ async function submitContract() {
 
     const created = await res.json();
 
-    // Also mark it as sent immediately (since the button says "Send to Client")
-    const sendRes = await fetch(`${API_BASE}/contracts/${created._id}/send`, { method: 'PUT' });
-    if (!sendRes.ok) {
-      const sendErrorText = await sendRes.text();
-      let sendMessage = `Failed to send contract (${sendRes.status} ${sendRes.statusText})`;
+    if (sendForSignature) {
+      // Also mark it as sent immediately (since the button says "Send to Client")
+      const sendRes = await fetch(`${API_BASE}/contracts/${created._id}/send`, { method: 'PUT' });
+      if (!sendRes.ok) {
+        const sendErrorText = await sendRes.text();
+        let sendMessage = `Failed to send contract (${sendRes.status} ${sendRes.statusText})`;
 
-      if (sendErrorText) {
-        try {
-          const sendErrorJson = JSON.parse(sendErrorText);
-          sendMessage = sendErrorJson.detail || sendErrorJson.message || sendMessage;
-        } catch {
-          sendMessage = sendErrorText;
+        if (sendErrorText) {
+          try {
+            const sendErrorJson = JSON.parse(sendErrorText);
+            sendMessage = sendErrorJson.detail || sendErrorJson.message || sendMessage;
+          } catch {
+            sendMessage = sendErrorText;
+          }
         }
-      }
 
-      console.error('Failed to send contract:', sendMessage);
-      showToast(sendMessage, 'error');
-      return;
+        console.error('Failed to send contract:', sendMessage);
+        showToast(sendMessage, 'error');
+        return;
+      }
     }
 
     // Clear stale edit/view state so the next "Create New Contract" starts fresh
@@ -750,7 +892,7 @@ async function submitContract() {
     localStorage.removeItem('contract_page_mode');
 
     clearDraft();
-    showToast('Contract sent to ' + clientEmail, 'success');
+    showToast(sendForSignature ? 'Contract sent to ' + clientEmail : 'Draft saved successfully', 'success');
     setTimeout(() => { window.location.href = './user-dashboard.html'; }, 1200);
   } catch (err) {
     console.error(err);
@@ -776,6 +918,8 @@ async function loadSignContractPage() {
     const c = await res.json();
     selectedContractStatus = c.status;
     const isSignable = c.status === 'sent' || c.status === 'pending';
+    const creatorSignature = c.signatures?.creator || '';
+    const clientSignature = c.signatures?.client || '';
 
     // Update page title
     if (editorTitle) editorTitle.textContent = c.title;
@@ -783,13 +927,11 @@ async function loadSignContractPage() {
     // Update signing status
     const statusContent = document.querySelector('.signing-status-content');
     if (statusContent) {
-      const dueStr = c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      const dueStr = formatContractDate(c.dueDate);
       if (isSignable) {
         statusContent.innerHTML = `<h3>Action Required</h3><p>Please review and sign this contract by ${dueStr}</p>`;
       } else if (c.status === 'signed') {
-        const signedStr = c.signedAt
-          ? new Date(c.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-          : '—';
+        const signedStr = formatContractDate(c.signedAt);
         statusContent.innerHTML = `<h3>Already Signed</h3><p>This contract was signed on ${signedStr}.</p>`;
       } else if (c.status === 'declined') {
         statusContent.innerHTML = '<h3>Contract Declined</h3><p>This contract has already been declined and can no longer be signed.</p>';
@@ -805,8 +947,10 @@ async function loadSignContractPage() {
         title: c.title,
         description: c.description,
         amount: c.amount,
+        currency: c.currency || DEFAULT_CURRENCY,
         dueDate: c.dueDate,
         clauses: c.clauses || {},
+        creatorSignature,
       });
 
       let html = `<h2>${escapeHtml(c.title || 'Service Agreement')}</h2>`;
@@ -816,7 +960,12 @@ async function loadSignContractPage() {
       html += `<section class="preview-section"><h2>Deliverables</h2><p>${escapeHtml(sectionCopy.deliverables)}</p></section>`;
       html += `<section class="preview-section"><h2>Confidentiality</h2><p>${escapeHtml(sectionCopy.confidentiality)}</p></section>`;
       html += `<section class="preview-section"><h2>Term & Termination</h2><p>${escapeHtml(sectionCopy.termination)}</p></section>`;
-      html += `<section class="preview-section"><h2>Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p></section>`;
+      html += `<section class="preview-section"><h2>Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p>${buildPreviewSignatureGrid({
+        creatorName: c.userName || c.userEmail || 'Creator',
+        clientName: c.clientName || c.clientEmail || 'Client',
+        creatorSignature,
+        clientSignature,
+      })}</section>`;
       previewContent.innerHTML = html;
     }
 
@@ -829,10 +978,10 @@ async function loadSignContractPage() {
     if (contractIdValueEl) contractIdValueEl.textContent = c._id;
     if (sentByValueEl) sentByValueEl.textContent = c.userName || c.userEmail || '—';
     if (receivedAtValueEl) {
-      receivedAtValueEl.textContent = new Date(c.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      receivedAtValueEl.textContent = formatContractDate(c.createdAt);
     }
     if (signatureDeadlineValueEl) {
-      signatureDeadlineValueEl.textContent = c.dueDate ? new Date(c.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      signatureDeadlineValueEl.textContent = formatContractDate(c.dueDate);
     }
 
     if (!isSignable) {
@@ -852,9 +1001,7 @@ async function loadSignContractPage() {
             if (el('signedByName')) el('signedByName').textContent = sig.signerName || '—';
             if (el('signedByEmail')) el('signedByEmail').textContent = sig.signerEmail || '—';
             if (el('signedByDate')) {
-              el('signedByDate').textContent = sig.signedAt
-                ? new Date(sig.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                : '—';
+              el('signedByDate').textContent = formatContractDate(sig.signedAt);
             }
             if (el('signatureImageDisplay') && sig.signatureImage) {
               el('signatureImageDisplay').src = sig.signatureImage;
@@ -870,20 +1017,8 @@ async function loadSignContractPage() {
   }
 }
 
-function canvasContainsDrawing(canvas) {
-  if (!canvas) return false;
-
-  if (hasSignatureInk) return true;
-
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return false;
-
-  const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  for (let i = 3; i < pixelData.length; i += 4) {
-    if (pixelData[i] !== 0) return true;
-  }
-
-  return false;
+function signaturePadContainsDrawing(signaturePad) {
+  return Boolean(signaturePad?.hasDrawing());
 }
 
 // ── Sign contract ────────────────────────────────────────────
@@ -897,7 +1032,7 @@ async function signContract() {
   const signerName = document.getElementById('signerName')?.value?.trim();
   const signerEmail = document.getElementById('signerEmail')?.value?.trim();
   const agreeTerms = document.getElementById('agreeTerms')?.checked;
-  const signatureCanvas = document.getElementById('signatureCanvas');
+  const signatureCanvas = clientSignaturePad?.canvas || document.getElementById('signatureCanvas');
   const signatureType = document.getElementById('signatureTypeFlag')?.value;
   const typedSignature = document.getElementById('typedSignatureInput')?.value?.trim();
 
@@ -906,7 +1041,7 @@ async function signContract() {
     return;
   }
 
-  if (signatureType === 'draw' && !canvasContainsDrawing(signatureCanvas)) {
+  if (signatureType === 'draw' && !signaturePadContainsDrawing(clientSignaturePad)) {
     showToast('Please draw your signature in the box above.', 'warning');
     return;
   }
@@ -918,7 +1053,7 @@ async function signContract() {
 
   let signatureData;
   if (signatureType === 'draw') {
-    signatureData = signatureCanvas.toDataURL('image/png');
+    signatureData = clientSignaturePad?.toDataURL() || signatureCanvas.toDataURL('image/png');
   } else {
     // Generate simple canvas for typed signature
     const textCanvas = document.createElement('canvas');

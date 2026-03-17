@@ -3,20 +3,43 @@
 
 // ── Helpers ──────────────────────────────────────────────────
 
+const DEFAULT_CURRENCY = '₹';
+const SUPPORTED_CURRENCIES = new Set(['₹', '$', '€']);
+
 function capitalizeFirstLetter(string) {
   if (!string) return '';
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function formatDate(isoString) {
-  if (!isoString) return '—';
-  const d = new Date(isoString);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+function normalizeCurrencySymbol(value, fallback = DEFAULT_CURRENCY) {
+  return SUPPORTED_CURRENCIES.has(value) ? value : fallback;
 }
 
-function formatAmount(amount) {
+function parseDateValue(value) {
+  if (!value) return null;
+
+  const valueText = String(value).trim();
+  const dateOnlyMatch = valueText.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsedDate = new Date(valueText);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+function formatDate(isoString) {
+  const d = parseDateValue(isoString);
+  return d ? d.toLocaleDateString('en-GB') : '—';
+}
+
+function formatAmount(amount, currency) {
   if (amount == null) return '—';
-  return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0 });
+  const numericAmount = Number(amount);
+  if (!Number.isFinite(numericAmount)) return '—';
+
+  return `${normalizeCurrencySymbol(currency, DEFAULT_CURRENCY)}${numericAmount.toFixed(2)}`;
 }
 
 function daysUntil(isoString) {
@@ -165,7 +188,7 @@ function renderUserDraftCard(c) {
       <div class="contract-card-body contract-meta">
         <div class="meta-row">
           <span class="meta-label">Amount</span>
-          <span class="meta-value">${formatAmount(c.amount)}</span>
+          <span class="meta-value">${formatAmount(c.amount, c.currency)}</span>
         </div>
         <div class="meta-row">
           <span class="meta-label">Created</span>
@@ -194,7 +217,7 @@ function renderUserPendingCard(c) {
       <div class="contract-card-body contract-meta">
         <div class="meta-row">
           <span class="meta-label">Amount</span>
-          <span class="meta-value">${formatAmount(c.amount)}</span>
+          <span class="meta-value">${formatAmount(c.amount, c.currency)}</span>
         </div>
         <div class="meta-row">
           <span class="meta-label">Due Date</span>
@@ -233,7 +256,7 @@ function renderUserSignedCard(c) {
       <div class="contract-card-body contract-meta">
         <div class="meta-row">
           <span class="meta-label">Amount</span>
-          <span class="meta-value">${formatAmount(c.amount)}</span>
+          <span class="meta-value">${formatAmount(c.amount, c.currency)}</span>
         </div>
         <div class="meta-row">
           <span class="meta-label">${dateLabel}</span>
@@ -269,7 +292,7 @@ function renderClientPendingCard(c) {
       <div class="contract-card-body contract-meta">
         <div class="meta-row">
           <span class="meta-label">Amount</span>
-          <span class="meta-value">${formatAmount(c.amount)}</span>
+          <span class="meta-value">${formatAmount(c.amount, c.currency)}</span>
         </div>
         <div class="meta-row">
           <span class="meta-label">${overdue ? 'Status' : 'Time Remaining'}</span>
@@ -309,7 +332,7 @@ function renderClientSignedCard(c) {
       <div class="contract-card-body contract-meta">
         <div class="meta-row">
           <span class="meta-label">Amount</span>
-          <span class="meta-value">${formatAmount(c.amount)}</span>
+          <span class="meta-value">${formatAmount(c.amount, c.currency)}</span>
         </div>
         <div class="meta-row">
           <span class="meta-label">${dateLabel}</span>
@@ -434,6 +457,7 @@ async function loadUserDashboard(userId) {
     fillGrid('pendingContractsGrid', pending.map(renderUserPendingCard), 'All Caught Up', 'No contracts are currently awaiting client signatures.', '⏳');
     fillGrid('signedContractsGrid', signed.map(renderUserSignedCard), 'No Signed Documents', 'You have not completed any contracts yet.', '✅');
     fillGrid('declinedContractsGrid', declined.map(renderUserSignedCard), 'No Declined Documents', 'None of your contracts have been declined.', '❌');
+    fillGrid('draftContractsGrid', drafts.map(renderUserDraftCard), 'No Draft Contracts', 'You do not have any saved drafts yet.', '📝');
 
     bindCardButtons();
   } catch (err) {

@@ -10,8 +10,21 @@
   <main class="contract-document">
     <header class="document-header">
       <h1>{{ contract_title }}</h1>
-      <p class="document-date">Signed Date: {{ signed_date }}</p>
+      <p class="document-date">Signed Date: {{ formatted_date }}</p>
     </header>
+
+    <section class="contract-summary">
+      <div class="summary-grid">
+        <div class="summary-row">
+          <div class="summary-cell"><strong>Creator:</strong> {{ creator_name }}</div>
+          <div class="summary-cell"><strong>Client:</strong> {{ client_name }}</div>
+        </div>
+        <div class="summary-row">
+          <div class="summary-cell"><strong>Amount:</strong> {{ contract_amount or "To be confirmed" }}</div>
+          <div class="summary-cell"><strong>Due Date:</strong> {{ formatted_due_date }}</div>
+        </div>
+      </div>
+    </section>
 
     <section class="contract-section">
       <h2>1. Services &amp; Scope</h2>

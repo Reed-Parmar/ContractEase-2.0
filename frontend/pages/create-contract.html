@@ -143,16 +143,23 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
           <div class="form-group">
-            <label for="contractAmount" class="form-label">Contract Amount ($)</label>
-            <input 
-              type="number" 
-              id="contractAmount" 
-              class="form-input" 
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              required
-            >
+            <label for="contractAmount" class="form-label">Contract Amount</label>
+            <div class="amount-field-group">
+              <select id="currency" class="form-select" aria-label="Select currency">
+                <option value="₹" selected>₹ (INR)</option>
+                <option value="$">$ (USD)</option>
+                <option value="€">€ (EUR)</option>
+              </select>
+              <input 
+                type="number" 
+                id="contractAmount" 
+                class="form-input" 
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                required
+              >
+            </div>
           </div>
 
           <div class="form-group">
@@ -249,7 +256,27 @@
             <section class="preview-section" id="preview-signatures">
               <h2>Signatures</h2>
               <p id="previewSignatureText">By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be firmly bound by all terms and conditions set forth within this document.</p>
+              <div id="previewSignatureVisuals"></div>
             </section>
+          </div>
+        </div>
+
+        <div class="creator-signature-panel">
+          <h3 class="creator-signature-title">Creator Signature</h3>
+          <p class="creator-signature-copy">Sign below before sending this contract to the client.</p>
+
+          <div class="signature-area">
+            <div class="signature-instructions">
+              Draw your signature inside the secure box below. This signature will be embedded in the contract before it is sent.
+            </div>
+
+            <div class="signature-canvas-wrapper">
+              <canvas id="creatorSignatureCanvas" class="signature-canvas"></canvas>
+            </div>
+
+            <div class="signature-actions">
+              <button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear Signature</button>
+            </div>
           </div>
         </div>
 
@@ -263,6 +290,7 @@
         <div class="form-actions-right">
           <button class="btn btn-outline-danger" id="cancelDraftBtn">Cancel Draft</button>
           <button class="btn btn-primary" id="nextBtn">Continue <span style="margin-left:8px;">→</span></button>
+          <button class="btn btn-outline" id="saveDraftBtn" style="display: none;">Save Draft</button>
           <button class="btn btn-primary" id="submitBtn" style="display: none;">Send for Signature <span style="margin-left:8px;">✉️</span></button>
         </div>
       </div>

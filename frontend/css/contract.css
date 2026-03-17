@@ -359,6 +359,76 @@
   text-align: justify;
 }
 
+.amount-field-group {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--space-3);
+}
+
+.preview-signature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.preview-signature-block {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.preview-signature-label {
+  color: var(--text-sub);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--space-3) 0;
+  text-transform: uppercase;
+}
+
+.preview-signature-image {
+  background: #ffffff;
+  display: block;
+  max-height: 88px;
+  max-width: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.preview-signature-placeholder {
+  border-top: 1px dashed var(--border);
+  color: var(--text-sub);
+  margin: var(--space-6) 0 0 0;
+  padding-top: var(--space-3);
+}
+
+.preview-signature-name {
+  border-top: 1px solid var(--border);
+  color: #0f172a;
+  font-weight: 600;
+  margin: var(--space-4) 0 0 0;
+  padding-top: var(--space-3);
+}
+
+.creator-signature-panel {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+}
+
+.creator-signature-title {
+  color: #0f172a;
+  font-size: var(--font-size-lg);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.creator-signature-copy {
+  color: var(--text-sub);
+  margin-bottom: var(--space-5);
+}
+
 /* Signature Area */
 .signature-area {
   background-color: var(--bg-page);
@@ -489,6 +559,10 @@
   .contract-preview,
   .preview-content {
     padding: var(--space-4);
+  }
+
+  .amount-field-group {
+    grid-template-columns: 1fr;
   }
 
   .form-actions {

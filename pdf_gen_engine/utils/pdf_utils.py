@@ -16,25 +16,48 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from ..config import PDF_FILE_PREFIX, PDF_STORAGE_PATH, PDF_TEMPLATE_PATH
 
+SUPPORTED_CURRENCIES = {"₹", "$", "€"}
+DEFAULT_CURRENCY = "₹"
+
+
+def _normalize_currency_symbol(value: Any, fallback: str = DEFAULT_CURRENCY) -> str:
+    currency = str(value or "").strip()
+    return currency if currency in SUPPORTED_CURRENCIES else fallback
+
+
+def _format_currency_amount(amount: Any, currency: str) -> str | None:
+    if amount is None:
+        return None
+
+    if isinstance(amount, str) and not amount.strip():
+        return None
+
+    try:
+        numeric_amount = float(amount)
+    except (TypeError, ValueError):
+        return f"{currency}{str(amount).strip()}"
+
+    return f"{currency}{numeric_amount:.2f}"
+
 
 def _to_display_date(value: Any) -> str:
     """Convert common date inputs into a printable contract date string."""
     if value is None:
-        return datetime.utcnow().strftime("%Y-%m-%d")
+        return datetime.utcnow().strftime("%d/%m/%Y")
 
     if isinstance(value, datetime):
-        return value.strftime("%Y-%m-%d")
+        return value.strftime("%d/%m/%Y")
 
     if isinstance(value, date):
-        return value.strftime("%Y-%m-%d")
+        return value.strftime("%d/%m/%Y")
 
     value_text = str(value).strip()
     if not value_text:
-        return datetime.utcnow().strftime("%Y-%m-%d")
+        return datetime.utcnow().strftime("%d/%m/%Y")
 
     try:
         parsed = datetime.fromisoformat(value_text.replace("Z", "+00:00"))
-        return parsed.strftime("%Y-%m-%d")
+        return parsed.strftime("%d/%m/%Y")
     except ValueError:
         return value_text
 
@@ -96,9 +119,11 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         or ""
     ).strip()
     contract_title = contract_data.get("contract_title") or contract_data.get("title") or "Service Agreement"
-    contract_amount = contract_data.get("contract_amount")
-    if contract_amount is None:
-        contract_amount = contract_data.get("amount")
+    currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
+    raw_contract_amount = contract_data.get("contract_amount")
+    if raw_contract_amount is None:
+        raw_contract_amount = contract_data.get("amount")
+    contract_amount = _format_currency_amount(raw_contract_amount, currency)
     due_date = _to_display_date(contract_data.get("due_date"))
 
     payment_enabled = _resolve_clause_flag(contract_data, clauses, "payment", True)
@@ -147,6 +172,8 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
                 f"Commercial terms for this agreement total {contract_amount}, with the active date set for {due_date}."
             )
 
+    signed_date = _to_display_date(contract_data.get("signed_date"))
+
     return {
         "contract_title": contract_title,
         "client_name": contract_data.get("client_name")
@@ -160,8 +187,11 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         or "Terms will be provided by the contracting parties.",
         "contract_terms_list": terms_list,
         "contract_amount": contract_amount,
+        "currency": currency,
         "due_date": due_date,
-        "signed_date": _to_display_date(contract_data.get("signed_date")),
+        "signed_date": signed_date,
+        "formatted_date": signed_date,
+        "formatted_due_date": due_date,
         "services_scope_text": services_scope_text,
         "payment_text": payment_text,
         "deliverables_text": deliverables_text,

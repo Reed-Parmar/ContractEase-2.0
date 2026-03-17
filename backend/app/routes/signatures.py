@@ -25,6 +25,7 @@ from pdf_gen_engine import generate_contract_pdf
 router = APIRouter(prefix="/contracts", tags=["Signatures"])
 
 PENDING_LOCK_TTL = timedelta(minutes=5)
+DEFAULT_CURRENCY = "₹"
 
 
 def _build_contract_terms(contract_doc: dict) -> list[str]:
@@ -156,6 +157,10 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         if not existing:
             raise HTTPException(status_code=404, detail="Contract not found")
 
+        existing_signatures = existing.get("signatures") or {}
+        if not str(existing_signatures.get("creator") or "").strip():
+            raise HTTPException(status_code=400, detail="Creator signature is missing from this contract")
+
         if existing.get("status") == ContractStatus.signed.value and existing.get("pdf_path"):
             raise HTTPException(status_code=400, detail="Contract is already signed")
 
@@ -179,6 +184,21 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     result = await signatures_collection.insert_one(sig_doc)
 
     amount_value = locked_contract.get("amount")
+    signature_fields = locked_contract.get("signatures") or {}
+
+    if not str(signature_fields.get("creator") or "").strip():
+        await signatures_collection.delete_one({"_id": result.inserted_id})
+        await contracts_collection.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    "status": ContractStatus.sent.value,
+                    "signedAt": None,
+                    "pendingAt": None,
+                }
+            },
+        )
+        raise HTTPException(status_code=400, detail="Creator signature is missing from this contract")
 
     contract_payload = {
         "contract_id": str(locked_contract["_id"]),
@@ -192,11 +212,12 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         or locked_contract.get("clientEmail")
         or payload.signerName,
         "amount": amount_value if amount_value is not None else None,
+        "currency": locked_contract.get("currency") or DEFAULT_CURRENCY,
         "due_date": locked_contract.get("dueDate"),
         "signed_date": signed_at,
         "contract_terms": _build_contract_terms(locked_contract),
         "signature_client": payload.signatureImage,
-        "signature_creator": "",
+        "signature_creator": signature_fields.get("creator") or "",
     }
 
     try:
@@ -228,6 +249,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
                     "signedAt": signed_at,
                     "pendingAt": None,
                     "pdf_path": pdf_path,
+                    "signatures.client": payload.signatureImage,
                 }
             },
         )
