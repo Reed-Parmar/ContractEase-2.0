@@ -178,6 +178,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         "signerName": payload.signerName,
         "signerEmail": payload.signerEmail,
         "signatureImage": payload.signatureImage,
+        "signatureType": payload.signatureType,
         "signedAt": signed_at,
     }
 

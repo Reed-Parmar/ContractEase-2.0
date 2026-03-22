@@ -62,6 +62,11 @@ function isDownloadableStatus(status) {
   return status === 'signed' || status === 'finalized';
 }
 
+function isLikelyContractId(value) {
+  if (!value) return false;
+  return /^[a-f\d]{24}$/i.test(String(value).trim());
+}
+
 let activeLogoutConfirmCard = null;
 
 function performLogout() {
@@ -232,11 +237,11 @@ function renderUserPendingCard(c) {
 }
 
 function renderUserSignedCard(c) {
-  const isFinalized = c.status === 'finalized';
+  const isSigned = c.status === 'signed';
   const isDeclined = c.status === 'declined';
   const isDownloadable = isDownloadableStatus(c.status);
   const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
-  const badgeText = isDeclined ? 'Declined' : isFinalized ? 'Finalized' : 'Signed';
+  const badgeText = isDeclined ? 'Declined' : (isSigned ? 'SIGNED' : 'Completed');
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
   const downloadButton = isDownloadable
     ? '<button class="btn btn-ghost btn-sm btn-download download-contract-btn">Download Contract</button>'
@@ -307,11 +312,11 @@ function renderClientPendingCard(c) {
 }
 
 function renderClientSignedCard(c) {
-  const isFinalized = c.status === 'finalized';
+  const isSigned = c.status === 'signed';
   const isDeclined = c.status === 'declined';
   const isDownloadable = isDownloadableStatus(c.status);
   const badgeClass = isDeclined ? 'badge-error' : 'badge-success';
-  const badgeText = isDeclined ? 'Declined' : isFinalized ? 'Finalized' : 'Completed';
+  const badgeText = isDeclined ? 'Declined' : (isSigned ? 'SIGNED' : 'Completed');
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
   const senderText = escapeHtml(c.userName) || escapeHtml(c.userEmail) || '—';
   const downloadButton = isDownloadable
@@ -381,9 +386,13 @@ function bindCardButtons() {
   document.querySelectorAll('.edit-contract-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const id = e.target.closest('.contract-card').dataset.id;
+      if (!isLikelyContractId(id)) {
+        showToast('Invalid contract reference. Please refresh the dashboard and try again.', 'error');
+        return;
+      }
       localStorage.setItem('selected_contract_id', id);
       localStorage.setItem('contract_page_mode', 'edit');
-      window.location.href = './create-contract.html';
+      window.location.href = `./create-contract.html?contractId=${encodeURIComponent(id)}&mode=edit`;
     });
   });
 
@@ -391,14 +400,18 @@ function bindCardButtons() {
     btn.addEventListener('click', (e) => {
       const card = e.target.closest('.contract-card');
       const id = card.dataset.id;
+      if (!isLikelyContractId(id)) {
+        showToast('Invalid contract reference. Please refresh the dashboard and try again.', 'error');
+        return;
+      }
       localStorage.setItem('selected_contract_id', id);
-      // For clients, open the sign page; for users, open create-contract in view mode
-      const role = localStorage.getItem('user_role');
-      if (role === 'client') {
-        window.location.href = './sign-contract.html';
+      // Route by current dashboard context so stale role data cannot misroute to create-contract.
+      const isClientDashboard = window.location.pathname.includes('client-dashboard');
+      if (isClientDashboard) {
+        window.location.href = `./sign-contract.html?contractId=${encodeURIComponent(id)}`;
       } else {
         localStorage.setItem('contract_page_mode', 'view');
-        window.location.href = './create-contract.html';
+        window.location.href = `./create-contract.html?contractId=${encodeURIComponent(id)}&mode=view`;
       }
     });
   });
@@ -406,8 +419,12 @@ function bindCardButtons() {
   document.querySelectorAll('.review-sign-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const id = e.target.closest('.contract-card').dataset.id;
+      if (!isLikelyContractId(id)) {
+        showToast('Invalid contract reference. Please refresh the dashboard and try again.', 'error');
+        return;
+      }
       localStorage.setItem('selected_contract_id', id);
-      window.location.href = './sign-contract.html';
+      window.location.href = `./sign-contract.html?contractId=${encodeURIComponent(id)}`;
     });
   });
 

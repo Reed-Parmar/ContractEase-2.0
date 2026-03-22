@@ -123,11 +123,50 @@
           </p>
 
           <div class="signature-area">
-            <div class="signature-instructions">
-              Draw your signature inside the secure box below, or <button type="button" id="toggleTypedSignatureBtn" class="btn-link" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;">type your signature</button>
+            <!-- Signature Method Toggle -->
+            <div style="margin-bottom: var(--space-6); padding: var(--space-4); background-color: var(--bg-page); border-radius: var(--radius-md); border: 1px solid var(--border);">
+              <div style="margin-bottom: var(--space-4);">
+                <p style="font-weight: 500; margin-bottom: var(--space-3); color: var(--text-main);">How would you like to sign?</p>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                <!-- Draw Signature Option -->
+                <label style="display: flex; align-items: flex-start; cursor: pointer; padding: var(--space-2); border-radius: var(--radius-sm); transition: background-color 0.2s;">
+                  <input 
+                    type="radio" 
+                    name="signatureMethod" 
+                    value="draw" 
+                    class="signature-method-radio" 
+                    checked
+                    style="margin-right: var(--space-2); margin-top: 4px; cursor: pointer;"
+                  >
+                  <div style="flex: 1;">
+                    <div style="font-weight: 500; margin-bottom: 2px;">Draw Signature</div>
+                    <div style="font-size: var(--font-size-sm); color: var(--text-sub);">Draw your signature in the secure box</div>
+                  </div>
+                </label>
+
+                <!-- Upload Signature Option -->
+                <label style="display: flex; align-items: flex-start; cursor: pointer; padding: var(--space-2); border-radius: var(--radius-sm); transition: background-color 0.2s;">
+                  <input 
+                    type="radio" 
+                    name="signatureMethod" 
+                    value="upload" 
+                    class="signature-method-radio"
+                    style="margin-right: var(--space-2); margin-top: 4px; cursor: pointer;"
+                  >
+                  <div style="flex: 1;">
+                    <div style="font-weight: 500; margin-bottom: 2px;">Upload Signature Image</div>
+                    <div style="font-size: var(--font-size-sm); color: var(--text-sub);">Upload PNG or JPG image (max 2MB)</div>
+                  </div>
+                </label>
+              </div>
             </div>
-            
+
+            <!-- Draw Signature Wrapper -->
             <div id="drawSignatureWrapper">
+              <div class="signature-instructions">
+                Draw your signature inside the secure box below, or <button type="button" id="toggleTypedSignatureBtn" class="btn-link" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;">type your signature</button>
+              </div>
               <div class="signature-canvas-wrapper">
                 <canvas id="signatureCanvas" class="signature-canvas"></canvas>
               </div>
@@ -136,11 +175,63 @@
               </div>
             </div>
 
+            <!-- Type Signature Wrapper -->
             <div id="typedSignatureWrapper" style="display:none; margin-top: var(--space-4);">
               <label for="typedSignatureInput" class="form-label" style="margin-bottom: var(--space-2);">Type Signature Details (Legal Name)</label>
               <input type="text" id="typedSignatureInput" class="form-input" placeholder="Type your full legal name here" aria-label="Type your signature">
             </div>
+
+            <!-- Upload Signature Wrapper (Hidden by default) -->
+            <div id="uploadSignatureWrapper" style="display:none;">
+              <div style="margin-bottom: var(--space-4);">
+                <label for="signatureFileInput" class="form-label">Select Signature Image</label>
+                <div style="position: relative; display: inline-block; width: 100%;">
+                  <input 
+                    type="file" 
+                    id="signatureFileInput" 
+                    accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+                    style="display: none;"
+                    aria-label="Upload signature image"
+                  >
+                  <button 
+                    type="button" 
+                    id="signatureFileChooseBtn" 
+                    class="btn btn-outline"
+                    style="width: 100%; text-align: left; padding-left: var(--space-4);"
+                  >
+                    📁 Choose Image File
+                  </button>
+                </div>
+                <div style="font-size: var(--font-size-sm); color: var(--text-sub); margin-top: var(--space-2);">
+                  Supported: PNG, JPG (maximum 2MB)
+                </div>
+              </div>
+
+              <!-- Image Preview -->
+              <div id="signaturePreviewContainer" style="display: none; margin-bottom: var(--space-4);">
+                <div style="margin-bottom: var(--space-2);">
+                  <p style="font-weight: 500; margin-bottom: var(--space-2); color: var(--text-main);">Preview</p>
+                </div>
+                <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--bg-page); text-align: center;">
+                  <img 
+                    id="signaturePreviewImage" 
+                    style="max-width: 100%; max-height: 200px; border: 1px solid var(--border); border-radius: var(--radius-sm);"
+                    alt="Signature preview"
+                  >
+                </div>
+                <div class="signature-actions" style="margin-top: var(--space-3);">
+                  <button type="button" class="btn btn-outline btn-sm" id="replaceSignatureBtn">Replace Image</button>
+                  <button type="button" class="btn btn-outline btn-sm" id="removeSignatureBtn" style="color: var(--danger); border-color: var(--danger);">Remove Image</button>
+                </div>
+              </div>
+
+              <!-- Error Message -->
+              <div id="signatureUploadError" style="display: none; padding: var(--space-3); background-color: #fee; border: 1px solid #fcc; border-radius: var(--radius-sm); color: var(--danger); margin-bottom: var(--space-4);">
+              </div>
+            </div>
+
             <input type="hidden" id="signatureTypeFlag" value="draw">
+            <input type="hidden" id="uploadedSignatureData" value="">
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">

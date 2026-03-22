@@ -9,11 +9,13 @@ MongoDB document example
   "signerName":      "Jane Smith",
   "signerEmail":     "jane@acme.com",
   "signatureImage":  "data:image/png;base64,iVBOR...",
+  "signatureType":   "drawn",
   "signedAt":        "2026-02-18T14:00:00Z"
 }
 """
 
 from datetime import datetime
+from typing import Literal
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -28,6 +30,10 @@ class SignatureCreate(BaseModel):
         description="Base64-encoded signature image",
         examples=["data:image/png;base64,iVBOR..."],
     )
+    signatureType: Literal["drawn", "uploaded", "typed"] = Field(
+        default="drawn",
+        description="Method used to create the signature",
+    )
 
 
 # ── Full signature document returned by the API ──────────────
@@ -37,6 +43,7 @@ class SignatureOut(BaseModel):
     signerName: str
     signerEmail: EmailStr
     signatureImage: str
+    signatureType: Literal["drawn", "uploaded", "typed"] = "drawn"
     signedAt: datetime
 
     model_config = {"populate_by_name": True}
