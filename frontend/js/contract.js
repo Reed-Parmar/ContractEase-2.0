@@ -549,6 +549,7 @@ function setupSignaturePad(canvasId, onChange = null) {
 // ────────────────────────────────────────────────────────────────────
 
 let uploadedSignatureBase64 = '';
+const TRANSPARENT_PIXEL_DATA_URI = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
 
 /**
  * Validate file is PNG or JPG and under 2MB
@@ -612,7 +613,7 @@ function displaySignaturePreview(base64String) {
   const previewImage = el('signaturePreviewImage');
   
   if (previewContainer && previewImage) {
-    previewImage.src = base64String;
+    previewImage.src = base64String || TRANSPARENT_PIXEL_DATA_URI;
     previewContainer.style.display = 'block';
   }
 }
@@ -624,11 +625,16 @@ function clearSignatureUpload() {
   uploadedSignatureBase64 = '';
   
   const previewContainer = el('signaturePreviewContainer');
+  const previewImage = el('signaturePreviewImage');
   const fileInput = el('signatureFileInput');
   const fileChooseBtn = el('signatureFileChooseBtn');
   
   if (previewContainer) {
     previewContainer.style.display = 'none';
+  }
+
+  if (previewImage) {
+    previewImage.src = TRANSPARENT_PIXEL_DATA_URI;
   }
   
   if (fileInput) {
@@ -682,6 +688,8 @@ function setupSignatureInput() {
   signatureMethodRadios.forEach((radio) => {
     radio.addEventListener('change', (event) => {
       const method = event.target.value;
+
+      if (!signatureTypeFlag) return;
       
       // Hide both wrappers first
       if (drawWrapper) drawWrapper.style.display = 'none';
