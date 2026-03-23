@@ -7,6 +7,10 @@ let selectedContractStatus = null;
 let creatorSignaturePad = null;
 let clientSignaturePad = null;
 let creatorSignatureData = '';
+let uploadedSignatureBase64 = '';
+let creatorUploadedSignatureBase64 = '';
+let selectedMode = 'draw';
+let creatorSelectedMode = 'draw';
 
 const DEFAULT_CURRENCY = '₹';
 const SUPPORTED_CURRENCIES = new Set(['₹', '$', '€']);
@@ -81,6 +85,44 @@ function renderCreateViewStatusBadge(status) {
   badge.textContent = displayStatus.toUpperCase();
 }
 
+async function downloadSignedContract(contractId, buttonEl = null) {
+  if (!contractId) {
+    showToast('Contract ID is missing for download.', 'error');
+    return;
+  }
+
+  const userId = localStorage.getItem('user_id');
+  if (!userId) {
+    showToast('Please sign in again before downloading.', 'error');
+    return;
+  }
+
+  const originalText = buttonEl ? buttonEl.textContent : '';
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.textContent = 'Downloading...';
+  }
+
+  try {
+    const anchor = document.createElement('a');
+    anchor.href = `${API_BASE}/contracts/${contractId}/download?user_id=${encodeURIComponent(userId)}`;
+    anchor.download = `contract_${contractId}.pdf`;
+    anchor.style.display = 'none';
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  } catch (error) {
+    console.error('Contract download failed:', error);
+    showToast('Failed to start contract download.', 'error');
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.textContent = originalText;
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // ── Role-Based Route Protection ──────────────────────────────
   const userRole = localStorage.getItem('user_role');
@@ -152,11 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentStep === 2) {
         const titleEl = document.getElementById('contractTitle');
         const emailEl = document.getElementById('clientEmail');
-        [titleEl, emailEl].forEach((el) => { if (el) clearFieldError(el); });
+        const amountEl = document.getElementById('contractAmount');
+        const dueDateEl = document.getElementById('dueDate');
+        [titleEl, emailEl, amountEl, dueDateEl].forEach((el) => { if (el) clearFieldError(el); });
 
         const fieldErrors = [];
         if (titleEl && !titleEl.value.trim()) fieldErrors.push({ el: titleEl, msg: 'Contract title is required.' });
         if (emailEl && !emailEl.value.trim()) fieldErrors.push({ el: emailEl, msg: 'Client email address is required.' });
+        if (amountEl && !amountEl.value.trim()) fieldErrors.push({ el: amountEl, msg: 'Contract amount is required.' });
+        if (dueDateEl && !dueDateEl.value.trim()) fieldErrors.push({ el: dueDateEl, msg: 'Due date is required.' });
 
         if (fieldErrors.length > 0) {
           fieldErrors.forEach(({ el, msg }) => setFieldError(el, msg));
@@ -190,6 +236,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelDraftBtn = document.getElementById('cancelDraftBtn');
   if (cancelDraftBtn) {
     cancelDraftBtn.addEventListener('click', () => {
+      if (cancelDraftBtn.dataset.action === 'download') {
+        const contractId = getContractIdFromContext();
+        downloadSignedContract(contractId, cancelDraftBtn);
+        return;
+      }
       // Only wipe the draft when genuinely cancelling a new contract creation
       if (!isEditOrViewMode) clearDraft();
       window.location.href = './user-dashboard.html';
@@ -219,30 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Toggle Signature Type
-  const toggleTypeBtn = document.getElementById('toggleTypedSignatureBtn');
-  if (toggleTypeBtn) {
-    toggleTypeBtn.addEventListener('click', () => {
-      const flag = document.getElementById('signatureTypeFlag');
-      const drawWrapper = document.getElementById('drawSignatureWrapper');
-      const typeWrapper = document.getElementById('typedSignatureWrapper');
-      
-      if (flag.value === 'draw') {
-        flag.value = 'type';
-        drawWrapper.style.display = 'none';
-        typeWrapper.style.display = 'block';
-        toggleTypeBtn.textContent = 'draw your signature';
-      } else {
-        flag.value = 'draw';
-        drawWrapper.style.display = 'block';
-        typeWrapper.style.display = 'none';
-        toggleTypeBtn.textContent = 'type your signature';
-      }
-    });
-  }
-
-  // Setup signature upload UI (NEW)
+  // Setup signature UI modes (draw/upload/type)
   setupSignatureInput();
+  setupCreatorSignatureInput();
 
   // Sign Contract Button
   const signBtn = document.getElementById('signBtn');
@@ -257,11 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Mobile menu toggle
-  const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+  const mobileMenuToggle = document.getElementById('mobileMenuBtn');
   const navbarMenu = document.getElementById('navbarMenu');
   if (mobileMenuToggle && navbarMenu) {
     mobileMenuToggle.addEventListener('click', () => {
       navbarMenu.classList.toggle('active');
+      const isActive = navbarMenu.classList.contains('active');
+      mobileMenuToggle.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+      navbarMenu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
     });
   }
 
@@ -547,8 +580,6 @@ function setupSignaturePad(canvasId, onChange = null) {
 // ────────────────────────────────────────────────────────────────────
 // Signature Upload Handler (NEW)
 // ────────────────────────────────────────────────────────────────────
-
-let uploadedSignatureBase64 = '';
 const TRANSPARENT_PIXEL_DATA_URI = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
 
 /**
@@ -642,7 +673,7 @@ function clearSignatureUpload() {
   }
   
   if (fileChooseBtn) {
-    fileChooseBtn.textContent = '📁 Choose Image File';
+    fileChooseBtn.textContent = 'Click or drag image to upload';
   }
   
   hideSignatureUploadError();
@@ -672,36 +703,124 @@ function hideSignatureUploadError() {
 /**
  * Setup signature method toggle and file upload handlers
  */
+function applySignatureModeUI({ cards, sectionsByMode, hiddenField }, mode) {
+  if (hiddenField) hiddenField.value = mode;
+
+  cards.forEach((card) => {
+    const cardMode = card.dataset.mode;
+    if (cardMode === mode) {
+      card.classList.add('signature-card-active');
+    } else {
+      card.classList.remove('signature-card-active');
+    }
+  });
+
+  Object.entries(sectionsByMode).forEach(([key, section]) => {
+    if (!section) return;
+    const isActive = key === mode;
+    section.classList.toggle('signature-section-active', isActive);
+    section.hidden = !isActive;
+    section.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    section.querySelectorAll('input, textarea, select, button').forEach((node) => {
+      node.disabled = !isActive;
+    });
+
+    const canvas = section.querySelector('canvas');
+    if (canvas) {
+      canvas.style.pointerEvents = isActive ? 'auto' : 'none';
+    }
+  });
+}
+
+function resetTypedSignatureInput(inputEl, previewEl) {
+  if (inputEl) inputEl.value = '';
+  if (previewEl) previewEl.textContent = 'Signature preview appears here';
+}
+
+function clearClientSignatureState({ typedInput, typedPreview }) {
+  if (clientSignaturePad) {
+    clientSignaturePad.clear();
+  }
+  clearSignatureUpload();
+  resetTypedSignatureInput(typedInput, typedPreview);
+}
+
+function clearCreatorSignatureState({ typedInput, typedPreview }) {
+  const creatorPad = ensureCreatorSignaturePad();
+  if (creatorPad) {
+    creatorPad.clear();
+  }
+  clearCreatorSignatureUpload();
+  resetTypedSignatureInput(typedInput, typedPreview);
+  creatorSignatureData = '';
+}
+
 function setupSignatureInput() {
   const signatureMethodRadios = document.querySelectorAll('.signature-method-radio');
+  const modeCards = document.querySelectorAll('#clientSignatureModeGrid .signature-mode-card');
   const drawWrapper = el('drawSignatureWrapper');
   const uploadWrapper = el('uploadSignatureWrapper');
+  const typedWrapper = el('typedSignatureWrapper');
   const fileInput = el('signatureFileInput');
   const fileChooseBtn = el('signatureFileChooseBtn');
   const replaceBtn = el('replaceSignatureBtn');
   const removeBtn = el('removeSignatureBtn');
   const signatureTypeFlag = el('signatureTypeFlag');
+  const typedInput = el('typedSignatureInput');
+  const typedPreview = el('typedSignaturePreview');
+
+  const setClientMode = (mode, options = {}) => {
+    const normalizedMode = mode === 'upload' || mode === 'type' ? mode : 'draw';
+    const shouldReset = options.resetOnChange !== false;
+    const modeChanged = selectedMode !== normalizedMode;
+
+    if (shouldReset && modeChanged) {
+      clearClientSignatureState({ typedInput, typedPreview });
+    }
+
+    selectedMode = normalizedMode;
+
+    signatureMethodRadios.forEach((radio) => {
+      radio.checked = radio.value === normalizedMode;
+    });
+
+    applySignatureModeUI({
+      cards: Array.from(modeCards),
+      sectionsByMode: {
+        draw: drawWrapper,
+        upload: uploadWrapper,
+        type: typedWrapper,
+      },
+      hiddenField: signatureTypeFlag,
+    }, normalizedMode);
+  };
   
   if (!signatureMethodRadios.length) return;
 
-  // Handle signature method toggle
+  // Handle mode selection via hidden radios
   signatureMethodRadios.forEach((radio) => {
     radio.addEventListener('change', (event) => {
       const method = event.target.value;
+      setClientMode(method);
+    });
+  });
 
-      if (!signatureTypeFlag) return;
-      
-      // Hide both wrappers first
-      if (drawWrapper) drawWrapper.style.display = 'none';
-      if (uploadWrapper) uploadWrapper.style.display = 'none';
-      
-      if (method === 'draw') {
-        signatureTypeFlag.value = 'draw';
-        if (drawWrapper) drawWrapper.style.display = 'block';
-      } else if (method === 'upload') {
-        signatureTypeFlag.value = 'upload';
-        if (uploadWrapper) uploadWrapper.style.display = 'block';
-        clearSignatureUpload();  // Clear any previous uploads when switching modes
+  // Click + keyboard access for card-style controls
+  modeCards.forEach((card) => {
+    const mode = card.dataset.mode;
+    const radio = card.querySelector('input[type="radio"]');
+    if (!mode || !radio) return;
+
+    card.addEventListener('click', () => {
+      radio.checked = true;
+      setClientMode(mode);
+    });
+
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        radio.checked = true;
+        setClientMode(mode);
       }
     });
   });
@@ -711,6 +830,22 @@ function setupSignatureInput() {
     fileChooseBtn.addEventListener('click', (event) => {
       event.preventDefault();
       if (fileInput) fileInput.click();
+    });
+
+    fileChooseBtn.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      fileChooseBtn.style.borderColor = 'var(--primary)';
+    });
+
+    fileChooseBtn.addEventListener('dragleave', () => {
+      fileChooseBtn.style.borderColor = '';
+    });
+
+    fileChooseBtn.addEventListener('drop', (event) => {
+      event.preventDefault();
+      fileChooseBtn.style.borderColor = '';
+      const file = event.dataTransfer?.files?.[0];
+      if (file) handleSignatureFileUpload(file);
     });
   }
 
@@ -724,7 +859,7 @@ function setupSignatureInput() {
         
         // Update button text
         if (fileChooseBtn) {
-          fileChooseBtn.textContent = `📁 ${file.name}`;
+          fileChooseBtn.textContent = file.name;
         }
       }
     });
@@ -745,6 +880,215 @@ function setupSignatureInput() {
       clearSignatureUpload();
     });
   }
+
+  // Live typed preview
+  if (typedInput && typedPreview) {
+    typedInput.addEventListener('input', () => {
+      typedPreview.textContent = typedInput.value.trim() || 'Signature preview appears here';
+    });
+    typedPreview.textContent = 'Signature preview appears here';
+  }
+
+  setClientMode(signatureTypeFlag?.value || selectedMode, { resetOnChange: false });
+}
+
+function displayCreatorSignaturePreview(base64String) {
+  const previewContainer = el('creatorSignaturePreviewContainer');
+  const previewImage = el('creatorSignaturePreviewImage');
+
+  if (previewContainer && previewImage) {
+    previewImage.src = base64String;
+    previewContainer.style.display = 'block';
+  }
+}
+
+function clearCreatorSignatureUpload() {
+  creatorUploadedSignatureBase64 = '';
+
+  const previewContainer = el('creatorSignaturePreviewContainer');
+  const fileInput = el('creatorSignatureFileInput');
+  const fileChooseBtn = el('creatorSignatureFileChooseBtn');
+
+  if (previewContainer) previewContainer.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+  if (fileChooseBtn) fileChooseBtn.textContent = 'Click or drag image to upload';
+  hideCreatorSignatureUploadError();
+}
+
+function showCreatorSignatureUploadError(message) {
+  const errorEl = el('creatorSignatureUploadError');
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+}
+
+function hideCreatorSignatureUploadError() {
+  const errorEl = el('creatorSignatureUploadError');
+  if (errorEl) errorEl.style.display = 'none';
+}
+
+function handleCreatorSignatureFileUpload(file) {
+  const validation = validateSignatureFile(file);
+  if (!validation.valid) {
+    showCreatorSignatureUploadError(validation.error);
+    clearCreatorSignatureUpload();
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onerror = () => {
+    showCreatorSignatureUploadError('Failed to read image file. Please try again.');
+    clearCreatorSignatureUpload();
+  };
+
+  reader.onload = (event) => {
+    const base64String = event.target.result;
+    if (!base64String || base64String.length < 50) {
+      showCreatorSignatureUploadError('Failed to process image. The file may be corrupted.');
+      clearCreatorSignatureUpload();
+      return;
+    }
+
+    creatorUploadedSignatureBase64 = base64String;
+    creatorSignatureData = base64String;
+    displayCreatorSignaturePreview(base64String);
+    hideCreatorSignatureUploadError();
+    updatePreview();
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function setupCreatorSignatureInput() {
+  const signatureMethodRadios = document.querySelectorAll('.creator-signature-method-radio');
+  const modeCards = document.querySelectorAll('#creatorSignatureModeGrid .signature-mode-card');
+  const drawWrapper = el('creatorDrawSignatureWrapper');
+  const uploadWrapper = el('creatorUploadSignatureWrapper');
+  const typedWrapper = el('creatorTypedSignatureWrapper');
+  const signatureTypeFlag = el('creatorSignatureTypeFlag');
+
+  const fileInput = el('creatorSignatureFileInput');
+  const fileChooseBtn = el('creatorSignatureFileChooseBtn');
+  const replaceBtn = el('replaceCreatorSignatureBtn');
+  const removeBtn = el('removeCreatorSignatureBtn');
+  const typedInput = el('creatorTypedSignatureInput');
+  const typedPreview = el('creatorTypedSignaturePreview');
+
+  if (!signatureMethodRadios.length) return;
+
+  const setCreatorMode = (mode, options = {}) => {
+    const normalizedMode = mode === 'upload' || mode === 'type' ? mode : 'draw';
+    const shouldReset = options.resetOnChange !== false;
+    const modeChanged = creatorSelectedMode !== normalizedMode;
+
+    if (shouldReset && modeChanged) {
+      clearCreatorSignatureState({ typedInput, typedPreview });
+    }
+
+    creatorSelectedMode = normalizedMode;
+
+    signatureMethodRadios.forEach((radio) => {
+      radio.checked = radio.value === normalizedMode;
+    });
+
+    applySignatureModeUI({
+      cards: Array.from(modeCards),
+      sectionsByMode: {
+        draw: drawWrapper,
+        upload: uploadWrapper,
+        type: typedWrapper,
+      },
+      hiddenField: signatureTypeFlag,
+    }, normalizedMode);
+
+    updatePreview();
+  };
+
+  signatureMethodRadios.forEach((radio) => {
+    radio.addEventListener('change', (event) => {
+      setCreatorMode(event.target.value);
+    });
+  });
+
+  modeCards.forEach((card) => {
+    const mode = card.dataset.mode;
+    const radio = card.querySelector('input[type="radio"]');
+    if (!mode || !radio) return;
+
+    card.addEventListener('click', () => {
+      radio.checked = true;
+      setCreatorMode(mode);
+    });
+
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        radio.checked = true;
+        setCreatorMode(mode);
+      }
+    });
+  });
+
+  if (fileChooseBtn) {
+    fileChooseBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (fileInput) fileInput.click();
+    });
+
+    fileChooseBtn.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      fileChooseBtn.style.borderColor = 'var(--primary)';
+    });
+
+    fileChooseBtn.addEventListener('dragleave', () => {
+      fileChooseBtn.style.borderColor = '';
+    });
+
+    fileChooseBtn.addEventListener('drop', (event) => {
+      event.preventDefault();
+      fileChooseBtn.style.borderColor = '';
+      const file = event.dataTransfer?.files?.[0];
+      if (file) handleCreatorSignatureFileUpload(file);
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (event) => {
+      const files = event.target.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        handleCreatorSignatureFileUpload(file);
+        if (fileChooseBtn) fileChooseBtn.textContent = file.name;
+      }
+    });
+  }
+
+  if (replaceBtn) {
+    replaceBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (fileInput) fileInput.click();
+    });
+  }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      clearCreatorSignatureUpload();
+      creatorSignatureData = '';
+      updatePreview();
+    });
+  }
+
+  if (typedInput && typedPreview) {
+    typedInput.addEventListener('input', () => {
+      typedPreview.textContent = typedInput.value.trim() || 'Signature preview appears here';
+      updatePreview();
+    });
+    typedPreview.textContent = 'Signature preview appears here';
+  }
+
+  setCreatorMode(signatureTypeFlag?.value || creatorSelectedMode, { resetOnChange: false });
 }
 
 /**
@@ -752,42 +1096,27 @@ function setupSignatureInput() {
  * Returns: { data: "<base64_string>", type: "draw" | "upload" | "type" }
  */
 function getCurrentSignatureData() {
-  const signatureTypeFlag = el('signatureTypeFlag');
-  const signatureType = signatureTypeFlag?.value || 'draw';
-  
-  if (signatureType === 'upload') {
-    return {
-      data: uploadedSignatureBase64,
-      type: 'uploaded'
-    };
-  } else if (signatureType === 'draw') {
-    const signatureData = clientSignaturePad?.toDataURL() || (el('signatureCanvas')?.toDataURL('image/png') || '');
+  if (selectedMode === 'draw') {
+    const signatureData = signaturePadContainsDrawing(clientSignaturePad) ? clientSignaturePad.toDataURL() : '';
     return {
       data: signatureData,
       type: 'drawn'
     };
-  } else {
-    // Type signature (existing feature)
+  } else if (selectedMode === 'upload') {
+    return {
+      data: uploadedSignatureBase64,
+      type: 'uploaded'
+    };
+  } else if (selectedMode === 'type') {
     const typedSignature = el('typedSignatureInput')?.value?.trim() || '';
-    if (typedSignature) {
-      const textCanvas = document.createElement('canvas');
-      textCanvas.width = 400;
-      textCanvas.height = 150;
-      const tCtx = textCanvas.getContext('2d');
-      tCtx.fillStyle = '#ffffff';
-      tCtx.fillRect(0, 0, textCanvas.width, textCanvas.height);
-      tCtx.font = 'italic 48px serif';
-      tCtx.fillStyle = '#1f2937';
-      tCtx.textAlign = 'center';
-      tCtx.textBaseline = 'middle';
-      tCtx.fillText(typedSignature, 200, 75);
-      return {
-        data: textCanvas.toDataURL('image/png'),
-        type: 'typed'
-      };
-    }
-    return { data: '', type: 'unknown' };
+    if (!typedSignature) return { data: '', type: 'typed' };
+    return {
+      data: renderTypedSignatureToDataUrl(typedSignature),
+      type: 'typed'
+    };
   }
+
+  return { data: '', type: 'unknown' };
 }
 
 function ensureCreatorSignaturePad() {
@@ -833,12 +1162,112 @@ function parseContractDate(value) {
   return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
 }
 
-function getCreatorSignatureValue() {
-  if (creatorSignaturePad?.hasDrawing()) {
-    return creatorSignaturePad.toDataURL();
+function renderTypedSignatureToDataUrl(typedSignature) {
+  const text = String(typedSignature || '').trim();
+  if (!text) return '';
+
+  const textCanvas = document.createElement('canvas');
+  textCanvas.width = 400;
+  textCanvas.height = 150;
+
+  const tCtx = textCanvas.getContext('2d');
+  tCtx.fillStyle = '#ffffff';
+  tCtx.fillRect(0, 0, textCanvas.width, textCanvas.height);
+
+  const padding = 24;
+  const maxWidth = textCanvas.width - (padding * 2);
+  const maxHeight = textCanvas.height - (padding * 2);
+  const maxLines = 2;
+  let fontSize = 48;
+  const minFontSize = 20;
+  const fontFamily = 'serif';
+
+  const splitIntoLines = (value) => {
+    const words = value.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [''];
+
+    const lines = [];
+    let currentLine = words[0];
+    for (let index = 1; index < words.length; index += 1) {
+      const candidate = `${currentLine} ${words[index]}`;
+      if (tCtx.measureText(candidate).width <= maxWidth) {
+        currentLine = candidate;
+      } else {
+        lines.push(currentLine);
+        currentLine = words[index];
+      }
+    }
+    lines.push(currentLine);
+    return lines;
+  };
+
+  let lines = [text];
+  while (fontSize >= minFontSize) {
+    tCtx.font = `italic ${fontSize}px ${fontFamily}`;
+    lines = splitIntoLines(text);
+    const lineHeight = Math.round(fontSize * 1.15);
+    const totalHeight = lines.length * lineHeight;
+    const longestLine = Math.max(...lines.map((line) => tCtx.measureText(line).width));
+
+    if (lines.length <= maxLines && longestLine <= maxWidth && totalHeight <= maxHeight) {
+      break;
+    }
+
+    fontSize -= 2;
   }
 
-  return creatorSignatureData || '';
+  if (fontSize < minFontSize) {
+    fontSize = minFontSize;
+    tCtx.font = `italic ${fontSize}px ${fontFamily}`;
+    lines = splitIntoLines(text).slice(0, maxLines);
+
+    while (lines.length > 0 && tCtx.measureText(lines[lines.length - 1]).width > maxWidth) {
+      let lastLine = lines[lines.length - 1];
+      while (lastLine.length > 1 && tCtx.measureText(`${lastLine}...`).width > maxWidth) {
+        lastLine = lastLine.slice(0, -1);
+      }
+      lines[lines.length - 1] = `${lastLine}...`;
+      if (tCtx.measureText(lines[lines.length - 1]).width <= maxWidth) break;
+    }
+  }
+
+  const lineHeight = Math.round(fontSize * 1.15);
+  const totalHeight = lines.length * lineHeight;
+
+  tCtx.font = `italic ${fontSize}px ${fontFamily}`;
+  tCtx.fillStyle = '#1f2937';
+  tCtx.textAlign = 'center';
+  tCtx.textBaseline = 'middle';
+
+  const startY = (textCanvas.height - totalHeight) / 2 + (lineHeight / 2);
+  lines.forEach((line, index) => {
+    tCtx.fillText(line, textCanvas.width / 2, startY + (index * lineHeight));
+  });
+
+  return textCanvas.toDataURL('image/png');
+}
+
+function getCreatorSignatureValue() {
+  const mode = creatorSelectedMode;
+
+  if (mode === 'draw') {
+    if (signaturePadContainsDrawing(creatorSignaturePad)) {
+      return creatorSignaturePad.toDataURL();
+    }
+    return '';
+  }
+
+  if (mode === 'upload') {
+    return creatorUploadedSignatureBase64 || '';
+  }
+
+  if (mode === 'type') {
+    const typedSignature = el('creatorTypedSignatureInput')?.value?.trim() || '';
+    if (!typedSignature) return '';
+    return renderTypedSignatureToDataUrl(typedSignature);
+  }
+
+  return '';
 }
 
 function formatContractAmount(value, currency = DEFAULT_CURRENCY, fallbackCurrency = DEFAULT_CURRENCY) {
@@ -978,6 +1407,20 @@ function updatePreview() {
   }
 }
 
+function setCreateFormReadOnly() {
+  const editorRoot = document.querySelector('.contract-editor');
+  if (!editorRoot) return;
+
+  editorRoot.querySelectorAll('input, textarea, select').forEach((node) => {
+    node.disabled = true;
+  });
+
+  editorRoot.querySelectorAll('.contract-type-option').forEach((node) => {
+    node.style.pointerEvents = 'none';
+    node.setAttribute('aria-disabled', 'true');
+  });
+}
+
 async function loadCreateContractPage() {
   const contractTitleEl = document.getElementById('contractTitle');
   if (!contractTitleEl) return; // Not on the create-contract page
@@ -1071,14 +1514,39 @@ async function loadCreateContractPage() {
       renderCreateViewStatusBadge(c.status);
       updatePreview();
       goToStep(3);
+      setCreateFormReadOnly();
+      const isSignedView = normalizeContractStatus(c.status) === 'signed';
+
+      const creatorSignaturePanel = document.querySelector('.creator-signature-panel');
+      if (creatorSignaturePanel) {
+        creatorSignaturePanel.style.display = isSignedView ? 'none' : 'block';
+      }
+
+      const signedDetailsEl = document.getElementById('signedDetailsSection');
+      if (signedDetailsEl) {
+        signedDetailsEl.style.display = isSignedView ? 'block' : 'none';
+      }
+
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
       const saveDraftBtn = document.getElementById('saveDraftBtn');
       const submitBtn = document.getElementById('submitBtn');
+      const cancelDraftBtn = document.getElementById('cancelDraftBtn');
       if (prevBtn) prevBtn.style.display = 'none';
       if (nextBtn) nextBtn.style.display = 'none';
       if (saveDraftBtn) saveDraftBtn.style.display = 'none';
       if (submitBtn) submitBtn.style.display = 'none';
+
+      if (cancelDraftBtn) {
+        cancelDraftBtn.dataset.action = isSignedView ? 'download' : 'cancel';
+        cancelDraftBtn.textContent = isSignedView ? 'Download Contract' : 'Cancel Draft';
+        cancelDraftBtn.classList.toggle('btn-outline-danger', !isSignedView);
+        cancelDraftBtn.classList.toggle('btn-outline', isSignedView);
+      }
+
+      if (isSignedView) {
+        await populateSignedExecutionDetails(contractId);
+      }
 
       // Update page title to reflect view mode
       const editorTitle = document.querySelector('.editor-title');
@@ -1107,14 +1575,20 @@ async function submitContract(sendForSignature = true) {
   const contractDescription = document.getElementById('contractDescription')?.value?.trim();
   const creatorSignature = getCreatorSignatureValue();
 
-  if (!contractTitle || !clientEmail) {
+  if (!contractTitle || !clientEmail || !contractAmount || !dueDate) {
     // Highlight the specific fields that are missing so the user knows exactly what to fix
     const titleEl = document.getElementById('contractTitle');
     const emailEl = document.getElementById('clientEmail');
+    const amountEl = document.getElementById('contractAmount');
+    const dueDateEl = document.getElementById('dueDate');
     if (titleEl) clearFieldError(titleEl);
     if (emailEl) clearFieldError(emailEl);
+    if (amountEl) clearFieldError(amountEl);
+    if (dueDateEl) clearFieldError(dueDateEl);
     if (!contractTitle && titleEl) setFieldError(titleEl, 'Contract title is required.');
     if (!clientEmail && emailEl) setFieldError(emailEl, 'Client email address is required.');
+    if (!contractAmount && amountEl) setFieldError(amountEl, 'Contract amount is required.');
+    if (!dueDate && dueDateEl) setFieldError(dueDateEl, 'Due date is required.');
     showToast('Please fill in all required fields.', 'warning');
     return;
   }
@@ -1146,6 +1620,8 @@ async function submitContract(sendForSignature = true) {
     if (lookupRes.ok) {
       const lookupData = await lookupRes.json();
       clientId = lookupData.user_id;
+      const clientNameEl = document.getElementById('clientName');
+      if (clientNameEl) clientNameEl.value = lookupData.name || '';
     }
   } catch (_) { /* ignore */ }
 
@@ -1163,6 +1639,8 @@ async function submitContract(sendForSignature = true) {
       if (autoRes.ok) {
         const autoData = await autoRes.json();
         clientId = autoData.user_id;
+        const clientNameEl = document.getElementById('clientName');
+        if (clientNameEl) clientNameEl.value = autoData.name || derivedName;
         showToast(`Client account created. They can sign in with password: client123`, 'info');
       } else {
         const autoErr = await autoRes.json();
@@ -1177,6 +1655,11 @@ async function submitContract(sendForSignature = true) {
 
   // Parse amount — input is type="number" so value is already numeric
   const parsedAmount = parseFloat(contractAmount || '0') || 0;
+  const parsedDueDate = parseContractDate(dueDate);
+  if (!parsedDueDate) {
+    showToast('Please provide a valid due date.', 'warning');
+    return;
+  }
 
   const payload = {
     title: contractTitle,
@@ -1184,16 +1667,25 @@ async function submitContract(sendForSignature = true) {
     description: contractDescription || '',
     amount: parsedAmount,
     currency,
-    dueDate: dueDate ? new Date(dueDate).toISOString() : new Date().toISOString(),
+    dueDate: parsedDueDate.toISOString(),
     clauses: clauses,
     userId: userId,
     clientId: clientId,
     creator_signature: creatorSignature || null,
   };
 
+  const editingContractId =
+    isEditOrViewMode && currentCreatePageMode === 'edit' ? getContractIdFromContext() : '';
+  const isEditingContract = isLikelyContractId(editingContractId);
+
   try {
-    const res = await fetch(`${API_BASE}/contracts/`, {
-      method: 'POST',
+    const endpoint = isEditingContract
+      ? `${API_BASE}/contracts/${editingContractId}?user_id=${encodeURIComponent(userId)}`
+      : `${API_BASE}/contracts/`;
+    const method = isEditingContract ? 'PATCH' : 'POST';
+
+    const res = await fetch(endpoint, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -1205,10 +1697,15 @@ async function submitContract(sendForSignature = true) {
     }
 
     const created = await res.json();
+    const targetContractId = created?._id;
+    if (!isLikelyContractId(targetContractId)) {
+      showToast('Contract response is missing a valid ID.', 'error');
+      return;
+    }
 
     if (sendForSignature) {
       // Also mark it as sent immediately (since the button says "Send to Client")
-      const sendRes = await fetch(`${API_BASE}/contracts/${created._id}/send`, { method: 'PUT' });
+      const sendRes = await fetch(`${API_BASE}/contracts/${targetContractId}/send`, { method: 'PUT' });
       if (!sendRes.ok) {
         const sendErrorText = await sendRes.text();
         let sendMessage = `Failed to send contract (${sendRes.status} ${sendRes.statusText})`;
@@ -1233,7 +1730,10 @@ async function submitContract(sendForSignature = true) {
     localStorage.removeItem('contract_page_mode');
 
     clearDraft();
-    showToast(sendForSignature ? 'Contract sent to ' + clientEmail : 'Draft saved successfully', 'success');
+    const successMessage = sendForSignature
+      ? `Contract sent to ${clientEmail}`
+      : (isEditingContract ? 'Draft updated successfully' : 'Draft saved successfully');
+    showToast(successMessage, 'success');
     setTimeout(() => { window.location.href = './user-dashboard.html'; }, 1200);
   } catch (err) {
     console.error(err);
@@ -1348,12 +1848,15 @@ async function loadSignContractPage() {
     if (!isSignable) {
       // Hide the signature form and action buttons entirely
       const signatureSectionEl = document.getElementById('signatureSection');
-      const formActionsEl = document.querySelector('.form-actions');
+      const formActionsEl = document.getElementById('signActionButtons');
       if (signatureSectionEl) signatureSectionEl.style.display = 'none';
       if (formActionsEl) formActionsEl.style.display = 'none';
 
       // For signed contracts, fetch and display the stored signature
       if (c.status === 'signed') {
+        const signedDownloadActionsEl = document.getElementById('signedDownloadActions');
+        const signedDownloadBtnEl = document.getElementById('signedDownloadBtn');
+
         try {
           const sigRes = await fetch(`${API_BASE}/contracts/${contractId}/signature`);
           if (sigRes.ok) {
@@ -1370,6 +1873,13 @@ async function loadSignContractPage() {
             }
             const signedDetailsEl = document.getElementById('signedDetailsSection');
             if (signedDetailsEl) signedDetailsEl.style.display = 'block';
+
+            if (signedDownloadBtnEl) {
+              signedDownloadBtnEl.onclick = () => {
+                downloadSignedContract(contractId, signedDownloadBtnEl);
+              };
+            }
+            if (signedDownloadActionsEl) signedDownloadActionsEl.style.display = 'flex';
           }
         } catch (_) { /* signature display is best-effort */ }
       }
@@ -1404,7 +1914,6 @@ async function signContract() {
   const signerName = document.getElementById('signerName')?.value?.trim();
   const signerEmail = document.getElementById('signerEmail')?.value?.trim();
   const agreeTerms = document.getElementById('agreeTerms')?.checked;
-  const signatureTypeFlag = document.getElementById('signatureTypeFlag')?.value;
 
   if (!signerName || !signerEmail || !agreeTerms) {
     showToast('Please fill in all required fields and agree to the terms.', 'warning');
@@ -1415,11 +1924,11 @@ async function signContract() {
   const signatureObj = getCurrentSignatureData();
   
   if (!signatureObj.data) {
-    if (signatureTypeFlag === 'draw') {
+    if (selectedMode === 'draw') {
       showToast('Please draw your signature in the box above.', 'warning');
-    } else if (signatureTypeFlag === 'type') {
+    } else if (selectedMode === 'type') {
       showToast('Please type your legal name as your signature.', 'warning');
-    } else if (signatureTypeFlag === 'upload') {
+    } else if (selectedMode === 'upload') {
       showToast('Please upload a signature image.', 'warning');
     } else {
       showToast('Please add a signature.', 'warning');
@@ -1466,13 +1975,18 @@ async function declineContract() {
   if (!confirm('Are you sure you want to decline this contract?')) return;
 
   const contractId = getContractIdFromContext();
+  const userId = localStorage.getItem('user_id');
   if (!contractId) {
     showToast('No contract selected.', 'error');
     return;
   }
+  if (!userId) {
+    showToast('Please sign in again before updating contract status.', 'error');
+    return;
+  }
 
   try {
-    const res = await fetch(`${API_BASE}/contracts/${contractId}/status`, {
+    const res = await fetch(`${API_BASE}/contracts/${contractId}/status?user_id=${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'declined' }),
@@ -1490,5 +2004,29 @@ async function declineContract() {
   } catch (err) {
     console.error(err);
     showToast('Could not reach the server.', 'error');
+  }
+}
+
+async function populateSignedExecutionDetails(contractId) {
+  if (!contractId) return false;
+
+  try {
+    const sigRes = await fetch(`${API_BASE}/contracts/${contractId}/signature`);
+    if (!sigRes.ok) return false;
+
+    const sig = await sigRes.json();
+    if (el('signedByName')) el('signedByName').textContent = sig.signerName || '—';
+    if (el('signedByEmail')) el('signedByEmail').textContent = sig.signerEmail || '—';
+    if (el('signedByDate')) el('signedByDate').textContent = formatContractDate(sig.signedAt);
+    if (el('signatureImageDisplay')) {
+      el('signatureImageDisplay').src = sig.signatureImage || 'data:,';
+      el('signatureImageDisplay').dataset.signatureType = sig.signatureType || 'drawn';
+    }
+
+    const signedDetailsEl = document.getElementById('signedDetailsSection');
+    if (signedDetailsEl) signedDetailsEl.style.display = 'block';
+    return true;
+  } catch {
+    return false;
   }
 }

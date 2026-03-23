@@ -53,11 +53,12 @@ async def register_user(payload: RegisterBody):
         "createdAt": datetime.now(timezone.utc),
     }
 
-    existing = await users_collection.find_one({"email": payload.email})
-    if existing:
+    try:
+        result = await users_collection.insert_one(doc)
+    except DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    await users_collection.insert_one(doc)
+    doc["_id"] = result.inserted_id
     return {
         "success": True,
         "user_id": str(doc["_id"]),
@@ -81,9 +82,11 @@ async def register_client(payload: RegisterBody):
     }
 
     try:
-        await clients_collection.insert_one(doc)
+        result = await clients_collection.insert_one(doc)
     except DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    doc["_id"] = result.inserted_id
 
     return {
         "success": True,

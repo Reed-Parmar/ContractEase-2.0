@@ -227,3 +227,5 @@ docs/
 
 # Genterated Contracts
 contracts_pdfs/
+
+backend/seed.py

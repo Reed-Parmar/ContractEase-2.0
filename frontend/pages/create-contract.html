@@ -120,14 +120,12 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
           <div class="form-group">
-            <label for="clientName" class="form-label">Client Name <span style="color:var(--danger)">*</span></label>
+            <label for="clientName" class="form-label">Client Name</label>
             <input 
               type="text" 
               id="clientName" 
               class="form-input" 
               placeholder="Company or Individual"
-              aria-required="true"
-              required
             >
           </div>
 
@@ -267,18 +265,110 @@
           <h3 class="creator-signature-title">Creator Signature</h3>
           <p class="creator-signature-copy">Sign below before sending this contract to the client.</p>
 
-          <div class="signature-area">
-            <div class="signature-instructions">
-              Draw your signature inside the secure box below. This signature will be embedded in the contract before it is sent.
+          <div class="signature-container" id="creatorSignatureContainer">
+            <div class="signature-header">
+              <h4 class="signature-title">Sign the Contract</h4>
+              <p class="signature-subtitle">Choose how you want to sign</p>
             </div>
 
-            <div class="signature-canvas-wrapper">
-              <canvas id="creatorSignatureCanvas" class="signature-canvas"></canvas>
+            <div class="signature-mode-grid" id="creatorSignatureModeGrid">
+              <label class="signature-card signature-mode-card signature-card-active" data-mode="draw" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="draw" class="signature-radio creator-signature-method-radio" checked>
+                <span class="signature-card-icon">✍️</span>
+                <span class="signature-card-title">Draw</span>
+                <span class="signature-card-copy">Use your mouse or finger to sign.</span>
+              </label>
+              <label class="signature-card signature-mode-card" data-mode="upload" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="upload" class="signature-radio creator-signature-method-radio">
+                <span class="signature-card-icon">📤</span>
+                <span class="signature-card-title">Upload</span>
+                <span class="signature-card-copy">Use a PNG or JPG image up to 2MB.</span>
+              </label>
+              <label class="signature-card signature-mode-card" data-mode="type" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="type" class="signature-radio creator-signature-method-radio">
+                <span class="signature-card-icon">⌨️</span>
+                <span class="signature-card-title">Type</span>
+                <span class="signature-card-copy">Enter your legal name as signature.</span>
+              </label>
             </div>
 
-            <div class="signature-actions">
-              <button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear Signature</button>
+            <div id="creatorDrawSignatureWrapper" class="signature-section signature-section-active" data-mode="draw">
+              <h4 class="signature-section-heading">Draw your signature below</h4>
+              <div class="signature-draw-shell">
+                <div class="signature-canvas-wrapper">
+                  <canvas id="creatorSignatureCanvas" class="signature-canvas"></canvas>
+                </div>
+              </div>
+              <div class="signature-actions">
+                <button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear Signature</button>
+              </div>
             </div>
+
+            <div id="creatorUploadSignatureWrapper" class="signature-section" data-mode="upload">
+              <h4 class="signature-section-heading">Upload your signature image</h4>
+              <input
+                type="file"
+                id="creatorSignatureFileInput"
+                accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+                style="display: none;"
+                aria-label="Upload creator signature image"
+              >
+              <button type="button" id="creatorSignatureFileChooseBtn" class="signature-upload-dropzone">
+                Click or drag image to upload
+              </button>
+              <p class="signature-upload-meta">Supported: PNG, JPG (maximum 2MB)</p>
+
+              <div id="creatorSignaturePreviewContainer" style="display: none; margin-top: var(--space-4); margin-bottom: var(--space-4);">
+                <p class="signature-section-heading" style="margin-bottom: var(--space-2);">Preview</p>
+                <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--bg-page); text-align: center;">
+                  <img
+                    id="creatorSignaturePreviewImage"
+                    src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="
+                    style="max-width: 100%; max-height: 200px; border: 1px solid var(--border); border-radius: var(--radius-sm);"
+                    alt="Creator signature preview"
+                  >
+                </div>
+                <div class="signature-actions" style="margin-top: var(--space-3);">
+                  <button type="button" class="btn btn-outline btn-sm" id="replaceCreatorSignatureBtn">Replace Image</button>
+                  <button type="button" class="btn btn-outline btn-sm" id="removeCreatorSignatureBtn" style="color: var(--danger); border-color: var(--danger);">Remove Image</button>
+                </div>
+              </div>
+
+              <div id="creatorSignatureUploadError" style="display: none; padding: var(--space-3); background-color: #fee; border: 1px solid #fcc; border-radius: var(--radius-sm); color: var(--danger); margin-bottom: var(--space-4);"></div>
+            </div>
+
+            <div id="creatorTypedSignatureWrapper" class="signature-section" data-mode="type">
+              <h4 class="signature-section-heading">Type your legal name</h4>
+              <label for="creatorTypedSignatureInput" class="form-label" style="margin-bottom: var(--space-2);">Signature Details (Legal Name)</label>
+              <input type="text" id="creatorTypedSignatureInput" class="form-input" placeholder="Type your full legal name here" aria-label="Type creator signature">
+              <div class="signature-typed-preview" id="creatorTypedSignaturePreview" aria-live="polite"></div>
+            </div>
+
+            <input type="hidden" id="creatorSignatureTypeFlag" value="draw">
+          </div>
+        </div>
+
+        <div class="form-section" id="signedDetailsSection" style="display:none; border-color: var(--success); background-color: #f8fafc;">
+          <h2 class="form-section-title" style="color: var(--success);">Execution Details</h2>
+          <div class="contract-meta" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-6);">
+            <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+              <span class="meta-label">Electronically Signed By</span>
+              <span class="meta-value" id="signedByName">—</span>
+            </div>
+            <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+              <span class="meta-label">Signer Email Address</span>
+              <span class="meta-value" id="signedByEmail">—</span>
+            </div>
+            <div class="meta-row" style="flex-direction: column; align-items: flex-start;">
+              <span class="meta-label">Timestamp</span>
+              <span class="meta-value" id="signedByDate">—</span>
+            </div>
+          </div>
+
+          <div>
+            <span class="meta-label" style="display:block; margin-bottom:var(--space-2);">Certified Signature</span>
+            <img id="signatureImageDisplay" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" alt="Signature Data"
+              style="border:1px solid var(--border); border-radius:var(--radius-md); max-width:100%; height:auto; display:block; background:#fff; box-shadow: var(--shadow-sm);">
           </div>
         </div>
 
@@ -306,20 +396,5 @@
 
   <script src="../js/config.js"></script>
   <script src="../js/contract.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Small mobile menu handler
-      const mobileBtn = document.getElementById('mobileMenuBtn');
-      if(mobileBtn) {
-        mobileBtn.addEventListener('click', () => {
-          const menu = document.getElementById('navbarMenu');
-          menu.classList.toggle('active');
-          const isActive = menu.classList.contains('active');
-          mobileBtn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
-          menu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
-        });
-      }
-    });
-  </script>
 </body>
 </html>

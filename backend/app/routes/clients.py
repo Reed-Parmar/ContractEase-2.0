@@ -28,6 +28,8 @@ async def create_client(payload: ClientCreate):
     doc = {
         "name": payload.name,
         "email": payload.email,
+        "password": payload.password,
+        "role": "client",
         "createdAt": datetime.now(timezone.utc),
     }
 
@@ -37,4 +39,6 @@ async def create_client(payload: ClientCreate):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     doc["_id"] = str(result.inserted_id)
+    doc["role"] = "client"
+    doc.pop("password", None)
     return doc

@@ -244,7 +244,7 @@ function renderUserSignedCard(c) {
   const badgeText = isDeclined ? 'Declined' : (isSigned ? 'SIGNED' : 'Completed');
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
   const downloadButton = isDownloadable
-    ? '<button class="btn btn-ghost btn-sm btn-download download-contract-btn">Download Contract</button>'
+    ? '<button class="btn btn-outline btn-sm download-contract-btn">Download Contract</button>'
     : '';
 
   return `
@@ -320,7 +320,7 @@ function renderClientSignedCard(c) {
   const dateLabel = isDeclined ? 'Declined On' : 'Signed On';
   const senderText = escapeHtml(c.userName) || escapeHtml(c.userEmail) || '—';
   const downloadButton = isDownloadable
-    ? '<button class="btn btn-ghost btn-sm btn-download download-contract-btn">Download Contract</button>'
+    ? '<button class="btn btn-outline btn-sm download-contract-btn">Download Contract</button>'
     : '';
 
   return `

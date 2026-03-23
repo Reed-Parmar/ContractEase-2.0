@@ -292,15 +292,6 @@
   flex-wrap: wrap;
 }
 
-.btn-download {
-  font-size: 0.6875rem;
-  padding: 0.125rem 0.5rem;
-}
-
-.btn-download:hover:not(:disabled) {
-  background-color: #eef2f7;
-}
-
 .logout-confirm-card {
   position: absolute;
   top: calc(100% + var(--space-2));

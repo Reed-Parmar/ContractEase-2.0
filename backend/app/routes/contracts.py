@@ -270,8 +270,72 @@ class StatusUpdate(BaseModel):
     status: ContractStatus
 
 
+# ── PATCH /contracts/{id}  ────────────────────────────────────
+@router.patch("/{contract_id}", response_model=ContractOut)
+async def update_contract(
+    contract_id: str,
+    payload: ContractCreate,
+    user_id: str = Query(..., description="Requesting user/client id"),
+):
+    """Update an existing contract in-place (used by edit flow)."""
+    oid = _validate_object_id(contract_id, "contract")
+
+    existing = await contracts_collection.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    requester_oid = _validate_object_id(user_id, "requesting user")
+    if not _is_contract_owner(existing, requester_oid, user_id):
+        raise HTTPException(status_code=403, detail="You do not have access to this contract")
+
+    if existing.get("status") != ContractStatus.draft.value:
+        raise HTTPException(status_code=400, detail="Only draft contracts can be edited")
+
+    user_oid = _validate_object_id(payload.userId, "user")
+    user = await users_collection.find_one({"_id": user_oid})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    client_oid = _validate_object_id(payload.clientId, "client")
+    client = await clients_collection.find_one({"_id": client_oid})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    update_fields = {
+        "title": payload.title,
+        "type": payload.type,
+        "description": payload.description,
+        "amount": payload.amount,
+        "currency": payload.currency,
+        "dueDate": payload.dueDate,
+        "clauses": payload.clauses.model_dump(),
+        "signatures.creator": payload.creator_signature,
+        "userId": user_oid,
+        "userName": user.get("name", ""),
+        "userEmail": user.get("email", ""),
+        "clientId": client_oid,
+        "clientName": client.get("name", ""),
+        "clientEmail": client.get("email", ""),
+    }
+
+    result = await contracts_collection.find_one_and_update(
+        {"_id": oid, "status": ContractStatus.draft.value},
+        {"$set": update_fields},
+        return_document=ReturnDocument.AFTER,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=400, detail="Only draft contracts can be edited")
+
+    return _serialize(result)
+
+
 @router.patch("/{contract_id}/status", response_model=ContractOut)
-async def update_contract_status(contract_id: str, payload: StatusUpdate):
+async def update_contract_status(
+    contract_id: str,
+    payload: StatusUpdate,
+    user_id: str = Query(..., description="Requesting user/client id"),
+):
     """
     Transition a contract to a new status.
     Allowed transitions:
@@ -283,13 +347,17 @@ async def update_contract_status(contract_id: str, payload: StatusUpdate):
 
     ALLOWED_TRANSITIONS = {
         "draft": {"sent", "pending"},
-        "sent": {"signed", "declined"},
-        "pending": {"signed", "declined"},
+        "sent": {"declined"},
+        "pending": {"declined"},
     }
 
     existing = await contracts_collection.find_one({"_id": oid})
     if not existing:
         raise HTTPException(status_code=404, detail="Contract not found")
+
+    requester_oid = _validate_object_id(user_id, "requesting user")
+    if not _is_contract_owner(existing, requester_oid, user_id):
+        raise HTTPException(status_code=403, detail="You do not have access to this contract")
 
     current = existing["status"]
     target = payload.status.value

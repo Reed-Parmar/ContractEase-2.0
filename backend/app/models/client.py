@@ -19,6 +19,7 @@ from pydantic import BaseModel, EmailStr, Field
 class ClientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, examples=["Acme Corporation"])
     email: EmailStr = Field(..., examples=["contact@acme.com"])
+    password: str = Field(..., min_length=8, max_length=128, examples=["secret123"])
 
 
 # ── Full client document returned by the API ──────────────────
@@ -26,6 +27,7 @@ class ClientOut(BaseModel):
     id: str = Field(..., alias="_id")
     name: str
     email: EmailStr
+    role: str = "client"
     createdAt: datetime
 
     model_config = {"populate_by_name": True}

@@ -172,6 +172,21 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
             detail=f"Cannot sign — contract status is '{existing['status']}' (must be 'sent')",
         )
 
+    assigned_client_email = str(locked_contract.get("clientEmail") or "").strip().lower()
+    requester_signer_email = str(payload.signerEmail).strip().lower()
+    if assigned_client_email and requester_signer_email != assigned_client_email:
+        await contracts_collection.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    "status": ContractStatus.sent.value,
+                    "signedAt": None,
+                    "pendingAt": None,
+                }
+            },
+        )
+        raise HTTPException(status_code=403, detail="Signer does not match assigned client")
+
     # Create signature document only after the atomic status change succeeded
     sig_doc = {
         "contractId": oid,
