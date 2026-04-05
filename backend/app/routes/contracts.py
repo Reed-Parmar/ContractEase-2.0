@@ -121,7 +121,7 @@ def _build_pdf_payload(contract_doc: dict, signature_doc: Optional[dict] = None)
             amount_value = house_sale.get("sale_price")
     signature_fields = contract_doc.get("signatures") or {}
     return {
-        "type": contract_doc.get("type") or WEBSITE_DEVELOPMENT_TYPE,
+        "type": contract_type if contract_type in SUPPORTED_CONTRACT_TYPES else "",
         "templateData": contract_doc.get("templateData") or {},
         "contract_id": str(contract_doc["_id"]),
         "title": contract_doc.get("title") or "Contract",
@@ -261,9 +261,12 @@ def _validate_website_development_data(payload: ContractCreate, template_data: d
     for field_name in ("page_count", "web_page_word_count", "content_due_days", "maintenance_months"):
         value_raw = website_development.get(field_name)
         try:
-            value = int(float(value_raw))
+            numeric_value = float(value_raw)
         except (TypeError, ValueError):
             raise HTTPException(status_code=400, detail=f"website_development contracts require numeric {field_name}")
+        if not numeric_value.is_integer():
+            raise HTTPException(status_code=400, detail=f"website_development {field_name} must be a whole number")
+        value = int(numeric_value)
         if value <= 0:
             raise HTTPException(status_code=400, detail=f"website_development {field_name} must be greater than 0")
 

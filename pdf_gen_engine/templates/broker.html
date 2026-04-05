@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ contract_title }}</title>
+  <title>{{ contract_title|e }}</title>
   <style>
     body {
       font-family: "Times New Roman", serif;
@@ -52,14 +52,14 @@
 <body>
   <main class="contract-document">
     <header class="document-header">
-      <h1>{{ contract_title|upper }}</h1>
-      <p class="document-date">Signed Date: {{ formatted_date }}</p>
+      <h1>{{ contract_title|e|upper }}</h1>
+      <p class="document-date">Signed Date: {{ formatted_date|e }}</p>
     </header>
 
     <section class="contract-section">
       <p>
-        THIS AGREEMENT is made at {{ agreement_place }} between {{ owner_name }} resident of {{ owner_residence }}
-        (hereinafter called "the owner") of the ONE PART and {{ broker_name }} resident of {{ broker_residence }}
+        THIS AGREEMENT is made at {{ agreement_place|e }} between {{ owner_name|e }} resident of {{ owner_residence|e }}
+        (hereinafter called "the owner") of the ONE PART and {{ broker_name|e }} resident of {{ broker_residence|e }}
         (hereinafter called "the broker") of the OTHER PART.
       </p>
       <p><strong>WHEREAS</strong> the owner is absolute owner of the property described in the Schedule and requires brokerage services for sale.</p>
@@ -91,16 +91,16 @@
 
     {% for section in sections %}
     <section class="contract-section">
-      <h2>{{ loop.index }}. {{ section.title }}</h2>
+      <h2>{{ loop.index }}. {{ section.title|e }}</h2>
       {% for paragraph in section.body %}
-      <p>{{ paragraph }}</p>
+      <p>{{ paragraph|e }}</p>
       {% endfor %}
     </section>
     {% endfor %}
 
     <section class="contract-section signature-section">
       <h2>{{ sections|length + 1 }}. Signatures</h2>
-      <p>{{ signature_text }}</p>
+      <p>{{ signature_text|e }}</p>
       <div class="signature-grid">
         <div class="signature-block">
           <p class="signature-label">Owner Signature</p>
@@ -109,7 +109,7 @@
           {% else %}
           <p class="signature-placeholder">Pending signature</p>
           {% endif %}
-          <p class="signature-name">{{ owner_name }}</p>
+          <p class="signature-name">{{ owner_name|e }}</p>
         </div>
 
         <div class="signature-block">
@@ -119,20 +119,20 @@
           {% else %}
           <p class="signature-placeholder">Pending signature</p>
           {% endif %}
-          <p class="signature-name">{{ broker_name }}</p>
+          <p class="signature-name">{{ broker_name|e }}</p>
         </div>
       </div>
     </section>
 
     <section class="contract-section">
       <h2>{{ sections|length + 2 }}. Schedule of Property</h2>
-      <p>{{ property_details }}</p>
+      <p>{{ property_details|e }}</p>
     </section>
 
     <section class="contract-section">
       <h2>{{ sections|length + 3 }}. Witnesses</h2>
-      <p>Witness 1: {{ witness_1_name or 'Not provided' }}</p>
-      <p>Witness 2: {{ witness_2_name or 'Not provided' }}</p>
+      <p>Witness 1: {{ (witness_1_name or 'Not provided')|e }}</p>
+      <p>Witness 2: {{ (witness_2_name or 'Not provided')|e }}</p>
     </section>
   </main>
 </body>

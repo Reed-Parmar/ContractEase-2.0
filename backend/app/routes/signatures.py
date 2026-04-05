@@ -26,6 +26,10 @@ router = APIRouter(prefix="/contracts", tags=["Signatures"])
 
 PENDING_LOCK_TTL = timedelta(minutes=5)
 DEFAULT_CURRENCY = "₹"
+HOUSE_SALE_TYPE = "house_sale"
+WEBSITE_DEVELOPMENT_TYPE = "website_development"
+BROKER_TYPE = "broker"
+SUPPORTED_CONTRACT_TYPES = {HOUSE_SALE_TYPE, WEBSITE_DEVELOPMENT_TYPE, BROKER_TYPE}
 
 
 def _build_contract_terms(contract_doc: dict) -> list[str]:
@@ -201,7 +205,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 
     amount_value = locked_contract.get("amount")
     contract_type = str(locked_contract.get("type") or "").strip().lower()
-    if contract_type == "house_sale":
+    if contract_type == HOUSE_SALE_TYPE:
         house_sale = ((locked_contract.get("templateData") or {}).get("houseSale") or {})
         if house_sale.get("sale_price") is not None:
             amount_value = house_sale.get("sale_price")
@@ -222,7 +226,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         raise HTTPException(status_code=400, detail="Creator signature is missing from this contract")
 
     contract_payload = {
-        "type": locked_contract.get("type") or "website_development",
+        "type": contract_type if contract_type in SUPPORTED_CONTRACT_TYPES else "",
         "templateData": locked_contract.get("templateData") or {},
         "contract_id": str(locked_contract["_id"]),
         "title": locked_contract.get("title") or "Contract",

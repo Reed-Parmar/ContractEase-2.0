@@ -385,10 +385,17 @@ def build_website_development_template_context(contract_data: Mapping[str, Any])
         except (TypeError, ValueError):
             return fallback
 
+    def optional_currency_value(key: str, fallback_value: Any = None) -> str:
+        raw_value = website_development.get(key)
+        if raw_value is None or str(raw_value).strip() == "":
+            raw_value = fallback_value
+        formatted = _format_currency_amount(raw_value, currency)
+        return formatted or "To be confirmed"
+
     currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
     contract_title = contract_data.get("title") or "Agreement Between a Company and Website Developer"
     amount = _format_currency_amount(contract_data.get("amount"), currency)
-    fee_total = _format_currency_amount(website_development.get("fee_total"), currency)
+    fee_total = optional_currency_value("fee_total", contract_data.get("amount"))
 
     initial_payment = number_value("initial_payment_amount", 0.0)
     mid_payment = number_value("mid_payment_amount", 0.0)
@@ -431,9 +438,9 @@ def build_website_development_template_context(contract_data: Mapping[str, Any])
         "email_response_enabled": "Yes" if website_development.get("email_response_enabled") else "No",
         "image_map_enabled": "Yes" if website_development.get("image_map_enabled") else "No",
         "fee_total": fee_total or amount or "To be confirmed",
-        "initial_payment_amount": _format_currency_amount(initial_payment, currency) or "To be confirmed",
-        "mid_payment_amount": _format_currency_amount(mid_payment, currency) or "To be confirmed",
-        "completion_payment_amount": _format_currency_amount(completion_payment, currency) or "To be confirmed",
+        "initial_payment_amount": optional_currency_value("initial_payment_amount"),
+        "mid_payment_amount": optional_currency_value("mid_payment_amount"),
+        "completion_payment_amount": optional_currency_value("completion_payment_amount"),
         "content_due_days": text_value("content_due_days", "14"),
         "completion_months": text_value("completion_months", "1"),
         "maintenance_months": text_value("maintenance_months", "12"),
@@ -447,8 +454,8 @@ def build_website_development_template_context(contract_data: Mapping[str, Any])
         "signature_text": "By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.",
         "signature_creator": normalize_signature_data(contract_data.get("signature_creator")),
         "signature_client": normalize_signature_data(contract_data.get("signature_client")),
-        "creator_name": contract_data.get("creator_name") or contract_data.get("client_name") or "Company",
-        "client_name": contract_data.get("client_name") or contract_data.get("creator_name") or "Developer",
+        "creator_name": contract_data.get("creator_name") or contract_data.get("userName") or "Company",
+        "client_name": contract_data.get("client_name") or "Developer",
         "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
     }
 
@@ -475,12 +482,24 @@ def build_broker_template_context(contract_data: Mapping[str, Any]) -> dict[str,
         except (TypeError, ValueError):
             return fallback
 
+    def optional_float(value: Any) -> float | None:
+        if value is None or str(value).strip() == "":
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
-    total_consideration_raw = number_value("total_consideration", float(contract_data.get("amount") or 0.0))
-    earnest_money_raw = number_value("earnest_money_amount", 0.0)
-    balance_amount_raw = number_value("balance_amount", max(0.0, total_consideration_raw - earnest_money_raw))
+    fallback_amount = optional_float(contract_data.get("amount"))
+    total_consideration_raw = optional_float(broker.get("total_consideration"))
+    if total_consideration_raw is None:
+        total_consideration_raw = fallback_amount
+
+    earnest_money_raw = optional_float(broker.get("earnest_money_amount"))
+    balance_amount_raw = optional_float(broker.get("balance_amount"))
     commission_rate_raw = number_value("commission_rate", 2.0)
-    commission_amount_raw = number_value("commission_amount", total_consideration_raw * (commission_rate_raw / 100.0))
+    commission_amount_raw = optional_float(broker.get("commission_amount"))
     clauses = contract_data.get("clauses") or {}
     confidentiality_enabled = _resolve_clause_flag(contract_data, clauses, "confidentiality", True)
     termination_enabled = _resolve_clause_flag(contract_data, clauses, "termination", False)
@@ -496,9 +515,16 @@ def build_broker_template_context(contract_data: Mapping[str, Any]) -> dict[str,
         else "This Agreement shall remain in force until obligations are completed or the parties otherwise agree in writing."
     )
 
-    total_consideration = _format_currency_amount(total_consideration_raw, currency)
-    earnest_money = _format_currency_amount(earnest_money_raw, currency)
-    balance_amount = _format_currency_amount(balance_amount_raw, currency)
+    total_consideration = _format_currency_amount(total_consideration_raw, currency) or "To be confirmed"
+    earnest_money = _format_currency_amount(earnest_money_raw, currency) or "To be confirmed"
+
+    if balance_amount_raw is None and total_consideration_raw is not None and earnest_money_raw is not None:
+        balance_amount_raw = max(0.0, total_consideration_raw - earnest_money_raw)
+    balance_amount = _format_currency_amount(balance_amount_raw, currency) or "To be confirmed"
+
+    if commission_amount_raw is None and total_consideration_raw is not None:
+        commission_amount_raw = total_consideration_raw * (commission_rate_raw / 100.0)
+    commission_amount = _format_currency_amount(commission_amount_raw, currency) or "To be confirmed"
 
     return {
         "contract_title": contract_data.get("title") or "Agreement for Appointment of a Broker for Selling a House",
@@ -508,13 +534,13 @@ def build_broker_template_context(contract_data: Mapping[str, Any]) -> dict[str,
         "broker_name": text_value("broker_name", contract_data.get("client_name") or "Broker"),
         "broker_residence": text_value("broker_residence", "____________"),
         "property_details": text_value("property_details", contract_data.get("description") or "Property details to be confirmed."),
-        "total_consideration": total_consideration or "To be confirmed",
-        "earnest_money_amount": earnest_money or "To be confirmed",
-        "balance_amount": balance_amount or "To be confirmed",
+        "total_consideration": total_consideration,
+        "earnest_money_amount": earnest_money,
+        "balance_amount": balance_amount,
         "completion_period_months": text_value("completion_period_months", "3"),
         "broker_sale_period_months": text_value("broker_sale_period_months", "1"),
         "commission_rate": f"{commission_rate_raw:g}",
-        "commission_amount": _format_currency_amount(commission_amount_raw, currency) or "To be confirmed",
+        "commission_amount": commission_amount,
         "witness_1_name": text_value("witness_1_name"),
         "witness_2_name": text_value("witness_2_name"),
         "confidentiality_text": confidentiality_text,
@@ -524,7 +550,7 @@ def build_broker_template_context(contract_data: Mapping[str, Any]) -> dict[str,
         "signature_creator": normalize_signature_data(contract_data.get("signature_creator")),
         "signature_client": normalize_signature_data(contract_data.get("signature_client")),
         "creator_name": contract_data.get("creator_name") or contract_data.get("userName") or "Owner",
-        "client_name": contract_data.get("client_name") or contract_data.get("clientEmail") or "Broker",
+        "client_name": contract_data.get("client_name") or "Broker",
         "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
     }
 

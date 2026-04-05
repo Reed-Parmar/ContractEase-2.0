@@ -3197,7 +3197,6 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     creator_signature: creatorSignature || null,
     templateData: templateDataPayload,
   };
-  console.log('SEND PAYLOAD:', payload);
 
   const editingContractId =
     isEditOrViewMode && currentCreatePageMode === 'edit' ? getContractIdFromContext() : '';

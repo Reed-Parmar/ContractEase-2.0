@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline';">
-  <title>{{ contract_title or "Agreement for Sale of House" }}</title>
+  <title>{{ (contract_title or "Agreement for Sale of House")|e }}</title>
   <style>
     @page {
       margin: 0;
@@ -116,11 +116,11 @@
 <body>
   <main class="document-container">
     <h2>AGREEMENT FOR SALE OF A HOUSE</h2>
-    <h3>{{ (contract_title or "Agreement for Sale of House")|upper }}</h3>
+    <h3>{{ (contract_title or "Agreement for Sale of House")|e|upper }}</h3>
     <p>
-      THIS AGREEMENT of sale made at {{ agreement_place }} on {{ agreement_date }}, between
-      {{ vendor_name }}, resident of {{ vendor_residence }} hereinafter called the Vendor of the ONE PART and
-      {{ purchaser_name }}, resident of {{ purchaser_residence }} hereinafter called the Purchaser of the OTHER PART.
+      THIS AGREEMENT of sale made at {{ agreement_place|e }} on {{ agreement_date|e }}, between
+      {{ vendor_name|e }}, resident of {{ vendor_residence|e }} hereinafter called the Vendor of the ONE PART and
+      {{ purchaser_name|e }}, resident of {{ purchaser_residence|e }} hereinafter called the Purchaser of the OTHER PART.
     </p>
 
     <section class="section">
@@ -148,14 +148,14 @@
     ] %}
     {% for clause in clause_sections %}
     <section class="section">
-      <h2>{{ loop.index }}. {{ clause.title }}</h2>
-      <p>{{ clause.body }}</p>
+      <h2>{{ loop.index }}. {{ clause.title|e }}</h2>
+      <p>{{ clause.body|e }}</p>
     </section>
     {% endfor %}
 
     <section class="section">
       <h3>SCHEDULE OF PROPERTY</h3>
-      <p><strong>Detailed description:</strong> {{ property_details }}</p>
+      <p><strong>Detailed description:</strong> {{ property_details|e }}</p>
     </section>
 
     <section class="section">
@@ -170,7 +170,7 @@
             {% else %}
             <p class="signature-placeholder">Pending signature</p>
             {% endif %}
-            <p class="signature-name">{{ vendor_name }}</p>
+            <p class="signature-name">{{ vendor_name|e }}</p>
           </div>
 
           <div class="signature-block">
@@ -180,7 +180,7 @@
             {% else %}
             <p class="signature-placeholder">Pending signature</p>
             {% endif %}
-            <p class="signature-name">{{ purchaser_name }}</p>
+            <p class="signature-name">{{ purchaser_name|e }}</p>
           </div>
         </div>
       </div>
@@ -188,8 +188,8 @@
       {% if has_witnesses %}
       <div class="no-break">
         <h3>WITNESSES</h3>
-        {% if witness_1_name %}<p>Witness: {{ witness_1_name | title }}</p>{% endif %}
-        {% if witness_2_name %}<p>Witness: {{ witness_2_name | title }}</p>{% endif %}
+        {% if witness_1_name %}<p>Witness 1: {{ witness_1_name | title | e }}</p>{% endif %}
+        {% if witness_2_name %}<p>Witness 2: {{ witness_2_name | title | e }}</p>{% endif %}
       </div>
       {% endif %}
     </section>
