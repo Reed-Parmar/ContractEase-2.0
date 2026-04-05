@@ -10,7 +10,12 @@ import os
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 
 # Database name
-DATABASE_NAME = os.getenv("DATABASE_NAME", "ContractEase")
+DATABASE_NAME = (
+    os.getenv("DATABASE_NAME")
+    or os.getenv("MONGODB_DB_NAME")
+    or os.getenv("DB_NAME")
+    or "ContractEase"
+)
 
 # MongoDB connection pool / timeout settings
 MONGO_SERVER_SELECTION_TIMEOUT_MS = int(os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS", "5000"))

@@ -10,7 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import urlsplit
 
 from app.core.config import ALLOWED_ORIGINS, DATABASE_NAME, MONGO_URI
-from app.db.mongo import close_mongo_connection, users_collection, clients_collection
+from app.db.mongo import (
+    close_mongo_connection,
+    users_collection,
+    clients_collection,
+    contracts_collection,
+    signatures_collection,
+)
 from app.routes import users, clients, contracts, signatures, register
 
 # ── App instance ──────────────────────────────────────────────
@@ -44,10 +50,23 @@ async def ensure_indexes():
     """Create required database indexes on startup (idempotent)."""
     print(f"[startup] Mongo target DB: {DATABASE_NAME}")
     print(f"[startup] Mongo connection: {_summarize_mongo_uri(MONGO_URI)}")
-    # Unique email index on users collection (n04 fix)
+
+    # Users
     await users_collection.create_index("email", unique=True)
-    # Unique email index on clients collection (already enforced, kept for safety)
+
+    # Clients
     await clients_collection.create_index("email", unique=True)
+
+    # Contracts
+    await contracts_collection.create_index("userId")
+    await contracts_collection.create_index("clientId")
+    await contracts_collection.create_index("status")
+    await contracts_collection.create_index("type")
+
+    # Signatures
+    await signatures_collection.create_index("contractId")
+
+    print("[startup] Indexes ensured")
 
 
 # ── Shutdown ──────────────────────────────────────────────────

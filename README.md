@@ -126,6 +126,42 @@ API docs:
 1. Swagger UI: `http://localhost:8000/docs`
 2. OpenAPI JSON: `http://localhost:8000/openapi.json`
 
+## 🚀 Setup Instructions
+
+1. Clone the repository.
+
+2. Install dependencies:
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+3. Create `.env` file in project root:
+```env
+MONGO_URI=mongodb://localhost:27017
+DB_NAME=contractease
+```
+
+4. Start MongoDB locally.
+
+5. Run seed script:
+```bash
+python seed.py
+```
+
+6. Start backend:
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
+
+### Seed Script Notes
+
+- `seed.py` loads environment variables from `.env`.
+- It creates Mongo indexes needed by the app startup flow.
+- It inserts sample users, clients, and draft contracts (house_sale, website_development, broker).
+- It skips existing records using email- and key-based checks, so re-running is safe.
+
 ## API Endpoint Inventory
 
 Health:

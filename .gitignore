@@ -233,3 +233,5 @@ contracts_pdfs/
 backend/seed.py
 
 contracts_to_be_implemented/
+
+tools/
