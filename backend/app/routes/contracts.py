@@ -29,6 +29,9 @@ router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
 DEFAULT_CURRENCY = "₹"
 HOUSE_SALE_TYPE = "house_sale"
+WEBSITE_DEVELOPMENT_TYPE = "website_development"
+BROKER_TYPE = "broker"
+SUPPORTED_CONTRACT_TYPES = {HOUSE_SALE_TYPE, WEBSITE_DEVELOPMENT_TYPE, BROKER_TYPE}
 
 
 # ── Helper ────────────────────────────────────────────────────
@@ -118,10 +121,10 @@ def _build_pdf_payload(contract_doc: dict, signature_doc: Optional[dict] = None)
             amount_value = house_sale.get("sale_price")
     signature_fields = contract_doc.get("signatures") or {}
     return {
-        "type": contract_doc.get("type") or "custom",
+        "type": contract_doc.get("type") or WEBSITE_DEVELOPMENT_TYPE,
         "templateData": contract_doc.get("templateData") or {},
         "contract_id": str(contract_doc["_id"]),
-        "title": contract_doc.get("title") or "Service Agreement",
+        "title": contract_doc.get("title") or "Contract",
         "description": contract_doc.get("description") or "",
         "clauses": contract_doc.get("clauses") or {},
         "creator_name": contract_doc.get("userName")
@@ -205,6 +208,157 @@ def _validate_house_sale_data(payload: ContractCreate, template_data: dict) -> f
     return sale_price
 
 
+def _validate_website_development_data(payload: ContractCreate, template_data: dict) -> float:
+    if (payload.type or "").strip().lower() != WEBSITE_DEVELOPMENT_TYPE:
+        return payload.amount
+
+    website_development = template_data.get("websiteDevelopment") if isinstance(template_data, dict) else None
+    if not isinstance(website_development, dict):
+        raise HTTPException(status_code=400, detail="templateData.websiteDevelopment is required for website_development contracts")
+
+    required_text_fields = {
+        "company_name": "website_development contracts require company name",
+        "developer_name": "website_development contracts require developer name",
+        "company_address": "website_development contracts require company address",
+        "developer_address": "website_development contracts require developer address",
+        "project_purpose": "website_development contracts require project purpose",
+    }
+
+    for field_name, message in required_text_fields.items():
+        value = str(website_development.get(field_name) or "").strip()
+        if not value:
+            raise HTTPException(status_code=400, detail=message)
+
+    fee_total_raw = website_development.get("fee_total")
+    try:
+        fee_total = float(fee_total_raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="website_development contracts require numeric fee_total")
+
+    if fee_total <= 0:
+        raise HTTPException(status_code=400, detail="website_development fee_total must be greater than 0")
+
+    milestone_fields = [
+        "initial_payment_amount",
+        "mid_payment_amount",
+        "completion_payment_amount",
+    ]
+    milestones = []
+    for field_name in milestone_fields:
+        value_raw = website_development.get(field_name)
+        try:
+            value = float(value_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"website_development contracts require numeric {field_name}")
+        if value < 0:
+            raise HTTPException(status_code=400, detail=f"website_development {field_name} cannot be negative")
+        milestones.append(value)
+
+    # Allow minor rounding variance to reduce avoidable form rejections.
+    if abs(sum(milestones) - fee_total) > 2.0:
+        raise HTTPException(status_code=400, detail="website_development milestone payments must add up to fee_total")
+
+    for field_name in ("page_count", "web_page_word_count", "content_due_days", "maintenance_months"):
+        value_raw = website_development.get(field_name)
+        try:
+            value = int(float(value_raw))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"website_development contracts require numeric {field_name}")
+        if value <= 0:
+            raise HTTPException(status_code=400, detail=f"website_development {field_name} must be greater than 0")
+
+    for field_name in ("external_links_per_page", "photo_graphics_average"):
+        value_raw = website_development.get(field_name)
+        try:
+            value = float(value_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"website_development contracts require numeric {field_name}")
+        if value < 0:
+            raise HTTPException(status_code=400, detail=f"website_development {field_name} cannot be negative")
+
+    return payload.amount
+
+
+def _validate_broker_data(payload: ContractCreate, template_data: dict) -> float:
+    if (payload.type or "").strip().lower() != BROKER_TYPE:
+        return payload.amount
+
+    broker = template_data.get("brokerAgreement") if isinstance(template_data, dict) else None
+    if not isinstance(broker, dict):
+        raise HTTPException(status_code=400, detail="templateData.brokerAgreement is required for broker contracts")
+
+    required_text_fields = {
+        "owner_name": "broker contracts require owner name",
+        "broker_name": "broker contracts require broker name",
+        "owner_residence": "broker contracts require owner residence",
+        "broker_residence": "broker contracts require broker residence",
+        "property_details": "broker contracts require property details",
+    }
+
+    for field_name, message in required_text_fields.items():
+        value = str(broker.get(field_name) or "").strip()
+        if not value:
+            raise HTTPException(status_code=400, detail=message)
+
+    property_details = str(broker.get("property_details") or "").strip()
+    if len(property_details) <= 10:
+        raise HTTPException(status_code=400, detail="broker property_details must be longer than 10 characters")
+
+    numeric_fields = {
+        "total_consideration": True,
+        "earnest_money_amount": False,
+        "commission_rate": False,
+        "completion_period_months": True,
+        "broker_sale_period_months": True,
+    }
+
+    parsed_numeric = {}
+    for field_name, must_be_positive in numeric_fields.items():
+        value_raw = broker.get(field_name)
+        try:
+            value = float(value_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"broker contracts require numeric {field_name}")
+
+        if must_be_positive and value <= 0:
+            raise HTTPException(status_code=400, detail=f"broker {field_name} must be greater than 0")
+        if not must_be_positive and value < 0:
+            raise HTTPException(status_code=400, detail=f"broker {field_name} cannot be negative")
+        parsed_numeric[field_name] = value
+
+    if parsed_numeric["earnest_money_amount"] > parsed_numeric["total_consideration"]:
+        raise HTTPException(status_code=400, detail="broker earnest_money_amount cannot exceed total_consideration")
+
+    # Optional numeric fields are validated only if provided; strict equality checks use tolerance.
+    balance_raw = broker.get("balance_amount")
+    if balance_raw is not None and str(balance_raw).strip() != "":
+        try:
+            balance_amount = float(balance_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="broker contracts require numeric balance_amount")
+        if balance_amount < 0:
+            raise HTTPException(status_code=400, detail="broker balance_amount cannot be negative")
+
+        expected_balance = parsed_numeric["total_consideration"] - parsed_numeric["earnest_money_amount"]
+        if abs(balance_amount - expected_balance) > 2.0:
+            raise HTTPException(status_code=400, detail="broker balance_amount must be close to total_consideration minus earnest_money_amount")
+
+    commission_amount_raw = broker.get("commission_amount")
+    if commission_amount_raw is not None and str(commission_amount_raw).strip() != "":
+        try:
+            commission_amount = float(commission_amount_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="broker contracts require numeric commission_amount")
+        if commission_amount < 0:
+            raise HTTPException(status_code=400, detail="broker commission_amount cannot be negative")
+
+        expected_commission = parsed_numeric["total_consideration"] * (parsed_numeric["commission_rate"] / 100)
+        if abs(commission_amount - expected_commission) > 2.0:
+            raise HTTPException(status_code=400, detail="broker commission_amount must be close to total_consideration * commission_rate / 100")
+
+    return payload.amount
+
+
 async def _attach_sender_fields(doc: dict) -> dict:
     """Ensure sender name/email are present in contract payloads."""
     if (not doc.get("userName") or not doc.get("userEmail")) and doc.get("userId"):
@@ -254,6 +408,9 @@ async def _generate_legacy_pdf_path(contract_id: str, doc: dict) -> str:
 async def create_contract(payload: ContractCreate):
     """Create a new contract in 'draft' status."""
 
+    if payload.type not in SUPPORTED_CONTRACT_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported contract type")
+
     # Validate referenced user exists
     user_oid = _validate_object_id(payload.userId, "user")
     user = await users_collection.find_one({"_id": user_oid})
@@ -267,7 +424,14 @@ async def create_contract(payload: ContractCreate):
         raise HTTPException(status_code=404, detail="Client not found")
 
     template_data = _normalize_template_data(payload)
-    normalized_amount = _validate_house_sale_data(payload, template_data)
+    normalized_amount = payload.amount
+    contract_type = (payload.type or "").strip().lower()
+    if contract_type == HOUSE_SALE_TYPE:
+        normalized_amount = _validate_house_sale_data(payload, template_data)
+    elif contract_type == WEBSITE_DEVELOPMENT_TYPE:
+        normalized_amount = _validate_website_development_data(payload, template_data)
+    elif contract_type == BROKER_TYPE:
+        normalized_amount = _validate_broker_data(payload, template_data)
 
     doc = {
         "title": payload.title,
@@ -416,6 +580,9 @@ async def update_contract(
     if existing.get("status") != ContractStatus.draft.value:
         raise HTTPException(status_code=400, detail="Only draft contracts can be edited")
 
+    if payload.type not in SUPPORTED_CONTRACT_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported contract type")
+
     user_oid = _validate_object_id(payload.userId, "user")
     user = await users_collection.find_one({"_id": user_oid})
     if not user:
@@ -427,7 +594,14 @@ async def update_contract(
         raise HTTPException(status_code=404, detail="Client not found")
 
     template_data = _normalize_template_data(payload)
-    normalized_amount = _validate_house_sale_data(payload, template_data)
+    normalized_amount = payload.amount
+    contract_type = (payload.type or "").strip().lower()
+    if contract_type == HOUSE_SALE_TYPE:
+        normalized_amount = _validate_house_sale_data(payload, template_data)
+    elif contract_type == WEBSITE_DEVELOPMENT_TYPE:
+        normalized_amount = _validate_website_development_data(payload, template_data)
+    elif contract_type == BROKER_TYPE:
+        normalized_amount = _validate_broker_data(payload, template_data)
 
     update_fields = {
         "title": payload.title,

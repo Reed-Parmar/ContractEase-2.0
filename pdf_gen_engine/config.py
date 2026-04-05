@@ -16,7 +16,7 @@ REPO_ROOT = PDF_ENGINE_ROOT.parent
 PDF_TEMPLATE_PATH = Path(
     os.getenv(
         "PDF_TEMPLATE_PATH",
-        PDF_ENGINE_ROOT / "templates" / "contract_template.html",
+        PDF_ENGINE_ROOT / "templates" / "house_sale.html",
     )
 ).resolve()
 

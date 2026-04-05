@@ -40,21 +40,25 @@
         <h2 class="form-section-title">Contract Details</h2>
         <div class="form-group">
           <label for="contractTitle" class="form-label">Contract Title <span style="color:var(--danger)">*</span></label>
-          <input type="text" id="contractTitle" class="form-input" placeholder="e.g., Real Estate Broker Commission Agreement" required>
+          <input type="text" id="contractTitle" class="form-input" placeholder="e.g., Broker Appointment Agreement" required>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
           <div class="form-group">
-            <label for="clientName" class="form-label">Client Name</label>
+              <label for="clientName" class="form-label">Broker Name</label>
             <input type="text" id="clientName" class="form-input" placeholder="Company or Individual">
           </div>
           <div class="form-group">
-            <label for="clientEmail" class="form-label">Client Email <span style="color:var(--danger)">*</span></label>
+              <label for="clientEmail" class="form-label">Broker Email <span style="color:var(--danger)">*</span></label>
             <input type="email" id="clientEmail" class="form-input" placeholder="billing@client.com" required>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="brAgreementPlace" class="form-label">Agreement Place <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="brAgreementPlace" class="form-input" placeholder="e.g., Delhi" required>
+          </div>
           <div class="form-group">
             <label for="contractAmount" class="form-label">Commission / Amount <span style="color:var(--danger)">*</span></label>
             <div class="amount-field-group">
@@ -72,16 +76,76 @@
           </div>
         </div>
 
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="brOwnerResidence" class="form-label">Owner Residence <span style="color:var(--danger)">*</span></label>
+            <textarea id="brOwnerResidence" class="form-textarea" rows="3" placeholder="Owner residential address" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="brBrokerResidence" class="form-label">Broker Residence <span style="color:var(--danger)">*</span></label>
+            <textarea id="brBrokerResidence" class="form-textarea" rows="3" placeholder="Broker office or residence address" required></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="brPropertyDetails" class="form-label">Property Description (Schedule) <span style="color:var(--danger)">*</span></label>
+          <textarea id="brPropertyDetails" class="form-textarea" placeholder="Full schedule of property to be sold..." rows="4" required></textarea>
+        </div>
+
         <div class="form-group">
           <label for="contractDescription" class="form-label">Description / Commission Terms</label>
-          <textarea id="contractDescription" class="form-textarea" placeholder="Specify brokerage details, commission structure, services..." rows="4"></textarea>
+          <textarea id="contractDescription" class="form-textarea" placeholder="Specify brokerage details, commission structure, and property details..." rows="4"></textarea>
+        </div>
+
+        <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Sale and Commission Terms</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4);">
+          <div class="form-group">
+            <label for="brTotalConsideration" class="form-label">Total Consideration</label>
+            <input type="number" id="brTotalConsideration" class="form-input" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label for="brEarnestMoneyAmount" class="form-label">Advance Payment (10%)</label>
+            <input type="number" id="brEarnestMoneyAmount" class="form-input" min="0" step="0.01" placeholder="0.00" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+          </div>
+          <div class="form-group">
+              <label for="brBalanceAmount" class="form-label">Remaining Balance</label>
+              <input type="number" id="brBalanceAmount" class="form-input" min="0" step="0.01" placeholder="0.00" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+          </div>
+          <div class="form-group">
+            <label for="brCompletionPeriodMonths" class="form-label">Completion Period (Months)</label>
+            <input type="number" id="brCompletionPeriodMonths" class="form-input" min="1" step="1" value="3">
+          </div>
+          <div class="form-group">
+            <label for="brBrokerSalePeriodMonths" class="form-label">Broker Sale Target (Months)</label>
+            <input type="number" id="brBrokerSalePeriodMonths" class="form-input" min="1" step="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="brCommissionRate" class="form-label">Commission Rate (%)</label>
+            <input type="number" id="brCommissionRate" class="form-input" min="0" step="0.1" value="2">
+          </div>
+          <div class="form-group">
+            <label for="brCommissionAmount" class="form-label">Commission Amount</label>
+            <input type="number" id="brCommissionAmount" class="form-input" min="0" step="0.01" placeholder="0.00" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+          </div>
+        </div>
+
+        <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Witnesses</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="brWitness1Name" class="form-label">Witness 1 Name</label>
+            <input type="text" id="brWitness1Name" class="form-input" placeholder="Witness one">
+          </div>
+          <div class="form-group">
+            <label for="brWitness2Name" class="form-label">Witness 2 Name</label>
+            <input type="text" id="brWitness2Name" class="form-input" placeholder="Witness two">
+          </div>
         </div>
 
         <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Include Standard Clauses</h3>
         <div class="toggle-group">
-          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Standard Payment Terms</div></div><input type="checkbox" name="clause_payment" class="toggle-switch" data-clause="payment" checked></label>
+          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Commission Terms</div></div><input type="checkbox" name="clause_payment" class="toggle-switch" data-clause="payment" checked></label>
           <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Limitation of Liability</div></div><input type="checkbox" name="clause_liability" class="toggle-switch" data-clause="liability"></label>
-          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Mutual Confidentiality</div></div><input type="checkbox" name="clause_confidentiality" class="toggle-switch" data-clause="confidentiality" checked></label>
+          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Confidentiality</div></div><input type="checkbox" name="clause_confidentiality" class="toggle-switch" data-clause="confidentiality" checked></label>
           <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Termination for Convenience</div></div><input type="checkbox" name="clause_termination" class="toggle-switch" data-clause="termination"></label>
         </div>
       </div>
@@ -90,23 +154,128 @@
         <h2 class="form-section-title">Review & Send</h2>
         <div class="contract-preview">
           <div class="preview-content" id="previewContent">
-            <h2 id="previewTitle">Broker Agreement</h2>
-            <p>This Agreement is officially entered into as of <strong id="previewDate"></strong>, by and between the broker and <strong id="previewClient"></strong> (hereinafter referred to as "Client").</p>
-            <section class="preview-section"><h2>Signatures</h2><div id="previewSignatureVisuals"></div></section>
+            <h2 id="previewTitle">BROKER AGREEMENT</h2>
+            <p>This Agreement is officially entered into as of <strong id="previewDate"></strong>, by and between the owner and <strong id="previewClient"></strong> (hereinafter referred to as "Broker").</p>
+
+            <section class="preview-section" id="preview-definitions">
+              <h2>Definitions</h2>
+              <p id="previewDefinitionsText">"Owner" and "Broker" definitions appear here.</p>
+            </section>
+
+            <section class="preview-section" id="preview-services">
+              <h2>Property and Appointment</h2>
+              <p id="previewServicesText">The owner appoints the broker to sell the scheduled property under the agreed terms.</p>
+            </section>
+
+            <section class="preview-section" id="preview-payment">
+              <h2>Sale Terms</h2>
+              <p id="previewPaymentText">Commercial terms shall be reflected here once sale amounts are entered.</p>
+            </section>
+
+            <section class="preview-section" id="preview-deliverables">
+              <h2>Representations and Obligations</h2>
+              <p id="previewDeliverablesText">Owner title warranties, broker sale timeline, and witness details appear here.</p>
+            </section>
+
+            <section class="preview-section" id="preview-confidentiality">
+              <h2>Confidentiality</h2>
+              <p id="previewConfidentialityText">Confidentiality terms appear here.</p>
+            </section>
+
+            <section class="preview-section" id="preview-termination">
+              <h2>Term and Termination</h2>
+              <p id="previewTerminationText">Termination terms appear here.</p>
+            </section>
+
+            <section class="preview-section" id="preview-governing-law">
+              <h2>Governing Law</h2>
+              <p id="previewGoverningLawText">This Agreement shall be governed by the laws of India.</p>
+            </section>
+
+            <section class="preview-section" id="preview-signatures">
+              <h2>Signatures</h2>
+              <p id="previewSignatureText">By signing below, parties acknowledge acceptance of all terms.</p>
+              <div id="previewSignatureVisuals"></div>
+            </section>
           </div>
         </div>
 
         <div class="creator-signature-panel">
           <h3 class="creator-signature-title">Creator Signature</h3>
+          <p class="creator-signature-copy">Sign below before sending this contract to the client.</p>
           <div class="signature-container" id="creatorSignatureContainer">
             <div class="signature-mode-grid" id="creatorSignatureModeGrid">
-              <label class="signature-card signature-mode-card signature-card-active" data-mode="draw" tabindex="0"><input type="radio" name="creatorSignatureMethod" value="draw" class="signature-radio creator-signature-method-radio" checked><span class="signature-card-icon">✍️</span><span class="signature-card-title">Draw</span></label>
-              <label class="signature-card signature-mode-card" data-mode="upload" tabindex="0"><input type="radio" name="creatorSignatureMethod" value="upload" class="signature-radio creator-signature-method-radio"><span class="signature-card-icon">📤</span><span class="signature-card-title">Upload</span></label>
-              <label class="signature-card signature-mode-card" data-mode="type" tabindex="0"><input type="radio" name="creatorSignatureMethod" value="type" class="signature-radio creator-signature-method-radio"><span class="signature-card-icon">⌨️</span><span class="signature-card-title">Type</span></label>
+              <label class="signature-card signature-mode-card signature-card-active" data-mode="draw" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="draw" class="signature-radio creator-signature-method-radio" checked>
+                <span class="signature-card-icon">✍️</span>
+                <span class="signature-card-title">Draw</span>
+                <span class="signature-card-copy">Use your mouse or finger to sign.</span>
+              </label>
+              <label class="signature-card signature-mode-card" data-mode="upload" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="upload" class="signature-radio creator-signature-method-radio">
+                <span class="signature-card-icon">📤</span>
+                <span class="signature-card-title">Upload</span>
+                <span class="signature-card-copy">Use a PNG or JPG image up to 2MB.</span>
+              </label>
+              <label class="signature-card signature-mode-card" data-mode="type" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="type" class="signature-radio creator-signature-method-radio">
+                <span class="signature-card-icon">⌨️</span>
+                <span class="signature-card-title">Type</span>
+                <span class="signature-card-copy">Enter your legal name as signature.</span>
+              </label>
             </div>
-            <div id="creatorDrawSignatureWrapper" class="signature-section signature-section-active" data-mode="draw"><canvas id="creatorSignatureCanvas" class="signature-canvas" aria-label="Draw your signature">Draw your signature here using mouse or touch; if you cannot use the canvas, upload an image or contact support.</canvas><button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear</button></div>
-            <div id="creatorUploadSignatureWrapper" class="signature-section" data-mode="upload"><input type="file" id="creatorSignatureFileInput" accept="image/png,image/jpeg,.png,.jpg,.jpeg" style="display: none;"><button type="button" id="creatorSignatureFileChooseBtn" class="signature-upload-dropzone">Upload</button></div>
-            <div id="creatorTypedSignatureWrapper" class="signature-section" data-mode="type"><input type="text" id="creatorTypedSignatureInput" class="form-input" placeholder="Name"></div>
+
+            <div id="creatorDrawSignatureWrapper" class="signature-section signature-section-active" data-mode="draw">
+              <h4 class="signature-section-heading">Draw your signature below</h4>
+              <div class="signature-draw-shell">
+                <div class="signature-canvas-wrapper">
+                  <canvas id="creatorSignatureCanvas" class="signature-canvas"></canvas>
+                </div>
+              </div>
+              <div class="signature-actions">
+                <button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear Signature</button>
+              </div>
+            </div>
+
+            <div id="creatorUploadSignatureWrapper" class="signature-section" data-mode="upload">
+              <h4 class="signature-section-heading">Upload your signature image</h4>
+              <input
+                type="file"
+                id="creatorSignatureFileInput"
+                accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+                style="display: none;"
+                aria-label="Upload creator signature image"
+              >
+              <button type="button" id="creatorSignatureFileChooseBtn" class="signature-upload-dropzone">
+                Click or drag image to upload
+              </button>
+              <p class="signature-upload-meta">Supported: PNG, JPG (maximum 2MB)</p>
+
+              <div id="creatorSignaturePreviewContainer" style="display: none; margin-top: var(--space-4); margin-bottom: var(--space-4);">
+                <p class="signature-section-heading" style="margin-bottom: var(--space-2);">Preview</p>
+                <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--bg-page); text-align: center;">
+                  <img
+                    id="creatorSignaturePreviewImage"
+                    src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="
+                    style="max-width: 100%; max-height: 200px; border: 1px solid var(--border); border-radius: var(--radius-sm);"
+                    alt="Creator signature preview"
+                  >
+                </div>
+                <div class="signature-actions" style="margin-top: var(--space-3);">
+                  <button type="button" class="btn btn-outline btn-sm" id="replaceCreatorSignatureBtn">Replace Image</button>
+                  <button type="button" class="btn btn-outline btn-sm" id="removeCreatorSignatureBtn" style="color: var(--danger); border-color: var(--danger);">Remove Image</button>
+                </div>
+              </div>
+
+              <div id="creatorSignatureUploadError" style="display: none; padding: var(--space-3); background-color: #fee; border: 1px solid #fcc; border-radius: var(--radius-sm); color: var(--danger); margin-bottom: var(--space-4);"></div>
+            </div>
+
+            <div id="creatorTypedSignatureWrapper" class="signature-section" data-mode="type">
+              <h4 class="signature-section-heading">Type your legal name</h4>
+              <label for="creatorTypedSignatureInput" class="form-label" style="margin-bottom: var(--space-2);">Signature Details (Legal Name)</label>
+              <input type="text" id="creatorTypedSignatureInput" class="form-input" placeholder="Type your full legal name here" aria-label="Type creator signature">
+              <div class="signature-typed-preview" id="creatorTypedSignaturePreview" aria-live="polite"></div>
+            </div>
             <input type="hidden" id="creatorSignatureTypeFlag" value="draw">
           </div>
         </div>

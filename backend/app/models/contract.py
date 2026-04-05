@@ -5,8 +5,8 @@ MongoDB document example
 ────────────────────────
 {
   "_id":         ObjectId("..."),
-  "title":       "Web Development Services",
-  "type":        "service",
+    "title":       "Website Development Agreement",
+    "type":        "website_development",
   "description": "Full-stack web development project",
   "amount":      5000.00,
   "dueDate":     "2026-03-15T00:00:00Z",
@@ -91,14 +91,67 @@ class HouseSaleTemplateData(BaseModel):
         return f"{year:04d}-{month:02d}-{day:02d}"
 
 
+class WebsiteDevelopmentTemplateData(BaseModel):
+    agreement_place: Optional[str] = None
+    company_name: Optional[str] = None
+    developer_name: Optional[str] = None
+    company_address: Optional[str] = None
+    developer_address: Optional[str] = None
+    project_purpose: Optional[str] = None
+    consultation_hours: Optional[float] = Field(default=None, ge=0)
+    page_count: Optional[int] = Field(default=None, ge=0)
+    web_page_word_count: Optional[int] = Field(default=None, ge=0)
+    external_links_per_page: Optional[float] = Field(default=None, ge=0)
+    masthead_graphic: Optional[str] = None
+    photo_graphics_average: Optional[float] = Field(default=None, ge=0)
+    update_period_months: Optional[int] = Field(default=None, ge=0)
+    search_engine_publicity: Optional[bool] = None
+    email_response_enabled: Optional[bool] = None
+    image_map_enabled: Optional[bool] = None
+    fee_total: Optional[float] = Field(default=None, ge=0)
+    initial_payment_amount: Optional[float] = Field(default=None, ge=0)
+    mid_payment_amount: Optional[float] = Field(default=None, ge=0)
+    completion_payment_amount: Optional[float] = Field(default=None, ge=0)
+    content_due_days: Optional[int] = Field(default=None, ge=0)
+    completion_months: Optional[int] = Field(default=None, ge=0)
+    maintenance_months: Optional[int] = Field(default=None, ge=0)
+    additional_graphics_fee: Optional[float] = Field(default=None, ge=0)
+    transparency_fee: Optional[float] = Field(default=None, ge=0)
+    hourly_rate: Optional[float] = Field(default=None, ge=0)
+    continuation_fee_percent: Optional[float] = Field(default=None, ge=0)
+
+
+class BrokerAgreementTemplateData(BaseModel):
+    agreement_place: Optional[str] = None
+    owner_name: Optional[str] = None
+    owner_residence: Optional[str] = None
+    broker_name: Optional[str] = None
+    broker_residence: Optional[str] = None
+    property_details: Optional[str] = None
+    total_consideration: Optional[float] = Field(default=None, ge=0)
+    earnest_money_amount: Optional[float] = Field(default=None, ge=0)
+    balance_amount: Optional[float] = Field(default=None, ge=0)
+    completion_period_months: Optional[int] = Field(default=None, ge=0)
+    broker_sale_period_months: Optional[int] = Field(default=None, ge=0)
+    commission_rate: Optional[float] = Field(default=None, ge=0)
+    commission_amount: Optional[float] = Field(default=None, ge=0)
+    witness_1_name: Optional[str] = None
+    witness_2_name: Optional[str] = None
+
+
 class TemplateData(BaseModel):
     houseSale: Optional[HouseSaleTemplateData] = None
+    websiteDevelopment: Optional[WebsiteDevelopmentTemplateData] = None
+    brokerAgreement: Optional[BrokerAgreementTemplateData] = None
 
 
 # ── Request body for creating a contract ──────────────────────
 class ContractCreate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200, examples=["Web Development Services"])
-    type: str = Field(..., min_length=1, examples=["service"])
+    title: str = Field(..., min_length=1, max_length=200, examples=["Website Development Agreement"])
+    type: Literal["house_sale", "website_development", "broker"] = Field(
+        ...,
+        examples=["website_development"],
+    )
     description: Optional[str] = Field(None, examples=["Full-stack web development project"])
     amount: float = Field(..., ge=0, examples=[5000.00])
     currency: Literal["₹", "$", "€"] = Field(default="₹", examples=["₹"])
@@ -120,7 +173,7 @@ class ContractCreate(BaseModel):
 class ContractOut(BaseModel):
     id: str = Field(..., alias="_id")
     title: str
-    type: str
+    type: Literal["house_sale", "website_development", "broker"]
     description: Optional[str] = None
     amount: float
     currency: Literal["₹", "$", "€"] = "₹"

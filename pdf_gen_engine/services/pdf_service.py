@@ -17,6 +17,8 @@ from ..utils.pdf_utils import (
 )
 
 PdfOutputMode = Literal["path", "bytes"]
+
+
 def generate_contract_pdf(
     contract_data: Mapping[str, Any],
     output_mode: PdfOutputMode = "path",
@@ -32,7 +34,12 @@ def generate_contract_pdf(
     """
     contract_type = str(contract_data.get("type") or "").strip().lower()
     context = build_contract_template_context(contract_data)
-    template_name = "house_sale.html" if contract_type == "house_sale" else None
+    template_map = {
+        "house_sale": "house_sale.html",
+        "website_development": "website_development.html",
+        "broker": "broker.html",
+    }
+    template_name = template_map.get(contract_type)
     rendered_html = render_contract_template(context, template_name=template_name)
 
     try:

@@ -41,6 +41,45 @@ const HOUSE_SALE_FIELD_IDS = [
   'hsWitness1Name',
   'hsWitness2Name',
 ];
+const WEBSITE_DEVELOPMENT_FIELD_IDS = [
+  'wdAgreementPlace',
+  'wdCompanyAddress',
+  'wdDeveloperAddress',
+  'wdProjectPurpose',
+  'wdPageCount',
+  'wdWordsPerPage',
+  'wdExternalLinksPerPage',
+  'wdMastheadGraphic',
+  'wdPhotoGraphicsAverage',
+  'wdSearchPublicity',
+  'wdEmailResponse',
+  'wdImageMap',
+  'wdCompletionMonths',
+  'wdContentDueDays',
+  'wdMaintenanceMonths',
+  'wdInitialPaymentAmount',
+  'wdMidPaymentAmount',
+  'wdCompletionPaymentAmount',
+  'wdAdditionalGraphicsFee',
+  'wdTransparencyFee',
+  'wdHourlyRate',
+  'wdContinuationFeePercent',
+];
+const BROKER_FIELD_IDS = [
+  'brAgreementPlace',
+  'brOwnerResidence',
+  'brBrokerResidence',
+  'brPropertyDetails',
+  'brTotalConsideration',
+  'brEarnestMoneyAmount',
+  'brBalanceAmount',
+  'brCompletionPeriodMonths',
+  'brBrokerSalePeriodMonths',
+  'brCommissionRate',
+  'brCommissionAmount',
+  'brWitness1Name',
+  'brWitness2Name',
+];
 
 const previousGlobalErrorHandler = window.onerror;
 window.onerror = function contractGlobalErrorHandler(msg, url, line, column, error) {
@@ -51,6 +90,111 @@ window.onerror = function contractGlobalErrorHandler(msg, url, line, column, err
   return false;
 };
 
+function getErrorMessage(err) {
+  if (typeof err === 'string') return err;
+  const detail = err?.response?.data?.detail ?? err?.detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item?.msg) return item.msg;
+        if (item?.detail) return item.detail;
+        return JSON.stringify(item);
+      })
+      .filter(Boolean)
+      .join(' ');
+  }
+  if (detail) {
+    if (typeof detail === 'string') return detail;
+    if (detail?.msg) return detail.msg;
+    if (detail?.detail) return detail.detail;
+    return JSON.stringify(detail);
+  }
+  if (err?.message) return err.message;
+  return 'Something went wrong. Please try again.';
+}
+
+function simplifyBrokerForm() {
+  const contractType = getActiveContractType();
+  if (contractType !== 'broker') return;
+
+  const contractTitleField = document.getElementById('contractTitle');
+  const clientEmailField = document.getElementById('clientEmail');
+  const dueDateField = document.getElementById('dueDate');
+  if (contractTitleField && !String(contractTitleField.value || '').trim()) {
+    contractTitleField.value = 'BROKER AGREEMENT';
+  }
+  if (dueDateField && !String(dueDateField.value || '').trim()) {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(today.getFullYear());
+    dueDateField.value = `${dd}/${mm}/${yyyy}`;
+  }
+  
+  // Hide non-core fields for demo optimization
+  const detailedFields = [
+    'contractTitle', 'dueDate',
+    'brAgreementPlace', 'brOwnerResidence', 'brBrokerResidence',
+    'brCompletionPeriodMonths', 'brBrokerSalePeriodMonths',
+    'brWitness1Name', 'brWitness2Name',
+    'contractDescription'
+  ];
+  
+  detailedFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+      const group = field.closest('.form-group');
+      if (group) group.style.display = 'none';
+    }
+  });
+  
+  // Optionally hide the entire "Witnesses" section heading
+  const headings = Array.from(document.querySelectorAll('h3'));
+  headings.forEach(h => {
+    if (h.textContent.includes('Witnesses')) {
+      h.style.display = 'none';
+    }
+  });
+}
+
+function simplifyWebsiteDevelopmentForm() {
+  const contractType = getActiveContractType();
+  if (contractType !== 'website_development') return;
+
+  const contractTitleField = document.getElementById('contractTitle');
+  const clientEmailField = document.getElementById('clientEmail');
+  if (contractTitleField && !String(contractTitleField.value || '').trim()) {
+    contractTitleField.value = 'WEBSITE DEVELOPMENT AGREEMENT';
+  }
+  
+  // Hide detailed specification fields for demo optimization
+  const detailedFields = [
+    'contractTitle',
+    'wdAgreementPlace', 'wdCompanyAddress', 'wdDeveloperAddress', 'wdProjectPurpose',
+    'wdPageCount', 'wdWordsPerPage', 'wdExternalLinksPerPage',
+    'wdPhotoGraphicsAverage', 'wdMastheadGraphic',
+    'wdCompletionMonths', 'wdContentDueDays', 'wdMaintenanceMonths',
+    'wdHourlyRate','wdAdditionalGraphicsFee', 'wdTransparencyFee',
+    'wdContinuationFeePercent', 'contractDescription'
+  ];
+  
+  detailedFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+      const group = field.closest('.form-group');
+      if (group) group.style.display = 'none';
+    }
+  });
+  
+  // Hide Scope Specifications section heading
+  const headings = Array.from(document.querySelectorAll('h3'));
+  headings.forEach(h => {
+    if (h.textContent.includes('Scope')) {
+      h.style.display = 'none';
+    }
+  });
+}
 function el(id) {
   return document.getElementById(id);
 }
@@ -169,6 +313,11 @@ function getRawInputValue(id, fallback = '') {
   return String(field.value || '');
 }
 
+function getNumericInputValue(id, fallback = 0) {
+  const value = Number(getRawInputValue(id));
+  return Number.isFinite(value) ? value : fallback;
+}
+
 function getConfiguredContractType() {
   if (!PAGE_CONTRACT_TYPE) return '';
   return PAGE_CONTRACT_TYPE;
@@ -178,29 +327,32 @@ function getActiveContractType() {
   return String(getConfiguredContractType() || selectedContractType || '').trim().toLowerCase();
 }
 
-function getContractPage(typeValue) {
+function getContractPagePath(typeValue) {
   const normalizedType = String(typeValue || '').trim().toLowerCase();
   const map = {
     house_sale: 'create-contract-house-sale.html',
-    service: 'create-contract-service.html',
-    nda: 'create-contract-nda.html',
-    license: 'create-contract-license.html',
-    employment: 'create-contract-employment.html',
-    partnership: 'create-contract-partnership.html',
-    custom: 'create-contract-custom.html',
+    website_development: 'create-contract-website-development.html',
     broker: 'create-contract-broker.html',
   };
 
-  return map[normalizedType] || 'create-contract-custom.html';
+  return map[normalizedType] || '';
 }
 
 function redirectToContractPage(typeValue) {
-  const page = getContractPage(typeValue);
-  if (typeof page !== 'string' || !page.trim()) {
+  const page = getContractPagePath(typeValue);
+  const allowedPages = new Set([
+    'create-contract-house-sale.html',
+    'create-contract-website-development.html',
+    'create-contract-broker.html',
+  ]);
+
+  if (typeof page !== 'string' || !page.trim() || !allowedPages.has(page)) {
+    console.error('Invalid contract type:', typeValue);
     if (typeof showToast === 'function') {
-      showToast('Unknown contract type selected. Opening the custom contract page instead.', 'warning');
+      showToast('Unknown contract type selected.', 'warning');
+    } else {
+      alert('Invalid contract type selected');
     }
-    window.location.href = './create-contract-custom.html';
     return;
   }
 
@@ -233,7 +385,7 @@ function initializeContractPageConfig() {
 
   const previewTitleEl = document.getElementById('previewTitle');
   if (previewTitleEl && PAGE_CONTRACT_LABEL) {
-    previewTitleEl.textContent = PAGE_CONTRACT_LABEL;
+    previewTitleEl.textContent = PAGE_CONTRACT_LABEL.toUpperCase();
   }
 
   const agreementTitleEl = document.getElementById('contractTitle');
@@ -375,7 +527,7 @@ function applyHouseSaleDataToForm(houseSaleData = {}) {
 }
 
 /**
- * Collect generic contract data from form fields (used for service, nda, license, etc.).
+ * Collect generic contract data from form fields (used for the supported non-house-sale contracts).
  * Returns object matching the backend's expected templateData structure.
  * @returns {Object} generic contract data
  */
@@ -397,6 +549,148 @@ function collectGenericFormData() {
     description: getTrimmedInputValue('contractDescription'),
     clauses, // object with keys: payment, liability, confidentiality, termination
   };
+}
+
+function collectWebsiteDevelopmentData() {
+  const collected = collectGenericFormData();
+  const creatorName = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'Company';
+  const totalFee = Number(collected.amount || 0);
+  const initialPayment = getNumericInputValue('wdInitialPaymentAmount', totalFee > 0 ? Math.round(totalFee * 0.1) : 0);
+  const midPayment = getNumericInputValue('wdMidPaymentAmount', totalFee > 0 ? Math.round(totalFee * 0.4) : 0);
+  const completionPayment = getNumericInputValue('wdCompletionPaymentAmount', totalFee > 0 ? totalFee - initialPayment - midPayment : 0);
+
+  return {
+    agreement_place: getTrimmedInputValue('wdAgreementPlace', 'N/A'),
+    company_name: creatorName,
+    developer_name: collected.client_name || 'Developer',
+    company_address: getTrimmedInputValue('wdCompanyAddress', 'N/A'),
+    developer_address: getTrimmedInputValue('wdDeveloperAddress', 'N/A'),
+    project_purpose: getTrimmedInputValue('wdProjectPurpose', collected.description || 'Website design, development, and maintenance services.'),
+    fee: totalFee,
+    timeline: collected.due_date || null,
+    consultation_hours: 3,
+    page_count: getNumericInputValue('wdPageCount', 50),
+    web_page_word_count: getNumericInputValue('wdWordsPerPage', 200),
+    external_links_per_page: getNumericInputValue('wdExternalLinksPerPage', 2.5),
+    masthead_graphic: getTrimmedInputValue('wdMastheadGraphic', 'Simple custom logo masthead'),
+    photo_graphics_average: getNumericInputValue('wdPhotoGraphicsAverage', 1.3),
+    search_engine_publicity: !!document.getElementById('wdSearchPublicity')?.checked,
+    email_response_enabled: !!document.getElementById('wdEmailResponse')?.checked,
+    image_map_enabled: !!document.getElementById('wdImageMap')?.checked,
+    completion_months: getNumericInputValue('wdCompletionMonths', 1),
+    fee_total: totalFee,
+    initial_payment_amount: initialPayment,
+    mid_payment_amount: midPayment,
+    completion_payment_amount: completionPayment,
+    content_due_days: getNumericInputValue('wdContentDueDays', 14),
+    maintenance_months: getNumericInputValue('wdMaintenanceMonths', 12),
+    additional_graphics_fee: getNumericInputValue('wdAdditionalGraphicsFee', 1000),
+    transparency_fee: getNumericInputValue('wdTransparencyFee', 1200),
+    hourly_rate: getNumericInputValue('wdHourlyRate', 250),
+    continuation_fee_percent: getNumericInputValue('wdContinuationFeePercent', 10),
+  };
+}
+
+function collectBrokerData() {
+  const collected = collectGenericFormData();
+  const ownerName = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'Owner';
+  const totalConsideration = getNumericInputValue('brTotalConsideration', Number(collected.amount || 0));
+  const earnestMoney = getNumericInputValue('brEarnestMoneyAmount', totalConsideration > 0 ? Math.round(totalConsideration * 0.1) : 0);
+  const commissionRate = getNumericInputValue('brCommissionRate', 2);
+  const commission = totalConsideration > 0 ? Math.round(totalConsideration * (commissionRate / 100)) : 0;
+  const balanceAmount = getNumericInputValue(
+    'brBalanceAmount',
+    totalConsideration > earnestMoney ? totalConsideration - earnestMoney : 0,
+  );
+
+  return {
+    agreement_place: getTrimmedInputValue('brAgreementPlace', 'N/A'),
+    owner_name: ownerName,
+    owner_residence: getTrimmedInputValue('brOwnerResidence', 'N/A'),
+    broker_name: collected.client_name || 'Broker',
+    broker_residence: getTrimmedInputValue('brBrokerResidence', 'N/A'),
+    property_details: getTrimmedInputValue('brPropertyDetails', collected.description || 'Property details to be confirmed.'),
+    commission,
+    commission_rate: commissionRate,
+    broker_sale_period_months: getNumericInputValue('brBrokerSalePeriodMonths', 1),
+    total_consideration: totalConsideration,
+    earnest_money_amount: earnestMoney,
+    balance_amount: balanceAmount,
+    completion_period_months: getNumericInputValue('brCompletionPeriodMonths', 3),
+    commission_amount: commission,
+    witness_1_name: getTrimmedInputValue('brWitness1Name'),
+    witness_2_name: getTrimmedInputValue('brWitness2Name'),
+  };
+}
+
+function applyWebsiteDevelopmentDataToForm(data = {}) {
+  const map = {
+    wdAgreementPlace: 'agreement_place',
+    wdCompanyAddress: 'company_address',
+    wdDeveloperAddress: 'developer_address',
+    wdProjectPurpose: 'project_purpose',
+    wdPageCount: 'page_count',
+    wdWordsPerPage: 'web_page_word_count',
+    wdExternalLinksPerPage: 'external_links_per_page',
+    wdMastheadGraphic: 'masthead_graphic',
+    wdPhotoGraphicsAverage: 'photo_graphics_average',
+    wdCompletionMonths: 'completion_months',
+    wdContentDueDays: 'content_due_days',
+    wdMaintenanceMonths: 'maintenance_months',
+    wdInitialPaymentAmount: 'initial_payment_amount',
+    wdMidPaymentAmount: 'mid_payment_amount',
+    wdCompletionPaymentAmount: 'completion_payment_amount',
+    wdAdditionalGraphicsFee: 'additional_graphics_fee',
+    wdTransparencyFee: 'transparency_fee',
+    wdHourlyRate: 'hourly_rate',
+    wdContinuationFeePercent: 'continuation_fee_percent',
+  };
+
+  Object.entries(map).forEach(([fieldId, key]) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    const value = data[key];
+    if (value == null) return;
+    field.value = String(value);
+  });
+
+  const checkboxMap = {
+    wdSearchPublicity: 'search_engine_publicity',
+    wdEmailResponse: 'email_response_enabled',
+    wdImageMap: 'image_map_enabled',
+  };
+
+  Object.entries(checkboxMap).forEach(([fieldId, key]) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    field.checked = !!data[key];
+  });
+}
+
+function applyBrokerDataToForm(data = {}) {
+  const map = {
+    brAgreementPlace: 'agreement_place',
+    brOwnerResidence: 'owner_residence',
+    brBrokerResidence: 'broker_residence',
+    brPropertyDetails: 'property_details',
+    brTotalConsideration: 'total_consideration',
+    brEarnestMoneyAmount: 'earnest_money_amount',
+    brBalanceAmount: 'balance_amount',
+    brCompletionPeriodMonths: 'completion_period_months',
+    brBrokerSalePeriodMonths: 'broker_sale_period_months',
+    brCommissionRate: 'commission_rate',
+    brCommissionAmount: 'commission_amount',
+    brWitness1Name: 'witness_1_name',
+    brWitness2Name: 'witness_2_name',
+  };
+
+  Object.entries(map).forEach(([fieldId, key]) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    const value = data[key];
+    if (value == null) return;
+    field.value = String(value);
+  });
 }
 
 function renderCreateViewStatusBadge(status) {
@@ -499,11 +793,21 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('contract_page_mode');
   }
 
+  // Apply form simplification for demo optimization
+  simplifyBrokerForm();
+  simplifyWebsiteDevelopmentForm();
   // ── Contract Type Selection ──────────────────────────────────
   const contractTypeOptions = document.querySelectorAll('.contract-type-option');
   contractTypeOptions.forEach((option) => {
     option.addEventListener('click', () => {
-      const type = option.dataset.type;
+      const radio = option.querySelector('input[name="contractType"]');
+      const type = String(option.dataset.type || radio?.value || '').trim().toLowerCase();
+      if (!type) {
+        if (typeof showToast === 'function') {
+          showToast('Please select a valid contract type.', 'warning');
+        }
+        return;
+      }
       selectedContractType = type;
       
       // Type selection page routes immediately to dedicated contract pages.
@@ -545,6 +849,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  [...HOUSE_SALE_FIELD_IDS, ...WEBSITE_DEVELOPMENT_FIELD_IDS, ...BROKER_FIELD_IDS].forEach((fieldId) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    field.addEventListener('input', saveDraft);
+    field.addEventListener('change', saveDraft);
+    field.addEventListener('input', () => clearFieldError(field));
+  });
+
   ['dueDate', 'hsAgreementDate'].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
@@ -561,6 +873,61 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  const contractAmountField = document.getElementById('contractAmount');
+  const brokerTotalField = document.getElementById('brTotalConsideration');
+  const brokerEarnestField = document.getElementById('brEarnestMoneyAmount');
+  const brokerBalanceField = document.getElementById('brBalanceAmount');
+  const brokerCommissionRateField = document.getElementById('brCommissionRate');
+  const brokerCommissionAmountField = document.getElementById('brCommissionAmount');
+
+  const recalculateBrokerTerms = () => {
+    if (!brokerTotalField) return;
+    const total = Number(brokerTotalField.value || 0);
+    const advance = Number.isFinite(total * 0.1) ? Math.max(0, total * 0.1) : 0;
+    const commissionRate = Number(brokerCommissionRateField?.value || 2);
+    if (brokerEarnestField) {
+      brokerEarnestField.value = String(Math.round(advance * 100) / 100);
+    }
+    if (brokerBalanceField) {
+      brokerBalanceField.value = Number.isFinite(total - advance) ? String(Math.max(0, Math.round((total - advance) * 100) / 100)) : '';
+    }
+    if (brokerCommissionAmountField) {
+      brokerCommissionAmountField.value = Number.isFinite(total * (commissionRate / 100))
+        ? String(Math.max(0, Math.round(total * (commissionRate / 100) * 100) / 100))
+        : '';
+    }
+  };
+
+  if (contractAmountField && brokerTotalField) {
+    const syncBrokerTotal = () => {
+      brokerTotalField.value = contractAmountField.value;
+      recalculateBrokerTerms();
+    };
+    contractAmountField.addEventListener('input', syncBrokerTotal);
+    syncBrokerTotal();
+  }
+
+  [brokerTotalField, brokerCommissionRateField].forEach((field) => {
+    if (!field) return;
+    field.addEventListener('input', recalculateBrokerTerms);
+  });
+  recalculateBrokerTerms();
+
+  const websiteInitialField = document.getElementById('wdInitialPaymentAmount');
+  const websiteMidField = document.getElementById('wdMidPaymentAmount');
+  const websiteCompletionField = document.getElementById('wdCompletionPaymentAmount');
+  if (contractAmountField && websiteInitialField && websiteMidField && websiteCompletionField) {
+    contractAmountField.addEventListener('input', () => {
+      const total = Number(contractAmountField.value || 0);
+      if (!(total > 0)) return;
+      const initial = Math.round(total * 0.1);
+      const mid = Math.round(total * 0.4);
+      websiteInitialField.value = String(initial);
+      websiteMidField.value = String(mid);
+      websiteCompletionField.value = String(Math.max(0, total - initial - mid));
+    });
+  }
 
   HOUSE_SALE_FIELD_IDS.forEach((fieldId) => {
     const field = document.getElementById(fieldId);
@@ -846,7 +1213,7 @@ function goToStep(step) {
  * Save current form state to localStorage with type isolation.
  * Accepts optional type parameter; uses selectedContractType if not provided.
  * For backward compatibility with old code that calls saveDraft() without parameters.
- * @param {string} [type] - Contract type (e.g., 'service', 'house_sale', 'nda'). If omitted, uses selectedContractType.
+ * @param {string} [type] - Contract type (e.g., 'website_development', 'house_sale', 'broker'). If omitted, uses selectedContractType.
  */
 function saveDraft(type) {
   if (isEditOrViewMode) return;
@@ -872,6 +1239,20 @@ function saveDraft(type) {
   document.querySelectorAll('.toggle-switch[data-clause]').forEach((toggle) => {
     draft.clauses[toggle.dataset.clause] = toggle.checked;
   });
+
+  const typeSpecificFieldIds = isHouseSaleType(contractType)
+    ? HOUSE_SALE_FIELD_IDS
+    : contractType === 'website_development'
+      ? WEBSITE_DEVELOPMENT_FIELD_IDS
+      : contractType === 'broker'
+        ? BROKER_FIELD_IDS
+        : [];
+
+  typeSpecificFieldIds.forEach((fieldId) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    draft[fieldId] = field.type === 'checkbox' ? field.checked : field.value;
+  });
   
   localStorage.setItem(storageKey, JSON.stringify(draft));
 }
@@ -880,7 +1261,7 @@ function saveDraft(type) {
  * Re-populate all wizard fields from a previously saved draft.
  * Accepts optional type parameter; uses selectedContractType if not provided.
  * For backward compatibility with old code that calls restoreDraft() without parameters.
- * @param {string} [type] - Contract type (e.g., 'service', 'house_sale', 'nda'). If omitted, uses selectedContractType.
+ * @param {string} [type] - Contract type (e.g., 'website_development', 'house_sale', 'broker'). If omitted, uses selectedContractType.
  */
 function restoreDraft(type) {
   const contractType = String(type || getActiveContractType() || '').trim().toLowerCase();
@@ -925,6 +1306,25 @@ function restoreDraft(type) {
     if (draft.houseSaleData && typeof draft.houseSaleData === 'object') {
       applyHouseSaleDataToForm(draft.houseSaleData);
     }
+
+    const typeSpecificFieldIds = isHouseSaleType(contractType)
+      ? HOUSE_SALE_FIELD_IDS
+      : contractType === 'website_development'
+        ? WEBSITE_DEVELOPMENT_FIELD_IDS
+        : contractType === 'broker'
+          ? BROKER_FIELD_IDS
+          : [];
+
+    typeSpecificFieldIds.forEach((fieldId) => {
+      if (!Object.prototype.hasOwnProperty.call(draft, fieldId)) return;
+      const field = document.getElementById(fieldId);
+      if (!field) return;
+      if (field.type === 'checkbox') {
+        field.checked = !!draft[fieldId];
+      } else {
+        field.value = draft[fieldId] == null ? '' : draft[fieldId];
+      }
+    });
   } catch (err) {
     console.warn(`Could not restore draft for type "${contractType}":`, err);
   }
@@ -992,18 +1392,36 @@ function applyValidationErrors(errors) {
 }
 
 function validateGenericForm() {
-  const fieldIds = ['contractTitle', 'clientEmail', 'contractAmount', 'dueDate'];
+  const contractType = getActiveContractType();
+  const isWebsite = contractType === 'website_development';
+  const isBroker = contractType === 'broker';
+  const requiresTitle = !(isWebsite || isBroker);
+  const requiresClientEmail = true;
+  const requiresDueDate = !isBroker;
+
+  const fieldIds = ['clientName', 'contractAmount'];
+  if (requiresTitle) fieldIds.push('contractTitle');
+  fieldIds.push('clientEmail');
+  if (requiresDueDate) fieldIds.push('dueDate');
+  if (contractType === 'website_development') {
+    fieldIds.push('wdInitialPaymentAmount', 'wdMidPaymentAmount', 'wdCompletionPaymentAmount');
+  }
+  if (contractType === 'broker') {
+    fieldIds.push('brPropertyDetails', 'brEarnestMoneyAmount', 'brCommissionRate');
+  }
   clearValidationErrors(fieldIds);
 
   const errors = [];
   const title = getTrimmedInputValue('contractTitle');
   const clientEmail = getTrimmedInputValue('clientEmail');
+  const clientName = getTrimmedInputValue('clientName');
   const amountText = getTrimmedInputValue('contractAmount');
   const dueDateText = getTrimmedInputValue('dueDate');
   const parsedDueDate = parseInputDateValue(dueDateText);
   const amountValue = Number(amountText);
 
-  if (!title) addValidationError(errors, 'contractTitle', 'Contract title is required.');
+  if (requiresTitle && !title) addValidationError(errors, 'contractTitle', 'Contract title is required.');
+  if (!clientName) addValidationError(errors, 'clientName', 'Client name is required.');
   if (!clientEmail) addValidationError(errors, 'clientEmail', 'Client email address is required.');
   if (!amountText) {
     addValidationError(errors, 'contractAmount', 'Contract amount is required.');
@@ -1011,10 +1429,45 @@ function validateGenericForm() {
     addValidationError(errors, 'contractAmount', 'Contract amount must be greater than 0.');
   }
 
-  if (!dueDateText) {
-    addValidationError(errors, 'dueDate', 'Due date is required.');
-  } else if (!parsedDueDate) {
-    addValidationError(errors, 'dueDate', 'Due date must be a valid date in dd/mm/yyyy or yyyy-mm-dd format.');
+  if (requiresDueDate) {
+    if (!dueDateText) {
+      addValidationError(errors, 'dueDate', 'Due date is required.');
+    } else if (!parsedDueDate) {
+      addValidationError(errors, 'dueDate', 'Due date must be a valid date in dd/mm/yyyy or yyyy-mm-dd format.');
+    }
+  }
+
+  if (contractType === 'website_development') {
+    const initial = getNumericInputValue('wdInitialPaymentAmount', 0);
+    const mid = getNumericInputValue('wdMidPaymentAmount', 0);
+    const completion = getNumericInputValue('wdCompletionPaymentAmount', 0);
+    if (initial < 0 || mid < 0 || completion < 0) {
+      addValidationError(errors, 'wdInitialPaymentAmount', 'Milestone payments cannot be negative.');
+    }
+    if (amountValue > 0 && Math.abs((initial + mid + completion) - amountValue) > 0.5) {
+      addValidationError(errors, 'wdCompletionPaymentAmount', 'Milestone payments must add up to the total fee.');
+    }
+  }
+
+  if (contractType === 'broker') {
+    const propertyDetails = getTrimmedInputValue('brPropertyDetails');
+    if (!propertyDetails) {
+      addValidationError(errors, 'brPropertyDetails', 'Property details are required for broker contracts.');
+    } else if (propertyDetails.length <= 10) {
+      addValidationError(errors, 'brPropertyDetails', 'Property details must be longer than 10 characters.');
+    }
+
+    const earnestMoney = getNumericInputValue('brEarnestMoneyAmount', 0);
+    const commissionRate = getNumericInputValue('brCommissionRate', 0);
+    if (earnestMoney < 0) {
+      addValidationError(errors, 'brEarnestMoneyAmount', 'Earnest money cannot be negative.');
+    }
+    if (amountValue > 0 && earnestMoney > amountValue) {
+      addValidationError(errors, 'brEarnestMoneyAmount', 'Earnest money cannot exceed total consideration.');
+    }
+    if (commissionRate < 0) {
+      addValidationError(errors, 'brCommissionRate', 'Commission rate cannot be negative.');
+    }
   }
 
   return {
@@ -1022,6 +1475,7 @@ function validateGenericForm() {
     errors,
     data: {
       title,
+      clientName,
       clientEmail,
       amountText,
       amountValue,
@@ -1930,6 +2384,57 @@ function buildPreviewSignatureGrid({
     </div>`;
 }
 
+function applySectionNumbering(sections) {
+  return sections.map((section, index) => ({
+    ...section,
+    number: index + 1,
+  }));
+}
+
+function getPreviewSectionBlueprint(contractType) {
+  const normalizedType = String(contractType || '').trim().toLowerCase();
+  if (normalizedType === 'website_development') {
+    return [
+      { id: 'preview-definitions', title: 'Definitions' },
+      { id: 'preview-services', title: 'Appointment and Scope' },
+      { id: 'preview-payment', title: 'Fee and Payment Terms' },
+      { id: 'preview-deliverables', title: 'Deliverables and Performance' },
+      { id: 'preview-confidentiality', title: 'Confidentiality' },
+      { id: 'preview-termination', title: 'Term and Termination' },
+      { id: 'preview-governing-law', title: 'Governing Law' },
+      { id: 'preview-signatures', title: 'Signatures' },
+    ];
+  }
+
+  if (normalizedType === 'broker') {
+    return [
+      { id: 'preview-definitions', title: 'Definitions' },
+      { id: 'preview-services', title: 'Property and Appointment' },
+      { id: 'preview-payment', title: 'Sale Terms' },
+      { id: 'preview-deliverables', title: 'Representations and Obligations' },
+      { id: 'preview-confidentiality', title: 'Confidentiality' },
+      { id: 'preview-termination', title: 'Term and Termination' },
+      { id: 'preview-governing-law', title: 'Governing Law' },
+      { id: 'preview-signatures', title: 'Signatures' },
+    ];
+  }
+
+  return [];
+}
+
+function applyPreviewSectionNumbering(previewContent, contractType) {
+  if (!previewContent) return;
+  const numberedSections = applySectionNumbering(getPreviewSectionBlueprint(contractType));
+  numberedSections.forEach((section) => {
+    const container = previewContent.querySelector(`#${section.id}`);
+    const heading = container?.querySelector('h2');
+    if (heading) {
+      const cleanTitle = String(section.title || '').replace(/^\s*\d+(?:\.\d+)*\s*[.)-]?\s*/, '').trim();
+      heading.textContent = `${section.number}. ${cleanTitle}`;
+    }
+  });
+}
+
 function buildContractSectionCopy(details) {
   const title = String(details.title || 'this agreement').trim() || 'this agreement';
   const description = String(details.description || '').trim();
@@ -1939,6 +2444,100 @@ function buildContractSectionCopy(details) {
   const hasCreatorSignature = Boolean(String(details.creatorSignature || '').trim());
   const hasClientSignature = Boolean(String(details.clientSignature || '').trim());
   const status = normalizeContractStatus(details.status);
+  const contractType = String(details.type || getActiveContractType() || '').trim().toLowerCase();
+  const templateData = details.templateData || {};
+  const websiteData = templateData.websiteDevelopment || {};
+  const brokerData = templateData.brokerAgreement || {};
+
+  if (contractType === 'website_development') {
+    const agreementPlace = String(websiteData.agreement_place || 'N/A').trim() || 'N/A';
+    const companyAddress = String(websiteData.company_address || 'N/A').trim() || 'N/A';
+    const developerAddress = String(websiteData.developer_address || 'N/A').trim() || 'N/A';
+    const projectPurpose = String(websiteData.project_purpose || description || 'Website design, development, and maintenance services.').trim();
+    const pageCount = Number.isFinite(Number(websiteData.page_count)) ? Number(websiteData.page_count) : 50;
+    const wordsPerPage = Number.isFinite(Number(websiteData.web_page_word_count)) ? Number(websiteData.web_page_word_count) : 200;
+    const linksPerPage = Number.isFinite(Number(websiteData.external_links_per_page)) ? Number(websiteData.external_links_per_page) : 2.5;
+    const graphicsAverage = Number.isFinite(Number(websiteData.photo_graphics_average)) ? Number(websiteData.photo_graphics_average) : 1.3;
+    const mastheadGraphic = String(websiteData.masthead_graphic || 'Simple custom logo masthead').trim();
+    const contentDueDays = Number.isFinite(Number(websiteData.content_due_days)) ? Number(websiteData.content_due_days) : 14;
+    const maintenanceMonths = Number.isFinite(Number(websiteData.maintenance_months)) ? Number(websiteData.maintenance_months) : 12;
+    const completionMonths = Number.isFinite(Number(websiteData.completion_months)) ? Number(websiteData.completion_months) : 1;
+    const initialPaymentAmount = Number.isFinite(Number(websiteData.initial_payment_amount))
+      ? Number(websiteData.initial_payment_amount)
+      : Math.round(Number(details.amount || 0) * 0.1);
+    const midPaymentAmount = Number.isFinite(Number(websiteData.mid_payment_amount))
+      ? Number(websiteData.mid_payment_amount)
+      : Math.round(Number(details.amount || 0) * 0.4);
+    const completionPaymentAmount = Number.isFinite(Number(websiteData.completion_payment_amount))
+      ? Number(websiteData.completion_payment_amount)
+      : Math.max(0, Number(details.amount || 0) - initialPaymentAmount - midPaymentAmount);
+    const additionalGraphicsFee = Number.isFinite(Number(websiteData.additional_graphics_fee)) ? Number(websiteData.additional_graphics_fee) : 1000;
+    const transparencyFee = Number.isFinite(Number(websiteData.transparency_fee)) ? Number(websiteData.transparency_fee) : 1200;
+    const hourlyRate = Number.isFinite(Number(websiteData.hourly_rate)) ? Number(websiteData.hourly_rate) : 250;
+    const continuationFeePercent = Number.isFinite(Number(websiteData.continuation_fee_percent)) ? Number(websiteData.continuation_fee_percent) : 10;
+
+    return {
+      definitions: `"Company" shall mean the contracting entity identified as ${String(details.creatorName || 'Company').trim() || 'Company'}. "Developer" shall mean the contracting party identified as ${String(details.clientName || 'Developer').trim() || 'Developer'}.`,
+      services: `This Agreement is made at ${agreementPlace}. The Company hereby engages the Developer as an independent contractor to develop and maintain a World Website on the Company's ISP web space. Company address: ${companyAddress}. Developer address: ${developerAddress}. Project purpose: ${projectPurpose}.`,
+      paymentHtml: clauses.payment === false
+        ? `The commercial terms for this Agreement total <strong>${escapeHtml(amountText)}</strong>, with implementation expected by <strong>${escapeHtml(dueText)}</strong>.`
+        : `Total Fee: <strong>${escapeHtml(amountText)}</strong><br>Initial Payment (10%): <strong>${escapeHtml(formatContractAmount(initialPaymentAmount, details.currency, DEFAULT_CURRENCY))}</strong><br>Mid Payment (40%): <strong>${escapeHtml(formatContractAmount(midPaymentAmount, details.currency, DEFAULT_CURRENCY))}</strong><br>Final Payment (50%): <strong>${escapeHtml(formatContractAmount(completionPaymentAmount, details.currency, DEFAULT_CURRENCY))}</strong>`,
+      deliverables: `Developer services shall include consultation, up to ${pageCount} pages of approximately ${wordsPerPage} words each, average ${linksPerPage} external links per page, masthead graphic (${mastheadGraphic}), average ${graphicsAverage} photo/graphic items per page, search engine publicity (${websiteData.search_engine_publicity ? 'included' : 'excluded'}), e-mail response link (${websiteData.email_response_enabled ? 'included' : 'excluded'}), image map navigation (${websiteData.image_map_enabled ? 'included' : 'excluded'}), and maintenance for ${maintenanceMonths} months. The Company shall provide complete text and graphics within ${contentDueDays} days. The parties shall cooperate for completion within ${completionMonths} month(s).${clauses.liability ? ' Liability for approved deliverables shall remain limited to fees paid under this Agreement.' : ''}`,
+      confidentiality: clauses.confidentiality === false
+        ? 'No additional confidentiality clause was selected for this Agreement.'
+        : 'Both parties shall maintain confidentiality of proprietary information disclosed during this engagement.',
+      termination: clauses.termination === false
+        ? 'This Agreement shall remain in force until contracted work is completed or the parties otherwise agree in writing.'
+        : 'Either party may terminate this Agreement by written notice. All outstanding obligations shall be fulfilled prior to termination.',
+      governingLaw: 'This Agreement shall be governed by the laws of India.',
+      signatures: status === 'signed' || hasClientSignature
+        ? 'This Agreement has been fully executed. Signatures of both parties are recorded below.'
+        : hasCreatorSignature
+          ? 'The Creator signature below authorizes this document for review. The Client signature shall be added upon acceptance.'
+          : 'By signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth in this Agreement.',
+    };
+  }
+
+  if (contractType === 'broker') {
+    const agreementPlace = String(brokerData.agreement_place || 'N/A').trim() || 'N/A';
+    const ownerResidence = String(brokerData.owner_residence || 'N/A').trim() || 'N/A';
+    const brokerResidence = String(brokerData.broker_residence || 'N/A').trim() || 'N/A';
+    const propertyDetails = String(brokerData.property_details || description || 'Property details to be confirmed.').trim();
+    const totalConsideration = Number.isFinite(Number(brokerData.total_consideration)) ? Number(brokerData.total_consideration) : Number(details.amount || 0);
+    const earnestMoneyAmount = Number.isFinite(Number(brokerData.earnest_money_amount)) ? Number(brokerData.earnest_money_amount) : Math.round(totalConsideration * 0.1);
+    const balanceAmount = Number.isFinite(Number(brokerData.balance_amount))
+      ? Number(brokerData.balance_amount)
+      : Math.max(0, totalConsideration - earnestMoneyAmount);
+    const completionPeriod = Number.isFinite(Number(brokerData.completion_period_months)) ? Number(brokerData.completion_period_months) : 3;
+    const brokerSalePeriod = Number.isFinite(Number(brokerData.broker_sale_period_months)) ? Number(brokerData.broker_sale_period_months) : 1;
+    const commissionRate = Number.isFinite(Number(brokerData.commission_rate)) ? Number(brokerData.commission_rate) : 2;
+    const commissionAmount = Number.isFinite(Number(brokerData.commission_amount))
+      ? Number(brokerData.commission_amount)
+      : Math.round(totalConsideration * (commissionRate / 100));
+    const witness1 = String(brokerData.witness_1_name || '').trim();
+    const witness2 = String(brokerData.witness_2_name || '').trim();
+
+    return {
+      definitions: `"Owner" shall mean the contracting entity identified as ${String(details.creatorName || 'Owner').trim() || 'Owner'}. "Broker" shall mean the contracting party identified as ${String(details.clientName || 'Broker').trim() || 'Broker'}.`,
+      services: `This Agreement is made at ${agreementPlace}. The Owner hereby appoints the Broker to sell the scheduled property. Owner residence: ${ownerResidence}. Broker residence: ${brokerResidence}. Property description: ${propertyDetails}.`,
+      paymentHtml: clauses.payment === false
+        ? `Commercial terms for this Agreement total <strong>${escapeHtml(amountText)}</strong>, with the effective date set as <strong>${escapeHtml(dueText)}</strong>.`
+        : `Total Price: <strong>${escapeHtml(formatContractAmount(totalConsideration, details.currency, DEFAULT_CURRENCY))}</strong><br>Advance Payment (10%): <strong>${escapeHtml(formatContractAmount(earnestMoneyAmount, details.currency, DEFAULT_CURRENCY))}</strong><br>Remaining Balance: <strong>${escapeHtml(formatContractAmount(balanceAmount, details.currency, DEFAULT_CURRENCY))}</strong><br>Commission: <strong>${escapeHtml(String(commissionRate))}%</strong> (${escapeHtml(formatContractAmount(commissionAmount, details.currency, DEFAULT_CURRENCY))})`,
+      deliverables: `The Owner represents that title is clear, marketable, and free from encumbrances, and shall deliver abstract of title after earnest money receipt and execute conveyance deed on full consideration. The Broker shall secure sale within ${brokerSalePeriod} month(s) from the date of this Agreement. Witness 1: ${witness1 || 'Not provided'}. Witness 2: ${witness2 || 'Not provided'}.${clauses.liability ? ' Liability shall remain limited as agreed between the parties.' : ''}`,
+      confidentiality: clauses.confidentiality === false
+        ? 'No additional confidentiality clause was selected for this Agreement.'
+        : 'Both parties shall maintain confidentiality of proprietary information disclosed during this engagement.',
+      termination: clauses.termination === false
+        ? 'This Agreement shall remain in force until obligations are completed or the parties otherwise agree in writing.'
+        : 'Either party may terminate this Agreement by written notice. All outstanding obligations shall be fulfilled prior to termination.',
+      governingLaw: 'This Agreement shall be governed by the laws of India.',
+      signatures: status === 'signed' || hasClientSignature
+        ? 'This Agreement has been fully executed. Signatures of both parties are recorded below.'
+        : hasCreatorSignature
+          ? 'The Creator signature below authorizes this document for review. The Client signature shall be added upon acceptance.'
+          : 'By signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth in this Agreement.',
+    };
+  }
 
   return {
     services: description || 'The provider will deliver the agreed services in a professional and timely manner.',
@@ -1958,6 +2557,59 @@ function buildContractSectionCopy(details) {
         ? 'The creator signature below authorizes this document for client review. The client signature will be added once the agreement is accepted.'
         : 'By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.',
   };
+}
+
+function buildHouseSaleClauseSections(houseSale, salePrice, earnestMoney) {
+  return [
+    {
+      title: 'Sale of Property',
+      body: `The vendor will sell and the purchaser will purchase that entire house more particularly described in the Schedule hereunder written at a price of ${salePrice} free from all encumbrances.`,
+    },
+    {
+      title: 'Earnest Money and Balance',
+      body: `The purchaser has paid a sum of ${earnestMoney} as earnest money (the receipt of which sum, the vendor hereby acknowledges) and the balance amount of consideration will be paid at the time of execution of conveyance deed.`,
+    },
+    {
+      title: 'Completion Period',
+      body: `The sale shall be completed within a period of ${String(houseSale.completion_period_months || 'N/A')} months from this date and it is hereby agreed that time is the essence of the contract.`,
+    },
+    {
+      title: 'Title Deed Review',
+      body: 'The vendor shall submit the title deeds of the house in his possession or power to the purchaser\'s advocate within one week from the date of this agreement for investigation of title and the purchaser will intimate about his advocate\'s report within reasonable time after delivery of title deeds.',
+    },
+    {
+      title: 'Refund Obligation on Defective Title',
+      body: 'If the purchaser\'s advocate gives the report that the vendor\'s title is not clear, the vendor shall refund the earnest money, without interest, to the purchaser within reasonable time from intimation of such report. If the vendor does not refund the earnest money within such time, the vendor shall be liable for applicable interest up to the date of repayment of earnest money.',
+    },
+    {
+      title: 'Encumbrance Declaration',
+      body: 'The vendor declares that the sale of the house will be without encumbrances.',
+    },
+    {
+      title: 'Vacant Possession',
+      body: 'The vendor will hand over the vacant possession of the house on the execution and registration of conveyance deed.',
+    },
+    {
+      title: 'Purchaser Breach',
+      body: 'If the purchaser commits breach of the agreement, the vendor shall be entitled to forfeit the earnest money paid by the purchaser to the vendor and the vendor will be at liberty to resell the property to any person.',
+    },
+    {
+      title: 'Vendor Breach',
+      body: 'If the vendor commits breach of the agreement, he shall be liable to refund earnest money received by him and liquidated damages as may be determined under applicable law.',
+    },
+    {
+      title: 'Conveyance Execution',
+      body: 'The vendor shall execute the conveyance deed in favour of the purchaser or his nominee as the purchaser may require, on receipt of the balance consideration.',
+    },
+    {
+      title: 'Statutory Clearances',
+      body: 'The vendor shall at his own costs obtain statutory clearances and permissions required for completion of the sale.',
+    },
+    {
+      title: 'Expenses',
+      body: 'The expenses for preparation of the conveyance deed, cost of stamp, registration charges and all other out-of-pocket expenses shall be borne by the purchaser.',
+    },
+  ];
 }
 
 function renderHouseSalePreview(templateData, options = {}) {
@@ -1998,6 +2650,11 @@ function renderHouseSalePreview(templateData, options = {}) {
     `;
   }
 
+  const clauseSections = applySectionNumbering(buildHouseSaleClauseSections(houseSale, salePrice, earnestMoney));
+  const clauseHtml = clauseSections
+    .map((section) => `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2><p>${escapeHtml(section.body)}</p></section>`)
+    .join('');
+
   previewContent.innerHTML = `
     <h2>AGREEMENT FOR SALE OF A HOUSE</h2>
     <h3>${escapeHtml(contractTitleText)}</h3>
@@ -2005,18 +2662,7 @@ function renderHouseSalePreview(templateData, options = {}) {
     <p>WHEREAS the vendor is absolutely seized and possessed of or well and sufficiently entitled to the house more fully described in the Schedule hereunder:</p>
     <p>AND WHEREAS the vendor has agreed to sell his house to the purchaser on the terms and conditions hereafter set-forth.</p>
     <p><strong>NOW THIS AGREEMENT WITNESSETH AS FOLLOWS</strong></p>
-    <p><strong>(1)</strong> The vendor will sell and the purchaser will purchase that entire house more particularly described in the Schedule hereunder written at a price of ${escapeHtml(salePrice)} free from all encumbrances.</p>
-    <p><strong>(2)</strong> The purchaser has paid a sum of ${escapeHtml(earnestMoney)} as earnest money (the receipt of which sum, the vendor hereby acknowledges) and the balance amount of consideration will be paid at the time of execution of conveyance deed.</p>
-    <p><strong>(3)</strong> The sale shall be completed within a period of ${escapeHtml(String(houseSale.completion_period_months || 'N/A'))} months from this date and it is hereby agreed that time is the essence of the contract.</p>
-    <p><strong>(4)</strong> The vendor shall submit the title deeds of the house in his possession or power to the purchaser's advocate within one week from the date of this agreement for investigation of title and the purchaser will intimate about his advocate's report within reasonable time after delivery of title deeds.</p>
-    <p><strong>(5)</strong> If the purchaser's advocate gives the report that the vendor's title is not clear, the vendor shall refund the earnest money, without interest, to the purchaser within reasonable time from intimation of such report. If the vendor does not refund the earnest money within such time, the vendor shall be liable for applicable interest up to the date of repayment of earnest money.</p>
-    <p><strong>(6)</strong> The vendor declares that the sale of the house will be without encumbrances.</p>
-    <p><strong>(7)</strong> The vendor will hand over the vacant possession of the house on the execution and registration of conveyance deed.</p>
-    <p><strong>(8)</strong> If the purchaser commits breach of the agreement, the vendor shall be entitled to forfeit the earnest money paid by the purchaser to the vendor and the vendor will be at liberty to resell the property to any person.</p>
-    <p><strong>(9)</strong> If the vendor commits breach of the agreement, he shall be liable to refund earnest money received by him and liquidated damages as may be determined under applicable law.</p>
-    <p><strong>(10)</strong> The vendor shall execute the conveyance deed in favour of the purchaser or his nominee as the purchaser may require, on receipt of the balance consideration.</p>
-    <p><strong>(11)</strong> The vendor shall at his own costs obtain statutory clearances and permissions required for completion of the sale.</p>
-    <p><strong>(12)</strong> The expenses for preparation of the conveyance deed, cost of stamp, registration charges and all other out-of-pocket expenses shall be borne by the purchaser.</p>
+    ${clauseHtml}
     <h3>SCHEDULE OF PROPERTY</h3>
     <p><strong>Detailed description:</strong> ${escapeHtml(houseSale.property_details || 'N/A')}</p>
     <h3>EXECUTION</h3>
@@ -2031,7 +2677,7 @@ function renderHouseSalePreview(templateData, options = {}) {
       creatorPendingLabel: 'Pending vendor signature',
       clientPendingLabel: 'Pending purchaser signature',
     })}
-    ${showWitnesses ? `<h3>WITNESSES</h3>${witness1 ? `<p>1. ${escapeHtml(witness1)}</p>` : ''}${witness2 ? `<p>2. ${escapeHtml(witness2)}</p>` : ''}` : ''}
+    ${showWitnesses ? `<h3>WITNESSES</h3>${witness1 ? `<p>Witness: ${escapeHtml(witness1)}</p>` : ''}${witness2 ? `<p>Witness: ${escapeHtml(witness2)}</p>` : ''}` : ''}
   `;
 }
 
@@ -2072,20 +2718,27 @@ function updatePreview() {
 
   const sectionCopy = buildContractSectionCopy({
     title: getRawInputValue('contractTitle'),
+    creatorName: localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'Creator',
+    clientName: getRawInputValue('clientName') || 'Client',
     description: getRawInputValue('contractDescription'),
     amount: getRawInputValue('contractAmount'),
     currency: getRawInputValue('currency'),
     dueDate: getRawInputValue('dueDate'),
     clauses,
+    templateData: {
+      websiteDevelopment: collectWebsiteDevelopmentData(),
+      brokerAgreement: collectBrokerData(),
+    },
     creatorSignature,
     clientSignature,
     status: isViewMode ? loadedContractViewState?.status : 'draft',
   });
+  const activeContractType = getActiveContractType();
 
   if (contractTitle) {
     const previewTitleEl = document.getElementById('previewTitle');
     if (previewTitleEl) {
-      previewTitleEl.textContent = contractTitle.value || PAGE_CONTRACT_LABEL || 'Service Agreement';
+      previewTitleEl.textContent = (contractTitle.value || PAGE_CONTRACT_LABEL || 'Contract').toUpperCase();
     }
   }
   if (clientName) {
@@ -2101,8 +2754,14 @@ function updatePreview() {
     previewDate.textContent = formatContractDate(today.toISOString());
   }
 
+  const previewContent = document.getElementById('previewContent');
+  applyPreviewSectionNumbering(previewContent, activeContractType);
+
   const servicesText = document.getElementById('previewServicesText');
   if (servicesText) servicesText.textContent = sectionCopy.services;
+
+  const definitionsText = document.getElementById('previewDefinitionsText');
+  if (definitionsText) definitionsText.textContent = sectionCopy.definitions || '';
 
   const paymentText = document.getElementById('previewPaymentText');
   if (paymentText) paymentText.innerHTML = sectionCopy.paymentHtml;
@@ -2115,6 +2774,9 @@ function updatePreview() {
 
   const terminationText = document.getElementById('previewTerminationText');
   if (terminationText) terminationText.textContent = sectionCopy.termination;
+
+  const governingLawText = document.getElementById('previewGoverningLawText');
+  if (governingLawText) governingLawText.textContent = sectionCopy.governingLaw || 'This Agreement shall be governed by the laws of India.';
 
   const signatureText = document.getElementById('previewSignatureText');
   if (signatureText) signatureText.textContent = sectionCopy.signatures;
@@ -2274,6 +2936,10 @@ async function loadCreateContractPage() {
 
     if (isHouseSaleType(c.type)) {
       applyHouseSaleDataToForm(c.templateData?.houseSale || {});
+    } else if (String(c.type || '').trim().toLowerCase() === 'website_development') {
+      applyWebsiteDevelopmentDataToForm(c.templateData?.websiteDevelopment || {});
+    } else if (String(c.type || '').trim().toLowerCase() === 'broker') {
+      applyBrokerDataToForm(c.templateData?.brokerAgreement || {});
     }
 
     document.querySelectorAll('.toggle-switch').forEach((toggle) => {
@@ -2353,45 +3019,78 @@ function getClausePayload() {
   };
 }
 
-async function findOrCreateClientByEmail(clientEmail) {
-  let clientId = null;
-
-  try {
-    const lookupRes = await fetch(`${API_BASE}/clients/by-email?email=${encodeURIComponent(clientEmail)}`);
-    if (lookupRes.ok) {
-      const lookupData = await lookupRes.json();
-      clientId = lookupData.user_id;
-      const clientNameEl = document.getElementById('clientName');
-      if (clientNameEl) clientNameEl.value = lookupData.name || '';
-      return clientId;
-    }
-  } catch (_) {
-    // Best effort lookup; fallback path auto-registers.
+async function findOrCreateClientByEmail(clientEmail, clientName = '') {
+  const normalizedEmail = String(clientEmail || '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error('Client email is required.');
   }
 
-  const namePart = clientEmail.split('@')[0].replace(/[._\-]+/g, ' ');
-  const derivedName = namePart.replace(/\b\w/g, (ch) => ch.toUpperCase());
-  const autoRes = await fetch(`${API_BASE}/register/client`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: derivedName, email: clientEmail, password: 'client123' }),
-  });
+  let lookupRes;
+  try {
+    lookupRes = await fetch(`${API_BASE}/clients/by-email?email=${encodeURIComponent(normalizedEmail)}`);
+  } catch (error) {
+    console.error('FULL ERROR:', error);
+    throw new Error(getErrorMessage(error));
+  }
+
+  if (lookupRes.ok) {
+    const lookupData = await lookupRes.json();
+    const clientNameEl = document.getElementById('clientName');
+    if (clientNameEl) clientNameEl.value = lookupData.name || '';
+    return lookupData.user_id;
+  }
+
+  if (lookupRes.status !== 404) {
+    let lookupErr = null;
+    try {
+      lookupErr = await lookupRes.json();
+    } catch {
+      lookupErr = { detail: await lookupRes.text() };
+    }
+    throw new Error(getErrorMessage(lookupErr));
+  }
+
+  const namePart = normalizedEmail.split('@')[0].replace(/[._\-]+/g, ' ');
+  const derivedName = namePart.replace(/\b\w/g, (ch) => ch.toUpperCase()).trim();
+  const payload = {
+    email: normalizedEmail,
+    name: String(clientName || '').trim() || derivedName || 'Unnamed Client',
+  };
+
+  let autoRes;
+  try {
+    autoRes = await fetch(`${API_BASE}/register/client`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.error('FULL ERROR:', error);
+    throw new Error(getErrorMessage(error));
+  }
 
   if (!autoRes.ok) {
-    const autoErr = await autoRes.json();
-    throw new Error(autoErr.detail || 'Could not create client account.');
+    let autoErr = null;
+    try {
+      autoErr = await autoRes.json();
+    } catch {
+      autoErr = { detail: await autoRes.text() };
+    }
+    throw new Error(getErrorMessage(autoErr));
   }
 
   const autoData = await autoRes.json();
-  clientId = autoData.user_id;
   const clientNameEl = document.getElementById('clientName');
-  if (clientNameEl) clientNameEl.value = autoData.name || derivedName;
-  showToast('Client account auto-created. Default password: client123', 'info');
-  return clientId;
+  if (clientNameEl) clientNameEl.value = autoData.name || payload.name;
+  return autoData.user_id;
 }
 
 async function handleSubmit(type, collectFn, sendForSignature = true) {
-  const enforcedType = String(type || getActiveContractType() || 'custom').trim().toLowerCase();
+  const enforcedType = String(type || getActiveContractType() || '').trim().toLowerCase();
+  if (!enforcedType) {
+    showToast('Unknown contract type selected.', 'error');
+    return;
+  }
   const houseSaleContract = isHouseSaleType(enforcedType);
   const creatorSignature = getCreatorSignatureValue();
   const validation = houseSaleContract ? validateHouseSale() : validateGenericForm();
@@ -2416,9 +3115,10 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
 
   let clientId;
   try {
-    clientId = await findOrCreateClientByEmail(validation.data.clientEmail);
+    clientId = await findOrCreateClientByEmail(validation.data.clientEmail, validation.data.clientName);
   } catch (error) {
-    showToast(error.message || 'Could not register client account.', 'error');
+    console.error('FULL ERROR:', error);
+    showToast(getErrorMessage(error), 'error');
     return;
   }
 
@@ -2446,10 +3146,41 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     parsedDueDate = parseContractDate(validation.data.dueDateText);
     descriptionValue = getTrimmedInputValue('contractDescription');
     titleValue = validation.data.title;
+
+    if (enforcedType === 'website_development' && !String(titleValue || '').trim()) {
+      titleValue = 'WEBSITE DEVELOPMENT AGREEMENT';
+    }
+    if (enforcedType === 'broker' && !String(titleValue || '').trim()) {
+      titleValue = 'BROKER AGREEMENT';
+    }
+
+    if (enforcedType === 'website_development') {
+      templateDataPayload = { websiteDevelopment: collectWebsiteDevelopmentData() };
+    } else if (enforcedType === 'broker') {
+      templateDataPayload = { brokerAgreement: collectBrokerData() };
+      if (!parsedDueDate) {
+        parsedDueDate = new Date();
+      }
+    }
   }
 
   if (!parsedDueDate) {
     showToast('Please provide a valid due date.', 'warning');
+    return;
+  }
+
+  if (!templateDataPayload || typeof templateDataPayload !== 'object') {
+    showToast('Contract data is missing or invalid.', 'error');
+    return;
+  }
+
+  if (enforcedType === 'broker' && !templateDataPayload.brokerAgreement) {
+    showToast('Broker agreement data missing.', 'error');
+    return;
+  }
+
+  if (enforcedType === 'website_development' && !templateDataPayload.websiteDevelopment) {
+    showToast('Website development agreement data missing.', 'error');
     return;
   }
 
@@ -2464,8 +3195,9 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     userId,
     clientId,
     creator_signature: creatorSignature || null,
-    templateData: houseSaleContract ? templateDataPayload : null,
+    templateData: templateDataPayload,
   };
+  console.log('SEND PAYLOAD:', payload);
 
   const editingContractId =
     isEditOrViewMode && currentCreatePageMode === 'edit' ? getContractIdFromContext() : '';
@@ -2484,8 +3216,13 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      showToast(err.detail || 'Failed to create contract.', 'error');
+      let errPayload = null;
+      try {
+        errPayload = await res.json();
+      } catch {
+        errPayload = { detail: await res.text() };
+      }
+      showToast(getErrorMessage(errPayload), 'error');
       return;
     }
 
@@ -2527,13 +3264,17 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     showToast(successMessage, 'success');
     setTimeout(() => { window.location.href = './user-dashboard.html'; }, 1200);
   } catch (err) {
-    console.error(err);
-    showToast('Could not reach the server.', 'error');
+    console.error('FULL ERROR:', err);
+    showToast(getErrorMessage(err), 'error');
   }
 }
 
 async function submitContract(sendForSignature = true) {
-  const contractType = getActiveContractType() || 'custom';
+  const contractType = getActiveContractType();
+  if (!contractType) {
+    showToast('Unknown contract type selected.', 'error');
+    return;
+  }
   const collectFn = isHouseSaleType(contractType) ? collectHouseSaleTemplateData : collectGenericFormData;
   await handleSubmit(contractType, collectFn, sendForSignature);
 }
@@ -2611,24 +3352,18 @@ async function loadSignContractPage() {
         const witness2 = toTitleCase(houseSale.witness_2_name || '');
         const showWitnesses = Boolean(witness1 || witness2);
 
+        const clauseSections = applySectionNumbering(buildHouseSaleClauseSections(houseSale, salePrice, earnestMoney));
+        const clauseHtml = clauseSections
+          .map((section) => `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2><p>${escapeHtml(section.body)}</p></section>`)
+          .join('');
+
         let html = '<h2>AGREEMENT FOR SALE OF A HOUSE</h2>';
         html += `<h3>${escapeHtml(c.title || 'Agreement for Sale of House')}</h3>`;
         html += `<p>THIS AGREEMENT of sale made at ${escapeHtml(houseSale.agreement_place || 'N/A')} on ${escapeHtml(formatLongDate(houseSale.agreement_date) || 'N/A')}, between ${escapeHtml(houseSale.vendor_name || 'N/A')} resident of ${escapeHtml(houseSale.vendor_residence || 'N/A')} hereinafter called the vendor of the ONE PART and ${escapeHtml(houseSale.purchaser_name || 'N/A')} resident of ${escapeHtml(houseSale.purchaser_residence || 'N/A')} hereinafter called the purchaser of the OTHER PART.</p>`;
         html += '<p>WHEREAS the vendor is absolutely seized and possessed of or well and sufficiently entitled to the house more fully described in the Schedule hereunder:</p>';
         html += '<p>AND WHEREAS the vendor has agreed to sell his house to the purchaser on the terms and conditions hereafter set-forth.</p>';
         html += '<p><strong>NOW THIS AGREEMENT WITNESSETH AS FOLLOWS</strong></p>';
-        html += `<p><strong>(1)</strong> The vendor will sell and the purchaser will purchase that entire house more particularly described in the Schedule hereunder written at a price of ${escapeHtml(salePrice)} free from all encumbrances.</p>`;
-        html += `<p><strong>(2)</strong> The purchaser has paid a sum of ${escapeHtml(earnestMoney)} as earnest money (the receipt of which sum, the vendor hereby acknowledges) and the balance amount of consideration will be paid at the time of execution of conveyance deed.</p>`;
-        html += `<p><strong>(3)</strong> The sale shall be completed within a period of ${escapeHtml(String(houseSale.completion_period_months || 'N/A'))} months from this date and it is hereby agreed that time is the essence of the contract.</p>`;
-        html += '<p><strong>(4)</strong> The vendor shall submit the title deeds of the house in his possession or power to the purchaser\'s advocate within one week from the date of this agreement for investigation of title and the purchaser will intimate about his advocate\'s report within reasonable time after delivery of title deeds.</p>';
-        html += '<p><strong>(5)</strong> If the purchaser\'s advocate gives the report that the vendor\'s title is not clear, the vendor shall refund the earnest money, without interest, to the purchaser within reasonable time from intimation of such report. If the vendor does not refund the earnest money within such time, the vendor shall be liable for applicable interest up to the date of repayment of earnest money.</p>';
-        html += '<p><strong>(6)</strong> The vendor declares that the sale of the house will be without encumbrances.</p>';
-        html += '<p><strong>(7)</strong> The vendor will hand over the vacant possession of the house on the execution and registration of conveyance deed.</p>';
-        html += '<p><strong>(8)</strong> If the purchaser commits breach of the agreement, the vendor shall be entitled to forfeit the earnest money paid by the purchaser to the vendor and the vendor will be at liberty to resell the property to any person.</p>';
-        html += '<p><strong>(9)</strong> If the vendor commits breach of the agreement, he shall be liable to refund earnest money received by him and liquidated damages as may be determined under applicable law.</p>';
-        html += '<p><strong>(10)</strong> The vendor shall execute the conveyance deed in favour of the purchaser or his nominee as the purchaser may require, on receipt of the balance consideration.</p>';
-        html += '<p><strong>(11)</strong> The vendor shall at his own costs obtain statutory clearances and permissions required for completion of the sale.</p>';
-        html += '<p><strong>(12)</strong> The expenses for preparation of the conveyance deed, cost of stamp, registration charges and all other out-of-pocket expenses shall be borne by the purchaser.</p>';
+        html += clauseHtml;
         html += '<h3>SCHEDULE OF PROPERTY</h3>';
         html += `<p><strong>Detailed description:</strong> ${escapeHtml(houseSale.property_details || 'N/A')}</p>`;
         html += '<h3>EXECUTION</h3>';
@@ -2644,30 +3379,58 @@ async function loadSignContractPage() {
           clientPendingLabel: 'Pending purchaser signature',
         });
         if (showWitnesses) {
-          html += `<h3>WITNESSES</h3>${witness1 ? `<p>1. ${escapeHtml(witness1)}</p>` : ''}${witness2 ? `<p>2. ${escapeHtml(witness2)}</p>` : ''}`;
+          html += `<h3>WITNESSES</h3>${witness1 ? `<p>Witness: ${escapeHtml(witness1)}</p>` : ''}${witness2 ? `<p>Witness: ${escapeHtml(witness2)}</p>` : ''}`;
         }
         previewContent.innerHTML = html;
       } else {
+        const isWebsiteDevelopment = String(c.type || '').trim().toLowerCase() === 'website_development';
+        const isBrokerAgreement = String(c.type || '').trim().toLowerCase() === 'broker';
         const sectionCopy = buildContractSectionCopy({
+          type: c.type,
           title: c.title,
+          creatorName: c.userName || c.userEmail || 'Creator',
+          clientName: c.clientName || c.clientEmail || 'Client',
           description: c.description,
           amount: c.amount,
           currency: c.currency || DEFAULT_CURRENCY,
           dueDate: c.dueDate,
           clauses: c.clauses || {},
+          templateData: c.templateData || {},
           creatorSignature,
+          clientSignature,
         });
 
-        let html = `<h2>${escapeHtml(c.title || 'Service Agreement')}</h2>`;
+        const baseSections = isWebsiteDevelopment
+          ? [
+              { title: 'Definitions', bodyHtml: `<p>${escapeHtml(sectionCopy.definitions || '')}</p>` },
+              { title: 'Appointment and Scope', bodyHtml: `<p>${escapeHtml(sectionCopy.services)}</p>` },
+              { title: 'Fee and Payment Terms', bodyHtml: `<p>${sectionCopy.paymentHtml}</p>` },
+              { title: 'Deliverables and Performance', bodyHtml: `<p>${escapeHtml(sectionCopy.deliverables)}</p>` },
+              { title: 'Confidentiality', bodyHtml: `<p>${escapeHtml(sectionCopy.confidentiality)}</p>` },
+              { title: 'Term and Termination', bodyHtml: `<p>${escapeHtml(sectionCopy.termination)}</p>` },
+              { title: 'Governing Law', bodyHtml: `<p>${escapeHtml(sectionCopy.governingLaw || 'This Agreement shall be governed by the laws of India.')}</p>` },
+            ]
+          : isBrokerAgreement
+            ? [
+                { title: 'Definitions', bodyHtml: `<p>${escapeHtml(sectionCopy.definitions || '')}</p>` },
+                { title: 'Property and Appointment', bodyHtml: `<p>${escapeHtml(sectionCopy.services)}</p>` },
+                { title: 'Sale Terms', bodyHtml: `<p>${sectionCopy.paymentHtml}</p>` },
+                { title: 'Representations and Obligations', bodyHtml: `<p>${escapeHtml(sectionCopy.deliverables)}</p>` },
+                { title: 'Confidentiality', bodyHtml: `<p>${escapeHtml(sectionCopy.confidentiality)}</p>` },
+                { title: 'Term and Termination', bodyHtml: `<p>${escapeHtml(sectionCopy.termination)}</p>` },
+                { title: 'Governing Law', bodyHtml: `<p>${escapeHtml(sectionCopy.governingLaw || 'This Agreement shall be governed by the laws of India.')}</p>` },
+              ]
+            : [];
+
+        const numberedSections = applySectionNumbering(baseSections);
+        let html = `<h2>${escapeHtml(c.title || 'Contract')}</h2>`;
         html += `<p>This agreement is entered into as of ${escapeHtml(formatContractDate(c.createdAt))}.</p>`;
-        html += `<section class="preview-section"><h2>Services & Scope</h2><p>${escapeHtml(sectionCopy.services)}</p></section>`;
-        html += `<section class="preview-section"><h2>Compensation & Payment</h2><p>${sectionCopy.paymentHtml}</p></section>`;
-        html += `<section class="preview-section"><h2>Deliverables</h2><p>${escapeHtml(sectionCopy.deliverables)}</p></section>`;
-        html += `<section class="preview-section"><h2>Confidentiality</h2><p>${escapeHtml(sectionCopy.confidentiality)}</p></section>`;
-        html += `<section class="preview-section"><h2>Term & Termination</h2><p>${escapeHtml(sectionCopy.termination)}</p></section>`;
-        html += `<section class="preview-section"><h2>Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p>${buildPreviewSignatureGrid({
-          creatorName: c.userName || c.userEmail || 'Creator',
-          clientName: c.clientName || c.clientEmail || 'Client',
+        numberedSections.forEach((section) => {
+          html += `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2>${section.bodyHtml}</section>`;
+        });
+        html += `<section class="preview-section"><h2>${numberedSections.length + 1}. Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p>${buildPreviewSignatureGrid({
+          creatorName: isWebsiteDevelopment ? (c.userName || c.userEmail || 'Company') : isBrokerAgreement ? (c.userName || c.userEmail || 'Owner') : (c.userName || c.userEmail || 'Creator'),
+          clientName: isWebsiteDevelopment ? (c.clientName || c.clientEmail || 'Developer') : isBrokerAgreement ? (c.clientName || c.clientEmail || 'Broker') : (c.clientName || c.clientEmail || 'Client'),
           creatorSignature,
           clientSignature,
         })}</section>`;
@@ -2803,8 +3566,13 @@ async function signContract() {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      showToast(err.detail || 'Failed to sign contract.', 'error');
+      let errPayload = null;
+      try {
+        errPayload = await res.json();
+      } catch {
+        errPayload = { detail: await res.text() };
+      }
+      showToast(getErrorMessage(errPayload), 'error');
       return;
     }
 
@@ -2812,8 +3580,8 @@ async function signContract() {
     localStorage.removeItem('selected_contract_id');
     setTimeout(() => { window.location.href = './client-dashboard.html'; }, 1200);
   } catch (err) {
-    console.error(err);
-    showToast('Could not reach the server.', 'error');
+    console.error('FULL ERROR:', err);
+    showToast(getErrorMessage(err), 'error');
   }
 }
 
@@ -2841,8 +3609,13 @@ async function declineContract() {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      showToast(err.detail || 'Failed to decline contract.', 'error');
+      let errPayload = null;
+      try {
+        errPayload = await res.json();
+      } catch {
+        errPayload = { detail: await res.text() };
+      }
+      showToast(getErrorMessage(errPayload), 'error');
       return;
     }
 
@@ -2850,8 +3623,8 @@ async function declineContract() {
     localStorage.removeItem('selected_contract_id');
     setTimeout(() => { window.location.href = './client-dashboard.html'; }, 1200);
   } catch (err) {
-    console.error(err);
-    showToast('Could not reach the server.', 'error');
+    console.error('FULL ERROR:', err);
+    showToast(getErrorMessage(err), 'error');
   }
 }
 

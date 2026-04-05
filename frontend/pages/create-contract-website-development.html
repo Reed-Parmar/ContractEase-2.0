@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Service Agreement - ContractEase</title>
+  <title>Create Website Development Agreement - ContractEase</title>
   <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
   <link rel="stylesheet" href="../css/main.css">
@@ -41,9 +41,9 @@
           <span class="breadcrumb-separator">/</span>
           <a href="create-contract.html" class="breadcrumb-link">Create Contract</a>
           <span class="breadcrumb-separator">/</span>
-          <span id="typeLabel">Service Agreement</span>
+          <span id="typeLabel">Website Development Agreement</span>
         </div>
-        <h1 class="editor-title" id="pageTitle">Service Agreement</h1>
+        <h1 class="editor-title" id="pageTitle">Website Development Agreement</h1>
       </div>
 
       <!-- Step Progress -->
@@ -72,14 +72,14 @@
             type="text" 
             id="contractTitle" 
             class="form-input" 
-            placeholder="e.g., Q3 Web Development Services"
+            placeholder="e.g., Website Development and Maintenance Agreement"
             required
           >
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
           <div class="form-group">
-            <label for="clientName" class="form-label">Client Name</label>
+              <label for="clientName" class="form-label">Developer Name</label>
             <input 
               type="text" 
               id="clientName" 
@@ -89,12 +89,12 @@
           </div>
 
           <div class="form-group">
-            <label for="clientEmail" class="form-label">Client Email <span style="color:var(--danger)">*</span></label>
+              <label for="clientEmail" class="form-label">Developer Email <span style="color:var(--danger)">*</span></label>
             <input 
               type="email" 
               id="clientEmail" 
               class="form-input" 
-              placeholder="billing@client.com"
+                placeholder="developer@example.com"
               required
             >
           </div>
@@ -102,7 +102,12 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
           <div class="form-group">
-            <label for="contractAmount" class="form-label">Contract Amount <span style="color:var(--danger)">*</span></label>
+            <label for="wdAgreementPlace" class="form-label">Agreement Place <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="wdAgreementPlace" class="form-input" placeholder="e.g., Mumbai" required>
+          </div>
+
+          <div class="form-group">
+              <label for="contractAmount" class="form-label">Total Fee <span style="color:var(--danger)">*</span></label>
             <div class="amount-field-group">
               <select id="currency" class="form-select" aria-label="Select currency">
                 <option value="₹" selected>₹ (INR)</option>
@@ -122,7 +127,7 @@
           </div>
 
           <div class="form-group">
-            <label for="dueDate" class="form-label">Due / Active Date <span style="color:var(--danger)">*</span></label>
+              <label for="dueDate" class="form-label">Content Due Date <span style="color:var(--danger)">*</span></label>
             <input 
               type="text"
               id="dueDate" 
@@ -135,22 +140,127 @@
           </div>
         </div>
 
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="wdCompanyAddress" class="form-label">Company Address <span style="color:var(--danger)">*</span></label>
+            <textarea id="wdCompanyAddress" class="form-textarea" rows="3" placeholder="Registered office address" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="wdDeveloperAddress" class="form-label">Developer Address <span style="color:var(--danger)">*</span></label>
+            <textarea id="wdDeveloperAddress" class="form-textarea" rows="3" placeholder="Developer office address" required></textarea>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label for="contractDescription" class="form-label">Description / Core Terms</label>
+          <label for="wdProjectPurpose" class="form-label">Project Purpose <span style="color:var(--danger)">*</span></label>
+          <textarea 
+            id="wdProjectPurpose" 
+            class="form-textarea" 
+            placeholder="Purpose of the website and business objective..."
+            rows="3"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="contractDescription" class="form-label">Description / Project Terms</label>
           <textarea 
             id="contractDescription" 
             class="form-textarea" 
-            placeholder="Describe the main services or agreements covered..."
+            placeholder="Describe the website, maintenance scope, and deliverables..."
             rows="4"
           ></textarea>
+        </div>
+
+        <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Scope Specifications</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4);">
+          <div class="form-group">
+            <label for="wdPageCount" class="form-label">Page Count</label>
+            <input type="number" id="wdPageCount" class="form-input" min="1" step="1" value="50">
+          </div>
+          <div class="form-group">
+            <label for="wdWordsPerPage" class="form-label">Words Per Page</label>
+            <input type="number" id="wdWordsPerPage" class="form-input" min="1" step="1" value="200">
+          </div>
+          <div class="form-group">
+            <label for="wdExternalLinksPerPage" class="form-label">External Links Per Page</label>
+            <input type="number" id="wdExternalLinksPerPage" class="form-input" min="0" step="0.1" value="2.5">
+          </div>
+          <div class="form-group">
+            <label for="wdPhotoGraphicsAverage" class="form-label">Photo/Graphic Average Per Page</label>
+            <input type="number" id="wdPhotoGraphicsAverage" class="form-input" min="0" step="0.1" value="1.3">
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="wdMastheadGraphic" class="form-label">Masthead Graphic</label>
+            <input type="text" id="wdMastheadGraphic" class="form-input" value="Simple custom logo masthead">
+          </div>
+        </div>
+
+        <div class="toggle-group" style="margin-top: var(--space-4);">
+          <label class="toggle-item">
+            <div class="toggle-label"><div class="toggle-label-title">Search Engine Publicity</div></div>
+            <input type="checkbox" id="wdSearchPublicity" class="toggle-switch" checked>
+          </label>
+          <label class="toggle-item">
+            <div class="toggle-label"><div class="toggle-label-title">E-mail Response Link</div></div>
+            <input type="checkbox" id="wdEmailResponse" class="toggle-switch" checked>
+          </label>
+          <label class="toggle-item">
+            <div class="toggle-label"><div class="toggle-label-title">Image Map Navigation</div></div>
+            <input type="checkbox" id="wdImageMap" class="toggle-switch" checked>
+          </label>
+        </div>
+
+        <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Timeline and Fee Schedule</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4);">
+          <div class="form-group">
+            <label for="wdCompletionMonths" class="form-label">Completion Period (Months)</label>
+            <input type="number" id="wdCompletionMonths" class="form-input" min="1" step="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="wdContentDueDays" class="form-label">Content Supply Deadline (Days)</label>
+            <input type="number" id="wdContentDueDays" class="form-input" min="1" step="1" value="14">
+          </div>
+          <div class="form-group">
+            <label for="wdMaintenanceMonths" class="form-label">Maintenance Period (Months)</label>
+            <input type="number" id="wdMaintenanceMonths" class="form-input" min="1" step="1" value="12">
+          </div>
+          <div class="form-group">
+            <label for="wdHourlyRate" class="form-label">Hourly Rate for Extra Work</label>
+            <input type="number" id="wdHourlyRate" class="form-input" min="0" step="1" value="250">
+          </div>
+          <div class="form-group">
+            <label for="wdInitialPaymentAmount" class="form-label">Initial Payment (On Execution) <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="wdInitialPaymentAmount" class="form-input" min="0" step="0.01" required value="100000">
+          </div>
+          <div class="form-group">
+            <label for="wdMidPaymentAmount" class="form-label">Mid Payment (Within One Month) <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="wdMidPaymentAmount" class="form-input" min="0" step="0.01" required value="400000">
+          </div>
+          <div class="form-group">
+            <label for="wdCompletionPaymentAmount" class="form-label">Completion Payment <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="wdCompletionPaymentAmount" class="form-input" min="0" step="0.01" required value="500000">
+          </div>
+          <div class="form-group">
+            <label for="wdContinuationFeePercent" class="form-label">Monthly Continuation Fee (%)</label>
+            <input type="number" id="wdContinuationFeePercent" class="form-input" min="0" step="0.1" value="10">
+          </div>
+          <div class="form-group">
+            <label for="wdAdditionalGraphicsFee" class="form-label">Additional Graphic Fee (Per Item)</label>
+            <input type="number" id="wdAdditionalGraphicsFee" class="form-input" min="0" step="0.01" value="1000">
+          </div>
+          <div class="form-group">
+            <label for="wdTransparencyFee" class="form-label">Transparency Fee (Per Item)</label>
+            <input type="number" id="wdTransparencyFee" class="form-input" min="0" step="0.01" value="1200">
+          </div>
         </div>
 
         <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Include Standard Clauses</h3>
         <div class="toggle-group">
           <label class="toggle-item">
             <div class="toggle-label">
-              <div class="toggle-label-title">Standard Payment Terms</div>
-              <div class="toggle-label-description">Includes standard net-30 payment structure and late fees</div>
+              <div class="toggle-label-title">Milestone Payments</div>
+              <div class="toggle-label-description">Includes the staged website development payment schedule</div>
             </div>
             <input type="checkbox" name="clause_payment" class="toggle-switch" data-clause="payment" checked>
           </label>
@@ -165,8 +275,8 @@
           
           <label class="toggle-item">
             <div class="toggle-label">
-              <div class="toggle-label-title">Mutual Confidentiality</div>
-              <div class="toggle-label-description">Standard 2-year mutual NDA clause included</div>
+              <div class="toggle-label-title">Confidentiality</div>
+              <div class="toggle-label-description">Protects source material, credentials, and project details</div>
             </div>
             <input type="checkbox" name="clause_confidentiality" class="toggle-switch" data-clause="confidentiality" checked>
           </label>
@@ -174,7 +284,7 @@
           <label class="toggle-item">
             <div class="toggle-label">
               <div class="toggle-label-title">Termination for Convenience</div>
-              <div class="toggle-label-description">Allows either party to terminate with 30-days written notice</div>
+              <div class="toggle-label-description">Allows either party to terminate with written notice</div>
             </div>
             <input type="checkbox" name="clause_termination" class="toggle-switch" data-clause="termination">
           </label>
@@ -187,32 +297,42 @@
 
         <div class="contract-preview">
           <div class="preview-content" id="previewContent">
-            <h2 id="previewTitle">Service Agreement</h2>
-            <p>This Agreement is officially entered into as of <strong id="previewDate"></strong>, by and between the service provider and <strong id="previewClient"></strong> (hereinafter referred to as "Client").</p>
+            <h2 id="previewTitle">WEBSITE DEVELOPMENT AGREEMENT</h2>
+            <p>This Agreement is officially entered into as of <strong id="previewDate"></strong>, by and between the company and <strong id="previewClient"></strong> (hereinafter referred to as "Developer").</p>
+
+            <section class="preview-section" id="preview-definitions">
+              <h2>Definitions</h2>
+              <p id="previewDefinitionsText">"Company" and "Developer" definitions appear here.</p>
+            </section>
 
             <section class="preview-section" id="preview-services">
-              <h2>Services & Scope</h2>
-              <p id="previewServicesText">The provider agrees to deliver the services as outlined in the description above in a professional and timely manner.</p>
+              <h2>Appointment and Scope</h2>
+              <p id="previewServicesText">The developer agrees to deliver the website work described above in a professional and timely manner.</p>
             </section>
 
             <section class="preview-section" id="preview-payment">
-              <h2>Compensation & Payment</h2>
-              <p id="previewPaymentText">In consideration for the services provided, the Client agrees to pay the total amount of <strong id="previewAmount"></strong>. Payment shall be due no later than <strong id="previewDue"></strong>.</p>
+              <h2>Fee and Payment Terms</h2>
+              <p id="previewPaymentText">In consideration for the website development services, the company agrees to pay the total amount of <strong id="previewAmount"></strong>. Payment shall be due no later than <strong id="previewDue"></strong>.</p>
             </section>
 
             <section class="preview-section" id="preview-deliverables">
-              <h2>Deliverables</h2>
-              <p id="previewDeliverablesText">The provider will deliver the agreed work product, revisions, and final materials required under this agreement.</p>
+              <h2>Deliverables and Performance</h2>
+              <p id="previewDeliverablesText">The Developer shall deliver the agreed website pages, revisions, and final materials required under this Agreement.</p>
             </section>
 
             <section class="preview-section" id="preview-confidentiality">
               <h2>Confidentiality</h2>
-              <p id="previewConfidentialityText">Both parties mutually agree to maintain strict confidentiality regarding all proprietary information, trade secrets, and non-public business affairs disclosed during the term of this engagement.</p>
+              <p id="previewConfidentialityText">Both parties agree to maintain confidentiality regarding all proprietary information, credentials, and non-public project details disclosed during the term of this engagement.</p>
             </section>
 
             <section class="preview-section" id="preview-termination">
-              <h2>Term & Termination</h2>
-              <p id="previewTerminationText">This Agreement may be terminated by either party at any time upon thirty (30) days prior written notice. Upon termination, all outstanding payments for services rendered shall become immediately due.</p>
+              <h2>Term and Termination</h2>
+              <p id="previewTerminationText">This Agreement may be terminated by either party at any time upon written notice. Upon termination, all outstanding payments for services rendered shall become immediately due.</p>
+            </section>
+
+            <section class="preview-section" id="preview-governing-law">
+              <h2>Governing Law</h2>
+              <p id="previewGoverningLawText">This Agreement shall be governed by the laws of India.</p>
             </section>
 
             <section class="preview-section" id="preview-signatures">
@@ -258,7 +378,7 @@
               <h4 class="signature-section-heading">Draw your signature below</h4>
               <div class="signature-draw-shell">
                 <div class="signature-canvas-wrapper">
-                  <canvas id="creatorSignatureCanvas" class="signature-canvas" aria-label="Signature input: draw your signature here">Sign here using mouse or touch.</canvas>
+                  <canvas id="creatorSignatureCanvas" class="signature-canvas"></canvas>
                 </div>
               </div>
               <div class="signature-actions">
@@ -354,8 +474,8 @@
   <script src="../js/config.js"></script>
   <script>
     window.CONTRACT_PAGE_CONFIG = {
-      contractType: 'service',
-      contractTypeLabel: 'Service Agreement',
+      contractType: 'website_development',
+      contractTypeLabel: 'Website Development Agreement',
     };
   </script>
   <script src="../js/contract.js"></script>

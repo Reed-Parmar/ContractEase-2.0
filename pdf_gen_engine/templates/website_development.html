@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ contract_title }}</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 24px;
+      color: #000000;
+    }
+    h1, h2 {
+      margin-bottom: 16px;
+      color: #000000;
+    }
+    .contract-section {
+      margin-top: 20px;
+    }
+    .contract-section p {
+      margin: 0 0 12px 0;
+      color: #000000;
+    }
+    .signature-section {
+      page-break-inside: avoid;
+      margin-top: 40px;
+    }
+    .signature-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-spacing: 16px 0;
+    }
+    .signature-block {
+      display: table-cell;
+      vertical-align: top;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 120px;
+    }
+    .signature-image {
+      max-width: 180px;
+      max-height: 80px;
+      display: block;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="contract-document">
+    <header class="document-header">
+      <h1>{{ contract_title|upper }}</h1>
+      <p class="document-date">Signed Date: {{ formatted_date }}</p>
+    </header>
+
+    <section class="contract-section">
+      <p>
+        THIS AGREEMENT is made at {{ agreement_place }} between {{ company_name }} having address {{ company_address }}
+        (hereinafter referred to as the "Company") of the ONE PART and {{ developer_name }} having address {{ developer_address }}
+        (hereinafter referred to as the "Developer") of the OTHER PART.
+      </p>
+      <p><strong>WHEREAS</strong> the Company proposes to develop a World Website and the Developer has offered to develop and maintain the same.</p>
+    </section>
+
+    {% set sections = [
+      {"title": "Definitions", "body": [
+        '"Company" shall mean ' ~ company_name ~ ' and its lawful successors and permitted assigns.',
+        '"Developer" shall mean ' ~ developer_name ~ ' and its lawful successors and permitted assigns.'
+      ]},
+      {"title": "Appointment and Scope", "body": [
+        'The Company shall engage the Developer as an independent contractor for developing and maintaining a World Website to be installed on the Company\'s ISP web space. The Company hereby authorizes the Developer to access the required directories and, where selected, to publicize the completed website to search engines and directories.'
+      ]},
+      {"title": "Fee and Payment Terms", "body": [
+        'Total fee: ' ~ fee_total ~ '.',
+        'Initial payment on execution: ' ~ initial_payment_amount ~ '. Mid-project payment within one month: ' ~ mid_payment_amount ~ '. Completion payment: ' ~ completion_payment_amount ~ '.',
+        'The Company shall supply complete text and graphics within ' ~ content_due_days ~ ' days. Target completion period: ' ~ completion_months ~ ' month(s).',
+        'Maintenance shall be included for ' ~ maintenance_months ~ ' months for minor updates within agreed limits.',
+        'Additional graphics beyond agreed average shall be charged at ' ~ additional_graphics_fee ~ ' each; transparencies at ' ~ transparency_fee ~ ' each.',
+        'Additional work beyond agreed limits shall be billed at ' ~ hourly_rate ~ ' per hour. Continuation fee for delayed content shall be ' ~ continuation_fee_percent ~ '% per month.'
+      ]},
+      {"title": "Deliverables and Performance", "body": [
+        'The Developer shall provide consultation up to ' ~ consultation_hours ~ ' hours and shall create up to ' ~ page_count ~ ' web pages with about ' ~ web_page_word_count ~ ' words per page.',
+        'External links average: ' ~ external_links_per_page ~ ' per page. Photo/graphic average: ' ~ photo_graphics_average ~ ' per page. Masthead: ' ~ masthead_graphic ~ '.',
+        'Search engine publicity: ' ~ search_engine_publicity ~ '. E-mail response link: ' ~ email_response_enabled ~ '. Image map navigation: ' ~ image_map_enabled ~ '.',
+        'Project purpose: ' ~ project_purpose,
+        'The parties shall cooperate to complete the website in a timely manner. Content and graphic materials supplied by the Company shall be executed by the Developer according to written specifications.'
+      ]},
+      {"title": "Confidentiality", "body": [ confidentiality_text ]},
+      {"title": "Term and Termination", "body": [ termination_text ]},
+      {"title": "Governing Law", "body": [ governing_law_text ]}
+    ] %}
+
+    {% for section in sections %}
+    <section class="contract-section">
+      <h2>{{ loop.index }}. {{ section.title }}</h2>
+      {% for paragraph in section.body %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+    </section>
+    {% endfor %}
+
+    <section class="contract-section signature-section">
+      <h2>{{ sections|length + 1 }}. Signatures</h2>
+      <p>{{ signature_text }}</p>
+      <div class="signature-grid">
+        <div class="signature-block">
+          <p class="signature-label">Company Signature</p>
+          {% if signature_creator %}
+          <img class="signature-image" src="{{ signature_creator|e }}" alt="Company signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ company_name }}</p>
+        </div>
+
+        <div class="signature-block">
+          <p class="signature-label">Developer Signature</p>
+          {% if signature_client %}
+          <img class="signature-image" src="{{ signature_client|e }}" alt="Developer signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ developer_name }}</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

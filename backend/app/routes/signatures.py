@@ -222,10 +222,10 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         raise HTTPException(status_code=400, detail="Creator signature is missing from this contract")
 
     contract_payload = {
-        "type": locked_contract.get("type") or "custom",
+        "type": locked_contract.get("type") or "website_development",
         "templateData": locked_contract.get("templateData") or {},
         "contract_id": str(locked_contract["_id"]),
-        "title": locked_contract.get("title") or "Service Agreement",
+        "title": locked_contract.get("title") or "Contract",
         "description": locked_contract.get("description") or "",
         "clauses": locked_contract.get("clauses") or {},
         "creator_name": locked_contract.get("userName")

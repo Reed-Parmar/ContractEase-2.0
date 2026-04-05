@@ -23,6 +23,8 @@ from ..config import PDF_FILE_PREFIX, PDF_STORAGE_PATH, PDF_TEMPLATE_PATH
 SUPPORTED_CURRENCIES = {"₹", "$", "€"}
 DEFAULT_CURRENCY = "₹"
 HOUSE_SALE_TYPE = "house_sale"
+WEBSITE_DEVELOPMENT_TYPE = "website_development"
+BROKER_TYPE = "broker"
 LOGGER = logging.getLogger(__name__)
 ALLOWED_SIGNATURE_DATA_MIME_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
 
@@ -179,6 +181,10 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
     contract_type = str(contract_data.get("type") or "").strip().lower()
     if contract_type == HOUSE_SALE_TYPE:
         return build_house_sale_template_context(contract_data)
+    if contract_type == WEBSITE_DEVELOPMENT_TYPE:
+        return build_website_development_template_context(contract_data)
+    if contract_type == BROKER_TYPE:
+        return build_broker_template_context(contract_data)
 
     terms_list = normalize_contract_terms(contract_data.get("contract_terms"))
     clauses = contract_data.get("clauses") or {}
@@ -187,7 +193,7 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         or contract_data.get("description")
         or ""
     ).strip()
-    contract_title = contract_data.get("contract_title") or contract_data.get("title") or "Service Agreement"
+    contract_title = contract_data.get("contract_title") or contract_data.get("title") or "Contract"
     currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
     raw_contract_amount = contract_data.get("contract_amount")
     if raw_contract_amount is None:
@@ -353,6 +359,172 @@ def build_house_sale_template_context(contract_data: Mapping[str, Any]) -> dict[
         "client_signature": client_signature,
         "creator_name": contract_data.get("creator_name") or vendor_name,
         "client_name": contract_data.get("client_name") or purchaser_name,
+        "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
+    }
+
+
+def build_website_development_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
+    """Build website-development template context."""
+    template_data = contract_data.get("templateData") or {}
+    website_development = template_data.get("websiteDevelopment") if isinstance(template_data, Mapping) else {}
+    if not isinstance(website_development, Mapping):
+        website_development = {}
+
+    def text_value(key: str, fallback: str = "") -> str:
+        value = website_development.get(key)
+        if value is None:
+            return fallback
+        return str(value).strip() or fallback
+
+    def number_value(key: str, fallback: float = 0.0) -> float:
+        value = website_development.get(key)
+        if value is None or str(value).strip() == "":
+            return fallback
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return fallback
+
+    currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
+    contract_title = contract_data.get("title") or "Agreement Between a Company and Website Developer"
+    amount = _format_currency_amount(contract_data.get("amount"), currency)
+    fee_total = _format_currency_amount(website_development.get("fee_total"), currency)
+
+    initial_payment = number_value("initial_payment_amount", 0.0)
+    mid_payment = number_value("mid_payment_amount", 0.0)
+    completion_payment = number_value("completion_payment_amount", 0.0)
+    additional_graphics_fee = number_value("additional_graphics_fee", 1000.0)
+    transparency_fee = number_value("transparency_fee", 1200.0)
+    hourly_rate = number_value("hourly_rate", 250.0)
+    continuation_fee_percent = number_value("continuation_fee_percent", 10.0)
+    clauses = contract_data.get("clauses") or {}
+    confidentiality_enabled = _resolve_clause_flag(contract_data, clauses, "confidentiality", True)
+    termination_enabled = _resolve_clause_flag(contract_data, clauses, "termination", False)
+
+    confidentiality_text = (
+        "Both parties shall maintain confidentiality of proprietary information disclosed during this engagement."
+        if confidentiality_enabled
+        else "No additional confidentiality clause was selected for this Agreement."
+    )
+    termination_text = (
+        "Either party may terminate this Agreement by written notice. All outstanding obligations shall be fulfilled prior to termination."
+        if termination_enabled
+        else "This Agreement shall remain in force until contracted work is completed or the parties otherwise agree in writing."
+    )
+
+    return {
+        "contract_title": contract_title,
+        "agreement_place": text_value("agreement_place", "____________"),
+        "company_name": text_value("company_name", contract_data.get("creator_name") or "Company"),
+        "developer_name": text_value("developer_name", contract_data.get("client_name") or "Developer"),
+        "company_address": text_value("company_address", "____________"),
+        "developer_address": text_value("developer_address", "____________"),
+        "project_purpose": text_value("project_purpose", contract_data.get("description") or "Website design and maintenance services."),
+        "consultation_hours": text_value("consultation_hours", "3"),
+        "page_count": text_value("page_count", "50"),
+        "web_page_word_count": text_value("web_page_word_count", "200"),
+        "external_links_per_page": text_value("external_links_per_page", "2.5"),
+        "masthead_graphic": text_value("masthead_graphic", "Included"),
+        "photo_graphics_average": text_value("photo_graphics_average", "1.3"),
+        "update_period_months": text_value("update_period_months", "12"),
+        "search_engine_publicity": "Yes" if website_development.get("search_engine_publicity") else "No",
+        "email_response_enabled": "Yes" if website_development.get("email_response_enabled") else "No",
+        "image_map_enabled": "Yes" if website_development.get("image_map_enabled") else "No",
+        "fee_total": fee_total or amount or "To be confirmed",
+        "initial_payment_amount": _format_currency_amount(initial_payment, currency) or "To be confirmed",
+        "mid_payment_amount": _format_currency_amount(mid_payment, currency) or "To be confirmed",
+        "completion_payment_amount": _format_currency_amount(completion_payment, currency) or "To be confirmed",
+        "content_due_days": text_value("content_due_days", "14"),
+        "completion_months": text_value("completion_months", "1"),
+        "maintenance_months": text_value("maintenance_months", "12"),
+        "additional_graphics_fee": _format_currency_amount(additional_graphics_fee, currency) or "To be confirmed",
+        "transparency_fee": _format_currency_amount(transparency_fee, currency) or "To be confirmed",
+        "hourly_rate": _format_currency_amount(hourly_rate, currency) or "To be confirmed",
+        "continuation_fee_percent": f"{continuation_fee_percent:g}",
+        "confidentiality_text": confidentiality_text,
+        "termination_text": termination_text,
+        "governing_law_text": "This Agreement shall be governed by the laws of India.",
+        "signature_text": "By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.",
+        "signature_creator": normalize_signature_data(contract_data.get("signature_creator")),
+        "signature_client": normalize_signature_data(contract_data.get("signature_client")),
+        "creator_name": contract_data.get("creator_name") or contract_data.get("client_name") or "Company",
+        "client_name": contract_data.get("client_name") or contract_data.get("creator_name") or "Developer",
+        "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
+    }
+
+
+def build_broker_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
+    """Build broker-agreement template context."""
+    template_data = contract_data.get("templateData") or {}
+    broker = template_data.get("brokerAgreement") if isinstance(template_data, Mapping) else {}
+    if not isinstance(broker, Mapping):
+        broker = {}
+
+    def text_value(key: str, fallback: str = "") -> str:
+        value = broker.get(key)
+        if value is None:
+            return fallback
+        return str(value).strip() or fallback
+
+    def number_value(key: str, fallback: float = 0.0) -> float:
+        value = broker.get(key)
+        if value is None or str(value).strip() == "":
+            return fallback
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return fallback
+
+    currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
+    total_consideration_raw = number_value("total_consideration", float(contract_data.get("amount") or 0.0))
+    earnest_money_raw = number_value("earnest_money_amount", 0.0)
+    balance_amount_raw = number_value("balance_amount", max(0.0, total_consideration_raw - earnest_money_raw))
+    commission_rate_raw = number_value("commission_rate", 2.0)
+    commission_amount_raw = number_value("commission_amount", total_consideration_raw * (commission_rate_raw / 100.0))
+    clauses = contract_data.get("clauses") or {}
+    confidentiality_enabled = _resolve_clause_flag(contract_data, clauses, "confidentiality", True)
+    termination_enabled = _resolve_clause_flag(contract_data, clauses, "termination", False)
+
+    confidentiality_text = (
+        "Both parties shall maintain confidentiality of proprietary information disclosed during this engagement."
+        if confidentiality_enabled
+        else "No additional confidentiality clause was selected for this Agreement."
+    )
+    termination_text = (
+        "Either party may terminate this Agreement by written notice. All outstanding obligations shall be fulfilled prior to termination."
+        if termination_enabled
+        else "This Agreement shall remain in force until obligations are completed or the parties otherwise agree in writing."
+    )
+
+    total_consideration = _format_currency_amount(total_consideration_raw, currency)
+    earnest_money = _format_currency_amount(earnest_money_raw, currency)
+    balance_amount = _format_currency_amount(balance_amount_raw, currency)
+
+    return {
+        "contract_title": contract_data.get("title") or "Agreement for Appointment of a Broker for Selling a House",
+        "agreement_place": text_value("agreement_place", "____________"),
+        "owner_name": text_value("owner_name", contract_data.get("creator_name") or "Owner"),
+        "owner_residence": text_value("owner_residence", "____________"),
+        "broker_name": text_value("broker_name", contract_data.get("client_name") or "Broker"),
+        "broker_residence": text_value("broker_residence", "____________"),
+        "property_details": text_value("property_details", contract_data.get("description") or "Property details to be confirmed."),
+        "total_consideration": total_consideration or "To be confirmed",
+        "earnest_money_amount": earnest_money or "To be confirmed",
+        "balance_amount": balance_amount or "To be confirmed",
+        "completion_period_months": text_value("completion_period_months", "3"),
+        "broker_sale_period_months": text_value("broker_sale_period_months", "1"),
+        "commission_rate": f"{commission_rate_raw:g}",
+        "commission_amount": _format_currency_amount(commission_amount_raw, currency) or "To be confirmed",
+        "witness_1_name": text_value("witness_1_name"),
+        "witness_2_name": text_value("witness_2_name"),
+        "confidentiality_text": confidentiality_text,
+        "termination_text": termination_text,
+        "governing_law_text": "This Agreement shall be governed by the laws of India.",
+        "signature_text": "By electronically signing below, the parties acknowledge that they have read, understood, and agreed to be bound by all terms and conditions set forth within this document.",
+        "signature_creator": normalize_signature_data(contract_data.get("signature_creator")),
+        "signature_client": normalize_signature_data(contract_data.get("signature_client")),
+        "creator_name": contract_data.get("creator_name") or contract_data.get("userName") or "Owner",
+        "client_name": contract_data.get("client_name") or contract_data.get("clientEmail") or "Broker",
         "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
     }
 

@@ -54,6 +54,12 @@ class RegisterBody(BaseModel):
     password: str
 
 
+class RegisterClientBody(BaseModel):
+    name: str
+    email: EmailStr
+    password: str = "client123"
+
+
 class LoginBody(BaseModel):
     email: EmailStr
     password: str
@@ -94,7 +100,7 @@ async def register_user(payload: RegisterBody):
 
 # ── POST /register/client ────────────────────────────────────
 @router.post("/register/client")
-async def register_client(payload: RegisterBody):
+async def register_client(payload: RegisterClientBody):
     """Insert a new client document into the *clients* collection."""
 
     normalized_email = _normalize_email(payload.email)

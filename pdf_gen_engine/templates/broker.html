@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ contract_title }}</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 24px;
+      color: #000000;
+    }
+    h1, h2 {
+      margin-bottom: 16px;
+      color: #000000;
+    }
+    .contract-section {
+      margin-top: 20px;
+    }
+    .contract-section p {
+      margin: 0 0 12px 0;
+      color: #000000;
+    }
+    .signature-section {
+      page-break-inside: avoid;
+      margin-top: 40px;
+    }
+    .signature-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-spacing: 16px 0;
+    }
+    .signature-block {
+      display: table-cell;
+      vertical-align: top;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 120px;
+    }
+    .signature-image {
+      max-width: 180px;
+      max-height: 80px;
+      display: block;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="contract-document">
+    <header class="document-header">
+      <h1>{{ contract_title|upper }}</h1>
+      <p class="document-date">Signed Date: {{ formatted_date }}</p>
+    </header>
+
+    <section class="contract-section">
+      <p>
+        THIS AGREEMENT is made at {{ agreement_place }} between {{ owner_name }} resident of {{ owner_residence }}
+        (hereinafter called "the owner") of the ONE PART and {{ broker_name }} resident of {{ broker_residence }}
+        (hereinafter called "the broker") of the OTHER PART.
+      </p>
+      <p><strong>WHEREAS</strong> the owner is absolute owner of the property described in the Schedule and requires brokerage services for sale.</p>
+    </section>
+
+    {% set sections = [
+      {"title": "Definitions", "body": [
+        '"Owner" shall mean ' ~ owner_name ~ ' and lawful heirs, representatives, executors, and administrators.',
+        '"Broker" shall mean ' ~ broker_name ~ ' and lawful heirs, representatives, executors, and administrators.'
+      ]},
+      {"title": "Property and Appointment", "body": [
+        'The Owner hereby authorizes the Broker to sell the schedule property for total consideration of ' ~ total_consideration ~ '.',
+        'Property schedule: ' ~ property_details
+      ]},
+      {"title": "Sale Terms", "body": [
+        'Earnest money shall be payable in advance: ' ~ earnest_money_amount ~ '.',
+        'Balance amount shall be payable at registration of conveyance deed: ' ~ balance_amount ~ ' within ' ~ completion_period_months ~ ' month(s).',
+        'The Owner shall pay commission at ' ~ commission_rate ~ '% of consideration, amounting to ' ~ commission_amount ~ ', payable at execution of conveyance deed.'
+      ]},
+      {"title": "Representations and Obligations", "body": [
+        'The Owner represents that title to the property is clear, marketable, and free from encumbrances.',
+        'After receipt of earnest money, the Owner shall deliver abstract of title and shall execute conveyance deed on receipt of full consideration.',
+        'The Broker undertakes to secure sale of the property within ' ~ broker_sale_period_months ~ ' month(s) from the date of this Agreement.'
+      ]},
+      {"title": "Confidentiality", "body": [ confidentiality_text ]},
+      {"title": "Term and Termination", "body": [ termination_text ]},
+      {"title": "Governing Law", "body": [ governing_law_text ]}
+    ] %}
+
+    {% for section in sections %}
+    <section class="contract-section">
+      <h2>{{ loop.index }}. {{ section.title }}</h2>
+      {% for paragraph in section.body %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+    </section>
+    {% endfor %}
+
+    <section class="contract-section signature-section">
+      <h2>{{ sections|length + 1 }}. Signatures</h2>
+      <p>{{ signature_text }}</p>
+      <div class="signature-grid">
+        <div class="signature-block">
+          <p class="signature-label">Owner Signature</p>
+          {% if signature_creator %}
+          <img class="signature-image" src="{{ signature_creator|e }}" alt="Owner signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ owner_name }}</p>
+        </div>
+
+        <div class="signature-block">
+          <p class="signature-label">Broker Signature</p>
+          {% if signature_client %}
+          <img class="signature-image" src="{{ signature_client|e }}" alt="Broker signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ broker_name }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="contract-section">
+      <h2>{{ sections|length + 2 }}. Schedule of Property</h2>
+      <p>{{ property_details }}</p>
+    </section>
+
+    <section class="contract-section">
+      <h2>{{ sections|length + 3 }}. Witnesses</h2>
+      <p>Witness 1: {{ witness_1_name or 'Not provided' }}</p>
+      <p>Witness 2: {{ witness_2_name or 'Not provided' }}</p>
+    </section>
+  </main>
+</body>
+</html>

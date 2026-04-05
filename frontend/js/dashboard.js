@@ -69,7 +69,7 @@ function isLikelyContractId(value) {
 
 function normalizeContractType(type) {
   const normalized = String(type || '').trim().toLowerCase();
-  if (!normalized) return 'custom';
+  if (!normalized) return '';
 
   // Keep only expected slug characters to avoid path traversal and malformed URLs.
   let safe = normalized
@@ -79,7 +79,7 @@ function normalizeContractType(type) {
     .replace(/[-_]+$/, '')
     .replace(/([_-])\1+/g, '$1');
 
-  if (!safe) return 'custom';
+  if (!safe) return '';
   return safe;
 }
 
@@ -87,16 +87,11 @@ function getContractPage(type) {
   const normalized = normalizeContractType(type).replace(/-/g, '_');
   const map = {
     house_sale: 'create-contract-house-sale.html',
-    service: 'create-contract-service.html',
-    nda: 'create-contract-nda.html',
-    license: 'create-contract-license.html',
-    employment: 'create-contract-employment.html',
-    partnership: 'create-contract-partnership.html',
-    custom: 'create-contract-custom.html',
+    website_development: 'create-contract-website-development.html',
     broker: 'create-contract-broker.html',
   };
 
-  return map[normalized] || 'create-contract-custom.html';
+  return map[normalized] || '';
 }
 
 let activeLogoutConfirmCard = null;
