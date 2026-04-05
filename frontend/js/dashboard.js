@@ -39,7 +39,7 @@ function formatAmount(amount, currency) {
   const numericAmount = Number(amount);
   if (!Number.isFinite(numericAmount)) return '—';
 
-  return `${normalizeCurrencySymbol(currency, DEFAULT_CURRENCY)}${numericAmount.toFixed(2)}`;
+  return `${normalizeCurrencySymbol(currency, DEFAULT_CURRENCY)}${numericAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function daysUntil(isoString) {
@@ -65,6 +65,38 @@ function isDownloadableStatus(status) {
 function isLikelyContractId(value) {
   if (!value) return false;
   return /^[a-f\d]{24}$/i.test(String(value).trim());
+}
+
+function normalizeContractType(type) {
+  const normalized = String(type || '').trim().toLowerCase();
+  if (!normalized) return 'custom';
+
+  // Keep only expected slug characters to avoid path traversal and malformed URLs.
+  let safe = normalized
+    .replace(/[./\\]+/g, '-')
+    .replace(/[^a-z0-9_-]+/g, '')
+    .replace(/^[-_]+/, '')
+    .replace(/[-_]+$/, '')
+    .replace(/([_-])\1+/g, '$1');
+
+  if (!safe) return 'custom';
+  return safe;
+}
+
+function getContractPage(type) {
+  const normalized = normalizeContractType(type).replace(/-/g, '_');
+  const map = {
+    house_sale: 'create-contract-house-sale.html',
+    service: 'create-contract-service.html',
+    nda: 'create-contract-nda.html',
+    license: 'create-contract-license.html',
+    employment: 'create-contract-employment.html',
+    partnership: 'create-contract-partnership.html',
+    custom: 'create-contract-custom.html',
+    broker: 'create-contract-broker.html',
+  };
+
+  return map[normalized];
 }
 
 let activeLogoutConfirmCard = null;
@@ -180,7 +212,7 @@ async function downloadSignedContract(contractId, buttonEl = null) {
 
 function renderUserDraftCard(c) {
   return `
-    <div class="contract-card" data-id="${c._id}">
+    <div class="contract-card" data-id="${c._id}" data-type="${escapeHtml(normalizeContractType(c.type))}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
@@ -209,7 +241,7 @@ function renderUserDraftCard(c) {
 
 function renderUserPendingCard(c) {
   return `
-    <div class="contract-card" data-id="${c._id}">
+    <div class="contract-card" data-id="${c._id}" data-type="${escapeHtml(normalizeContractType(c.type))}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
@@ -248,7 +280,7 @@ function renderUserSignedCard(c) {
     : '';
 
   return `
-    <div class="contract-card" data-id="${c._id}">
+    <div class="contract-card" data-id="${c._id}" data-type="${escapeHtml(normalizeContractType(c.type))}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
@@ -284,7 +316,7 @@ function renderClientPendingCard(c) {
   const senderText = escapeHtml(c.userName) || escapeHtml(c.userEmail) || 'Unknown Sender';
 
   return `
-    <div class="contract-card" data-id="${c._id}">
+    <div class="contract-card" data-id="${c._id}" data-type="${escapeHtml(normalizeContractType(c.type))}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
@@ -324,7 +356,7 @@ function renderClientSignedCard(c) {
     : '';
 
   return `
-    <div class="contract-card" data-id="${c._id}">
+    <div class="contract-card" data-id="${c._id}" data-type="${escapeHtml(normalizeContractType(c.type))}">
       <div class="contract-card-header">
         <div class="contract-card-top">
           <div>
@@ -385,14 +417,14 @@ function updateCount(id, count) {
 function bindCardButtons() {
   document.querySelectorAll('.edit-contract-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-      const id = e.target.closest('.contract-card').dataset.id;
+      const card = e.target.closest('.contract-card');
+      const id = card.dataset.id;
+      const contractType = card.dataset.type;
       if (!isLikelyContractId(id)) {
         showToast('Invalid contract reference. Please refresh the dashboard and try again.', 'error');
         return;
       }
-      localStorage.setItem('selected_contract_id', id);
-      localStorage.setItem('contract_page_mode', 'edit');
-      window.location.href = `./create-contract.html?contractId=${encodeURIComponent(id)}&mode=edit`;
+      window.location.href = `./${getContractPage(contractType)}?contractId=${encodeURIComponent(id)}&mode=edit`;
     });
   });
 
@@ -404,14 +436,13 @@ function bindCardButtons() {
         showToast('Invalid contract reference. Please refresh the dashboard and try again.', 'error');
         return;
       }
-      localStorage.setItem('selected_contract_id', id);
       // Route by current dashboard context so stale role data cannot misroute to create-contract.
       const isClientDashboard = window.location.pathname.includes('client-dashboard');
       if (isClientDashboard) {
         window.location.href = `./sign-contract.html?contractId=${encodeURIComponent(id)}`;
       } else {
-        localStorage.setItem('contract_page_mode', 'view');
-        window.location.href = `./create-contract.html?contractId=${encodeURIComponent(id)}&mode=view`;
+        const contractType = card.dataset.type;
+        window.location.href = `./${getContractPage(contractType)}?contractId=${encodeURIComponent(id)}&mode=view`;
       }
     });
   });
@@ -423,7 +454,6 @@ function bindCardButtons() {
         showToast('Invalid contract reference. Please refresh the dashboard and try again.', 'error');
         return;
       }
-      localStorage.setItem('selected_contract_id', id);
       window.location.href = `./sign-contract.html?contractId=${encodeURIComponent(id)}`;
     });
   });

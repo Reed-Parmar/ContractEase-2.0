@@ -27,7 +27,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ── Allowed contract statuses ─────────────────────────────────
@@ -52,6 +52,49 @@ class ContractSignatures(BaseModel):
     client: Optional[str] = None
 
 
+class HouseSaleTemplateData(BaseModel):
+    agreement_place: Optional[str] = None
+    agreement_date: Optional[str] = None
+    vendor_name: Optional[str] = None
+    vendor_residence: Optional[str] = None
+    purchaser_name: Optional[str] = None
+    purchaser_residence: Optional[str] = None
+    property_details: Optional[str] = None
+    sale_price: Optional[float] = Field(default=None, ge=0)
+    earnest_money_amount: Optional[float] = Field(default=None, ge=0)
+    completion_period_months: Optional[int] = Field(default=None, ge=0)
+    witness_1_name: Optional[str] = None
+    witness_2_name: Optional[str] = None
+
+    @field_validator("agreement_date")
+    @classmethod
+    def validate_agreement_date(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+
+        text = str(value).strip()
+        if not text:
+            return None
+
+        if len(text) != 10 or text[4] != "-" or text[7] != "-":
+            raise ValueError("agreement_date must be ISO format YYYY-MM-DD")
+
+        year = int(text[:4])
+        month = int(text[5:7])
+        day = int(text[8:10])
+
+        if year < 1900 or year > 2100:
+            raise ValueError("agreement_date year must be between 1900 and 2100")
+
+        # Validate actual calendar date.
+        datetime(year=year, month=month, day=day)
+        return f"{year:04d}-{month:02d}-{day:02d}"
+
+
+class TemplateData(BaseModel):
+    houseSale: Optional[HouseSaleTemplateData] = None
+
+
 # ── Request body for creating a contract ──────────────────────
 class ContractCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, examples=["Web Development Services"])
@@ -70,6 +113,7 @@ class ContractCreate(BaseModel):
         description="Base64-encoded creator signature image",
         examples=["data:image/png;base64,iVBOR..."],
     )
+    templateData: Optional[TemplateData] = None
 
 
 # ── Full contract document returned by the API ────────────────
@@ -83,6 +127,7 @@ class ContractOut(BaseModel):
     dueDate: datetime
     clauses: Clauses
     signatures: ContractSignatures = Field(default_factory=ContractSignatures)
+    templateData: Optional[TemplateData] = None
     status: ContractStatus
     userId: str
     userName: Optional[str] = None

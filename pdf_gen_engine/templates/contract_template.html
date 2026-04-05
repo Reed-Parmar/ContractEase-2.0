@@ -58,7 +58,7 @@
         <div class="signature-block">
           <p class="signature-label">Creator Signature</p>
           {% if signature_creator %}
-          <img class="signature-image" src="{{ signature_creator }}" alt="Creator signature">
+          <img class="signature-image" src="{{ signature_creator|e }}" alt="Creator signature">
           {% else %}
           <p class="signature-placeholder">Pending signature</p>
           {% endif %}
@@ -68,7 +68,7 @@
         <div class="signature-block">
           <p class="signature-label">Client Signature</p>
           {% if signature_client %}
-          <img class="signature-image" src="{{ signature_client }}" alt="Client signature">
+          <img class="signature-image" src="{{ signature_client|e }}" alt="Client signature">
           {% else %}
           <p class="signature-placeholder">Pending signature</p>
           {% endif %}

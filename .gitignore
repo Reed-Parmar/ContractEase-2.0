@@ -222,6 +222,8 @@ build/
 .vscode/
 .idea/
 
+# Added by Reedham Parmar
+
 # Internal docs (analysis, changelogs, notes — not for GitHub)
 docs/
 
@@ -229,3 +231,5 @@ docs/
 contracts_pdfs/
 
 backend/seed.py
+
+contracts_to_be_implemented/

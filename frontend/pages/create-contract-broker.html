@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Broker Agreement - ContractEase</title>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/contract.css">
+</head>
+<body class="bg-page dashboard-layout">
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="user-dashboard.html" class="navbar-logo"><span class="navbar-logo-icon"></span>ContractEase</a>
+      <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-controls="navbarMenu" aria-expanded="false" aria-label="Open mobile menu">☰</button>
+      <div class="navbar-menu" id="navbarMenu" aria-hidden="true">
+        <a href="user-dashboard.html" class="navbar-link">Dashboard</a><a href="create-contract.html" class="navbar-link active">Create Contract</a><div class="navbar-user"><div class="user-avatar" id="userAvatar">U</div><button id="logoutBtn" class="logout-btn">Sign Out</button></div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dashboard-main dashboard-container">
+    <div class="contract-editor">
+      <div class="editor-header">
+        <div class="editor-breadcrumb">
+          <a href="user-dashboard.html" class="breadcrumb-link">Dashboard</a><span class="breadcrumb-separator">/</span><a href="create-contract.html" class="breadcrumb-link">Create Contract</a><span class="breadcrumb-separator">/</span><span id="typeLabel">Broker Agreement</span>
+        </div>
+        <h1 class="editor-title" id="pageTitle">Broker Agreement</h1>
+      </div>
+
+      <div class="progress-steps" id="progressSteps">
+        <div class="progress-step completed" data-step="1"><div class="step-number">1</div><span class="step-label">Type Selected</span></div>
+        <div class="progress-step active" data-step="2"><div class="step-number">2</div><span class="step-label">Details & Clauses</span></div>
+        <div class="progress-step" data-step="3"><div class="step-number">3</div><span class="step-label">Review & Send</span></div>
+      </div>
+
+      <div class="form-section" id="step-2">
+        <h2 class="form-section-title">Contract Details</h2>
+        <div class="form-group">
+          <label for="contractTitle" class="form-label">Contract Title <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="contractTitle" class="form-input" placeholder="e.g., Real Estate Broker Commission Agreement" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="clientName" class="form-label">Client Name</label>
+            <input type="text" id="clientName" class="form-input" placeholder="Company or Individual">
+          </div>
+          <div class="form-group">
+            <label for="clientEmail" class="form-label">Client Email <span style="color:var(--danger)">*</span></label>
+            <input type="email" id="clientEmail" class="form-input" placeholder="billing@client.com" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="contractAmount" class="form-label">Commission / Amount <span style="color:var(--danger)">*</span></label>
+            <div class="amount-field-group">
+              <select id="currency" class="form-select" aria-label="Select currency">
+                <option value="₹" selected>₹ (INR)</option>
+                <option value="$">$ (USD)</option>
+                <option value="€">€ (EUR)</option>
+              </select>
+              <input type="number" id="contractAmount" class="form-input" placeholder="0.00" min="0" step="0.01" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="dueDate" class="form-label">Effective Date <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="dueDate" class="form-input" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="contractDescription" class="form-label">Description / Commission Terms</label>
+          <textarea id="contractDescription" class="form-textarea" placeholder="Specify brokerage details, commission structure, services..." rows="4"></textarea>
+        </div>
+
+        <h3 style="margin-top: var(--space-8); margin-bottom: var(--space-6); font-size: var(--font-size-lg); border-bottom: 1px solid var(--border); padding-bottom: var(--space-3);">Include Standard Clauses</h3>
+        <div class="toggle-group">
+          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Standard Payment Terms</div></div><input type="checkbox" name="clause_payment" class="toggle-switch" data-clause="payment" checked></label>
+          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Limitation of Liability</div></div><input type="checkbox" name="clause_liability" class="toggle-switch" data-clause="liability"></label>
+          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Mutual Confidentiality</div></div><input type="checkbox" name="clause_confidentiality" class="toggle-switch" data-clause="confidentiality" checked></label>
+          <label class="toggle-item"><div class="toggle-label"><div class="toggle-label-title">Termination for Convenience</div></div><input type="checkbox" name="clause_termination" class="toggle-switch" data-clause="termination"></label>
+        </div>
+      </div>
+
+      <div class="form-section hidden" id="step-3">
+        <h2 class="form-section-title">Review & Send</h2>
+        <div class="contract-preview">
+          <div class="preview-content" id="previewContent">
+            <h2 id="previewTitle">Broker Agreement</h2>
+            <p>This Agreement is officially entered into as of <strong id="previewDate"></strong>, by and between the broker and <strong id="previewClient"></strong> (hereinafter referred to as "Client").</p>
+            <section class="preview-section"><h2>Signatures</h2><div id="previewSignatureVisuals"></div></section>
+          </div>
+        </div>
+
+        <div class="creator-signature-panel">
+          <h3 class="creator-signature-title">Creator Signature</h3>
+          <div class="signature-container" id="creatorSignatureContainer">
+            <div class="signature-mode-grid" id="creatorSignatureModeGrid">
+              <label class="signature-card signature-mode-card signature-card-active" data-mode="draw" tabindex="0"><input type="radio" name="creatorSignatureMethod" value="draw" class="signature-radio creator-signature-method-radio" checked><span class="signature-card-icon">✍️</span><span class="signature-card-title">Draw</span></label>
+              <label class="signature-card signature-mode-card" data-mode="upload" tabindex="0"><input type="radio" name="creatorSignatureMethod" value="upload" class="signature-radio creator-signature-method-radio"><span class="signature-card-icon">📤</span><span class="signature-card-title">Upload</span></label>
+              <label class="signature-card signature-mode-card" data-mode="type" tabindex="0"><input type="radio" name="creatorSignatureMethod" value="type" class="signature-radio creator-signature-method-radio"><span class="signature-card-icon">⌨️</span><span class="signature-card-title">Type</span></label>
+            </div>
+            <div id="creatorDrawSignatureWrapper" class="signature-section signature-section-active" data-mode="draw"><canvas id="creatorSignatureCanvas" class="signature-canvas" aria-label="Draw your signature">Draw your signature here using mouse or touch; if you cannot use the canvas, upload an image or contact support.</canvas><button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear</button></div>
+            <div id="creatorUploadSignatureWrapper" class="signature-section" data-mode="upload"><input type="file" id="creatorSignatureFileInput" accept="image/png,image/jpeg,.png,.jpg,.jpeg" style="display: none;"><button type="button" id="creatorSignatureFileChooseBtn" class="signature-upload-dropzone">Upload</button></div>
+            <div id="creatorTypedSignatureWrapper" class="signature-section" data-mode="type"><input type="text" id="creatorTypedSignatureInput" class="form-input" placeholder="Name"></div>
+            <input type="hidden" id="creatorSignatureTypeFlag" value="draw">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <div class="form-actions-left"><button type="button" class="btn btn-outline" id="prevBtn" style="display: none;">Back</button></div>
+        <div class="form-actions-right">
+          <button type="button" class="btn btn-outline-danger" id="cancelDraftBtn">Cancel Draft</button>
+          <button type="button" class="btn btn-primary" id="nextBtn">Continue →</button>
+          <button type="button" class="btn btn-outline" id="saveDraftBtn" style="display: none;">Save Draft</button>
+          <button type="button" class="btn btn-primary" id="submitBtn" style="display: none;">Send ✉️</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script>
+    window.CONTRACT_PAGE_CONFIG = {
+      contractType: 'broker',
+      contractTypeLabel: 'Broker Agreement',
+    };
+  </script>
+  <script src="../js/contract.js"></script>
+</body>
+</html>

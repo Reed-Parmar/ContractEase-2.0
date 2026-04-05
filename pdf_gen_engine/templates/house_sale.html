@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data: https:; style-src 'unsafe-inline';">
+  <title>{{ contract_title or "Agreement for Sale of House" }}</title>
+  <style>
+    @page {
+      margin: 0;
+      size: A4;
+    }
+
+    body {
+      margin: 0;
+      font-family: serif;
+      color: #334155;
+      font-size: 0.9375rem;
+      line-height: 1.8;
+      background: #fff;
+    }
+
+    .document-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 3rem 4rem;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+      margin-top: 0;
+      margin-bottom: 2rem;
+      font-size: 1.375rem;
+      font-weight: 700;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #cbd5e1;
+      letter-spacing: -0.01em;
+      text-align: center;
+    }
+
+    h3 {
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      font-size: 0.95rem;
+      margin: 1.5rem 0 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0 0 1.25rem;
+      text-align: justify;
+    }
+
+    .section {
+      margin-top: 1.5rem;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+    }
+
+    .signature-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .signature-block {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    .signature-label {
+      color: #475569;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin: 0 0 0.75rem 0;
+      text-transform: uppercase;
+    }
+
+    .signature-image {
+      background: #ffffff;
+      display: block;
+      max-height: 88px;
+      max-width: 100%;
+      object-fit: contain;
+      width: 100%;
+    }
+
+    .signature-placeholder {
+      border-top: 1px dashed #e2e8f0;
+      color: #475569;
+      margin: 1.5rem 0 0 0;
+      padding-top: 0.75rem;
+    }
+
+    .signature-name {
+      border-top: 1px solid #e2e8f0;
+      color: #0f172a;
+      font-weight: 600;
+      margin: 1rem 0 0 0;
+      padding-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="document-container">
+    <h2>AGREEMENT FOR SALE OF A HOUSE</h2>
+    <h3>{{ contract_title or "Agreement for Sale of House" }}</h3>
+    <p>
+      THIS AGREEMENT of sale made at {{ agreement_place }} on {{ agreement_date }}, between
+      {{ vendor_name }}, resident of {{ vendor_residence }} hereinafter called the Vendor of the ONE PART and
+      {{ purchaser_name }}, resident of {{ purchaser_residence }} hereinafter called the Purchaser of the OTHER PART.
+    </p>
+
+    <section class="section">
+      <p>
+        WHEREAS the Vendor is absolutely seized and possessed of or well and sufficiently entitled to the house
+        more fully described in the Schedule hereunder:
+      </p>
+      <p>AND WHEREAS the Vendor has agreed to sell his house to the Purchaser on the terms and conditions hereafter set-forth.</p>
+      <p><strong>NOW THIS AGREEMENT WITNESSETH AS FOLLOWS</strong></p>
+    </section>
+
+    <section class="section">
+      <p>
+        <strong>(1)</strong> The Vendor shall sell and the Purchaser shall purchase that entire house more particularly described in the
+        Schedule hereunder written at a price of {{ sale_price }} free from all encumbrances.
+      </p>
+      <p>
+        <strong>(2)</strong> The Purchaser has paid a sum of {{ earnest_money_amount }} as earnest money (the receipt of which sum,
+        the Vendor hereby acknowledges) and the balance amount of consideration shall be paid at the time of
+        execution of conveyance deed.
+      </p>
+      <p>
+        <strong>(3)</strong> The sale shall be completed within a period of {{ completion_period_months }} months from this date and
+        it is hereby agreed that time is the essence of the contract.
+      </p>
+      <p>
+        <strong>(4)</strong> The Vendor shall submit the title deeds of the house in his possession or power to the Purchaser's advocate
+        within one week from the date of this agreement for investigation of title and the Purchaser shall intimate
+        about his advocate's report within a reasonable period mutually agreed by both parties after delivery of title deeds.
+      </p>
+      <p>
+        <strong>(5)</strong> If the Purchaser's advocate gives the report that the Vendor's title is not clear, the Vendor shall refund
+        the earnest money, without interest, to the Purchaser within a reasonable period mutually agreed by both parties from intimation of such report.
+        If the Vendor does not refund the earnest money within such time, the Vendor shall be liable for applicable
+        interest up to the date of repayment of earnest money.
+      </p>
+      <p>
+        <strong>(6)</strong> The Vendor declares that the sale of the house shall be without encumbrances.
+      </p>
+      <p>
+        <strong>(7)</strong> The Vendor shall hand over vacant possession of the house on execution and registration of conveyance deed.
+      </p>
+      <p>
+        <strong>(8)</strong> If the Purchaser commits breach of this agreement, the Vendor shall be entitled to forfeit the earnest money
+        and may resell the property to any person.
+      </p>
+      <p>
+        <strong>(9)</strong> If the Vendor commits breach of the agreement, he shall be liable to refund earnest money, received by him,
+        and liquidated damages as may be determined under applicable law.
+      </p>
+      <p>
+        <strong>(10)</strong> The Vendor shall execute the conveyance deed in favour of the Purchaser or nominee on receipt of balance consideration.
+      </p>
+      <p>
+        <strong>(11)</strong> The Vendor shall obtain statutory clearances and permissions required for completion of sale at the Vendor's cost.
+      </p>
+      <p>
+        <strong>(12)</strong> Expenses for preparation of conveyance deed, stamp duty, registration charges and all other out-of-pocket
+        expenses shall be borne by the Purchaser.
+      </p>
+    </section>
+
+    <section class="section">
+      <h3>SCHEDULE OF PROPERTY</h3>
+      <p><strong>Detailed description:</strong> {{ property_details }}</p>
+    </section>
+
+    <section class="section">
+      <div class="no-break">
+        <h3>EXECUTION</h3>
+        <p>IN WITNESS WHEREOF the parties have set their hands to this Agreement on the day and year first hereinabove written.</p>
+        <div class="signature-grid">
+          <div class="signature-block">
+            <p class="signature-label">Vendor Signature</p>
+            {% if creator_signature %}
+            <img class="signature-image" src="{{ creator_signature|e }}" alt="Vendor signature">
+            {% else %}
+            <p class="signature-placeholder">Pending signature</p>
+            {% endif %}
+            <p class="signature-name">{{ vendor_name }}</p>
+          </div>
+
+          <div class="signature-block">
+            <p class="signature-label">Purchaser Signature</p>
+            {% if client_signature %}
+            <img class="signature-image" src="{{ client_signature|e }}" alt="Purchaser signature">
+            {% else %}
+            <p class="signature-placeholder">Pending signature</p>
+            {% endif %}
+            <p class="signature-name">{{ purchaser_name }}</p>
+          </div>
+        </div>
+      </div>
+
+      {% if has_witnesses %}
+      <div class="no-break">
+        <h3>WITNESSES</h3>
+        {% if witness_1_name %}<p>1. {{ witness_1_name | title }}</p>{% endif %}
+        {% if witness_2_name %}<p>2. {{ witness_2_name | title }}</p>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

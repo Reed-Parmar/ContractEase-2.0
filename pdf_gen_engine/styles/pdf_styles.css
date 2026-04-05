@@ -9,7 +9,12 @@ body {
   color: #1f2937;
   font-family: "Georgia", "Times New Roman", serif;
   font-size: 11pt;
-  line-height: 1.6;
+  line-height: 1.5;
+}
+
+p {
+  margin: 0 0 10px;
+  line-height: 1.5;
 }
 
 .contract-document {
@@ -26,6 +31,13 @@ body {
   margin: 0;
   font-size: 20pt;
   letter-spacing: 0.3px;
+}
+
+.document-header h2 {
+  margin: 8px 0 0;
+  font-family: "Arial", sans-serif;
+  font-size: 12pt;
+  font-weight: 600;
 }
 
 .document-date {

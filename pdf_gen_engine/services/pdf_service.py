@@ -6,7 +6,7 @@ and reuse it without coupling PDF logic to FastAPI endpoints.
 
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping
+from typing import Literal, Mapping
 
 from ..config import PDF_STYLE_PATH
 from ..utils.pdf_utils import (
@@ -17,8 +17,6 @@ from ..utils.pdf_utils import (
 )
 
 PdfOutputMode = Literal["path", "bytes"]
-
-
 def generate_contract_pdf(
     contract_data: Mapping[str, Any],
     output_mode: PdfOutputMode = "path",
@@ -32,8 +30,10 @@ def generate_contract_pdf(
     Returns:
         A string file path when output_mode is "path", otherwise PDF bytes.
     """
+    contract_type = str(contract_data.get("type") or "").strip().lower()
     context = build_contract_template_context(contract_data)
-    rendered_html = render_contract_template(context)
+    template_name = "house_sale.html" if contract_type == "house_sale" else None
+    rendered_html = render_contract_template(context, template_name=template_name)
 
     try:
         from weasyprint import CSS, HTML

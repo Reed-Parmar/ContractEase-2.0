@@ -200,6 +200,11 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     result = await signatures_collection.insert_one(sig_doc)
 
     amount_value = locked_contract.get("amount")
+    contract_type = str(locked_contract.get("type") or "").strip().lower()
+    if contract_type == "house_sale":
+        house_sale = ((locked_contract.get("templateData") or {}).get("houseSale") or {})
+        if house_sale.get("sale_price") is not None:
+            amount_value = house_sale.get("sale_price")
     signature_fields = locked_contract.get("signatures") or {}
 
     if not str(signature_fields.get("creator") or "").strip():
@@ -217,6 +222,8 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
         raise HTTPException(status_code=400, detail="Creator signature is missing from this contract")
 
     contract_payload = {
+        "type": locked_contract.get("type") or "custom",
+        "templateData": locked_contract.get("templateData") or {},
         "contract_id": str(locked_contract["_id"]),
         "title": locked_contract.get("title") or "Service Agreement",
         "description": locked_contract.get("description") or "",
@@ -238,6 +245,23 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 
     try:
         pdf_path = await asyncio.to_thread(generate_contract_pdf, contract_payload)
+    except ValueError as error:
+        print(f"PDF validation failed for signed contract {contract_id}: {error}")
+        await signatures_collection.delete_one({"_id": result.inserted_id})
+        await contracts_collection.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    "status": ContractStatus.sent.value,
+                    "signedAt": None,
+                    "pendingAt": None,
+                }
+            },
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
     except Exception as error:
         print(f"PDF generation failed for signed contract {contract_id}: {error}")
         await signatures_collection.delete_one({"_id": result.inserted_id})

@@ -27,6 +27,7 @@ from pdf_gen_engine.config import PDF_STORAGE_PATH
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 
 DEFAULT_CURRENCY = "₹"
+HOUSE_SALE_TYPE = "house_sale"
 
 
 # ── Helper ────────────────────────────────────────────────────
@@ -40,9 +41,46 @@ def _validate_object_id(value: str, label: str) -> ObjectId:
 
 def _serialize(doc: dict) -> dict:
     """Stringify ObjectId fields for JSON output."""
+    doc = dict(doc)
+
+    def _parse_datetime(value):
+        if isinstance(value, datetime):
+            return value
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text:
+            return None
+
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+            try:
+                return datetime.strptime(text, fmt).replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
+        return None
+
     doc["_id"] = str(doc["_id"])
+    doc["amount"] = float(doc.get("amount") or 0)
+
+    parsed_due = _parse_datetime(doc.get("dueDate"))
+    if parsed_due is None:
+        parsed_due = _parse_datetime(doc.get("createdAt")) or datetime.now(timezone.utc)
+    doc["dueDate"] = parsed_due
+
+    parsed_created = _parse_datetime(doc.get("createdAt"))
+    if parsed_created is None:
+        parsed_created = datetime.now(timezone.utc)
+    doc["createdAt"] = parsed_created
+
+    doc["signedAt"] = _parse_datetime(doc.get("signedAt"))
     doc["currency"] = doc.get("currency") or DEFAULT_CURRENCY
     doc["signatures"] = doc.get("signatures") or {"creator": None, "client": None}
+    doc["templateData"] = doc.get("templateData") or {}
     if isinstance(doc.get("userId"), ObjectId):
         doc["userId"] = str(doc["userId"])
     if isinstance(doc.get("clientId"), ObjectId):
@@ -64,8 +102,15 @@ def _is_contract_owner(doc: dict, requester_oid: ObjectId, requester_id: str) ->
 def _build_pdf_payload(contract_doc: dict, signature_doc: Optional[dict] = None) -> dict:
     """Build the PDF service payload from a stored contract document."""
     amount_value = contract_doc.get("amount")
+    contract_type = str(contract_doc.get("type") or "").strip().lower()
+    if contract_type == HOUSE_SALE_TYPE:
+        house_sale = ((contract_doc.get("templateData") or {}).get("houseSale") or {})
+        if house_sale.get("sale_price") is not None:
+            amount_value = house_sale.get("sale_price")
     signature_fields = contract_doc.get("signatures") or {}
     return {
+        "type": contract_doc.get("type") or "custom",
+        "templateData": contract_doc.get("templateData") or {},
         "contract_id": str(contract_doc["_id"]),
         "title": contract_doc.get("title") or "Service Agreement",
         "description": contract_doc.get("description") or "",
@@ -85,6 +130,70 @@ def _build_pdf_payload(contract_doc: dict, signature_doc: Optional[dict] = None)
         or signature_fields.get("client")
         or "",
     }
+
+
+def _normalize_template_data(payload: ContractCreate) -> dict:
+    template_data = payload.templateData
+    if template_data is None:
+        return {}
+
+    if hasattr(template_data, "model_dump"):
+        return template_data.model_dump(exclude_none=True)
+
+    if isinstance(template_data, dict):
+        return template_data
+
+    return {}
+
+
+def _validate_house_sale_data(payload: ContractCreate, template_data: dict) -> float:
+    if (payload.type or "").strip().lower() != HOUSE_SALE_TYPE:
+        return payload.amount
+
+    house_sale = template_data.get("houseSale") if isinstance(template_data, dict) else None
+    if not isinstance(house_sale, dict):
+        raise HTTPException(status_code=400, detail="templateData.houseSale is required for house_sale contracts")
+
+    required_fields = {
+        "vendor_name": "Vendor name is required for house sale contracts",
+        "purchaser_name": "Purchaser name is required for house sale contracts",
+        "property_details": "Property details are required for house sale contracts",
+        "sale_price": "Sale price is required for house sale contracts",
+    }
+
+    for field_name, message in required_fields.items():
+        value = house_sale.get(field_name)
+        if value is None:
+            raise HTTPException(status_code=400, detail=message)
+        if isinstance(value, str) and not value.strip():
+            raise HTTPException(status_code=400, detail=message)
+
+    try:
+        sale_price = float(house_sale.get("sale_price"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Sale price must be a number for house sale contracts")
+
+    if sale_price <= 0:
+        raise HTTPException(status_code=400, detail="Sale price must be greater than 0 for house sale contracts")
+
+    property_details = str(house_sale.get("property_details") or "").strip()
+    if len(property_details) <= 10:
+        raise HTTPException(status_code=400, detail="Property details must be longer than 10 characters")
+
+    earnest_money_raw = house_sale.get("earnest_money_amount")
+    if earnest_money_raw is not None and str(earnest_money_raw).strip() != "":
+        try:
+            earnest_money = float(earnest_money_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Earnest money amount must be a number")
+
+        if earnest_money < 0:
+            raise HTTPException(status_code=400, detail="Earnest money amount cannot be negative")
+
+        if earnest_money > sale_price:
+            raise HTTPException(status_code=400, detail="Earnest money amount cannot exceed sale price")
+
+    return sale_price
 
 
 async def _attach_sender_fields(doc: dict) -> dict:
@@ -117,6 +226,9 @@ async def _generate_legacy_pdf_path(contract_id: str, doc: dict) -> str:
 
     try:
         pdf_path = generate_contract_pdf(_build_pdf_payload(doc, signature_doc))
+    except ValueError as error:
+        print(f"Legacy PDF validation failed for contract {contract_id}: {error}")
+        raise HTTPException(status_code=400, detail=str(error))
     except Exception as error:
         print(f"Legacy PDF generation failed for contract {contract_id}: {error}")
         raise HTTPException(status_code=500, detail="Failed to generate signed contract PDF.")
@@ -145,14 +257,18 @@ async def create_contract(payload: ContractCreate):
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 
+    template_data = _normalize_template_data(payload)
+    normalized_amount = _validate_house_sale_data(payload, template_data)
+
     doc = {
         "title": payload.title,
         "type": payload.type,
         "description": payload.description,
-        "amount": payload.amount,
+        "amount": normalized_amount,
         "currency": payload.currency,
         "dueDate": payload.dueDate,
         "clauses": payload.clauses.model_dump(),
+        "templateData": template_data,
         "signatures": {
             "creator": payload.creator_signature,
             "client": None,
@@ -301,14 +417,18 @@ async def update_contract(
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 
+    template_data = _normalize_template_data(payload)
+    normalized_amount = _validate_house_sale_data(payload, template_data)
+
     update_fields = {
         "title": payload.title,
         "type": payload.type,
         "description": payload.description,
-        "amount": payload.amount,
+        "amount": normalized_amount,
         "currency": payload.currency,
         "dueDate": payload.dueDate,
         "clauses": payload.clauses.model_dump(),
+        "templateData": template_data,
         "signatures.creator": payload.creator_signature,
         "userId": user_oid,
         "userName": user.get("name", ""),

@@ -9,7 +9,9 @@ from __future__ import annotations
 from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
+import re
 from typing import Any, Mapping
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -18,6 +20,7 @@ from ..config import PDF_FILE_PREFIX, PDF_STORAGE_PATH, PDF_TEMPLATE_PATH
 
 SUPPORTED_CURRENCIES = {"₹", "$", "€"}
 DEFAULT_CURRENCY = "₹"
+HOUSE_SALE_TYPE = "house_sale"
 
 
 def _normalize_currency_symbol(value: Any, fallback: str = DEFAULT_CURRENCY) -> str:
@@ -37,33 +40,45 @@ def _format_currency_amount(amount: Any, currency: str) -> str | None:
     except (TypeError, ValueError):
         return f"{currency}{str(amount).strip()}"
 
-    return f"{currency}{numeric_amount:.2f}"
+    return f"{currency}{numeric_amount:,.2f}"
 
 
 def _to_display_date(value: Any) -> str:
     """Convert common date inputs into a printable contract date string."""
+    def render_long_date(dt: datetime | date) -> str:
+        month_name = dt.strftime("%B")
+        return f"{dt.day} {month_name} {dt.year}"
+
     if value is None:
-        return datetime.utcnow().strftime("%d/%m/%Y")
+        return render_long_date(datetime.utcnow())
 
     if isinstance(value, datetime):
-        return value.strftime("%d/%m/%Y")
+        return render_long_date(value)
 
     if isinstance(value, date):
-        return value.strftime("%d/%m/%Y")
+        return render_long_date(value)
 
     value_text = str(value).strip()
     if not value_text:
-        return datetime.utcnow().strftime("%d/%m/%Y")
+        return render_long_date(datetime.utcnow())
 
     try:
         parsed = datetime.fromisoformat(value_text.replace("Z", "+00:00"))
-        return parsed.strftime("%d/%m/%Y")
+        return render_long_date(parsed)
     except ValueError:
         return value_text
 
 
-def normalize_signature_data(signature_value: Any) -> str:
-    """Normalize signatures to an embeddable data URL string for HTML img tags."""
+def validate_signature_src(signature_value: Any) -> str:
+    """Validate and normalize signature source values for HTML img tags.
+
+    Allowed values:
+    - data:image/*;base64,...
+    - http(s) image URLs
+    - raw base64 image payloads (auto-prefixed as PNG)
+
+    Any other scheme/value is rejected and returns an empty string.
+    """
     if signature_value is None:
         return ""
 
@@ -71,10 +86,33 @@ def normalize_signature_data(signature_value: Any) -> str:
     if not value_text:
         return ""
 
-    if value_text.startswith("data:image"):
+    lower_text = value_text.lower()
+    if lower_text.startswith(("javascript:", "vbscript:", "data:text/html")):
+        return ""
+
+    if lower_text.startswith("data:image/"):
+        if ";base64," not in lower_text:
+            return ""
         return value_text
 
-    return f"data:image/png;base64,{value_text}"
+    parsed = urlparse(value_text)
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        return value_text
+
+    # Reject all other explicit URI schemes.
+    if parsed.scheme:
+        return ""
+
+    compact_value = re.sub(r"\s+", "", value_text)
+    if re.fullmatch(r"[A-Za-z0-9+/=]+", compact_value or ""):
+        return f"data:image/png;base64,{compact_value}"
+
+    return ""
+
+
+def normalize_signature_data(signature_value: Any) -> str:
+    """Backwards-compatible wrapper around signature src validation."""
+    return validate_signature_src(signature_value)
 
 
 def normalize_contract_terms(terms: Any) -> list[str]:
@@ -111,6 +149,10 @@ def _resolve_clause_flag(
 
 def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
     """Build a safe template context from incoming contract payload data."""
+    contract_type = str(contract_data.get("type") or "").strip().lower()
+    if contract_type == HOUSE_SALE_TYPE:
+        return build_house_sale_template_context(contract_data)
+
     terms_list = normalize_contract_terms(contract_data.get("contract_terms"))
     clauses = contract_data.get("clauses") or {}
     description_text = str(
@@ -207,16 +249,99 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
     }
 
 
+def build_house_sale_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
+    """Build house-sale template context.
+
+    Raises:
+        ValueError: When required house-sale monetary/timeline fields are missing.
+    """
+    template_data = contract_data.get("templateData") or {}
+    house_sale = template_data.get("houseSale") if isinstance(template_data, Mapping) else {}
+    if not isinstance(house_sale, Mapping):
+        house_sale = {}
+
+    def text_value(key: str, fallback: str = "") -> str:
+        value = house_sale.get(key)
+        if value is None:
+            return fallback
+        return str(value).strip() or fallback
+
+    currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
+    sale_price_raw = house_sale.get("sale_price")
+    if sale_price_raw is None or str(sale_price_raw).strip() == "":
+        sale_price_raw = contract_data.get("amount")
+    sale_price = _format_currency_amount(sale_price_raw, currency)
+    if sale_price is None:
+        raise ValueError("Missing required field(s) for house-sale PDF rendering: sale_price")
+
+    earnest_money_raw = house_sale.get("earnest_money_amount")
+    earnest_money_amount = _format_currency_amount(earnest_money_raw, currency)
+    if earnest_money_amount is None:
+        raise ValueError("Missing required field(s) for house-sale PDF rendering: earnest_money_amount")
+
+    completion_period_raw = house_sale.get("completion_period_months")
+    if completion_period_raw is None or str(completion_period_raw).strip() == "":
+        raise ValueError("Missing required field(s) for house-sale PDF rendering: completion_period_months")
+
+    try:
+        completion_period_months = int(float(str(completion_period_raw).strip()))
+    except (TypeError, ValueError):
+        raise ValueError("Invalid required field for house-sale PDF rendering: completion_period_months")
+
+    if completion_period_months <= 0:
+        raise ValueError("Invalid required field for house-sale PDF rendering: completion_period_months must be greater than 0")
+
+    agreement_date = _to_display_date(
+        house_sale.get("agreement_date")
+        or contract_data.get("signed_date")
+        or contract_data.get("due_date")
+    )
+
+    vendor_name = text_value("vendor_name", contract_data.get("creator_name") or "Vendor")
+    purchaser_name = text_value("purchaser_name", contract_data.get("client_name") or "Purchaser")
+    witness_1_name = text_value("witness_1_name")
+    witness_2_name = text_value("witness_2_name")
+    has_witnesses = bool(witness_1_name or witness_2_name)
+    creator_signature = normalize_signature_data(contract_data.get("signature_creator"))
+    client_signature = normalize_signature_data(contract_data.get("signature_client"))
+
+    return {
+        "contract_title": contract_data.get("title") or "Agreement for Sale of a House",
+        "agreement_place": text_value("agreement_place", "____________"),
+        "agreement_date": agreement_date,
+        "vendor_name": vendor_name,
+        "vendor_residence": text_value("vendor_residence", "____________"),
+        "purchaser_name": purchaser_name,
+        "purchaser_residence": text_value("purchaser_residence", "____________"),
+        "property_details": text_value("property_details", "Property details to be confirmed."),
+        "sale_price": sale_price,
+        "earnest_money_amount": earnest_money_amount,
+        "completion_period_months": str(completion_period_months),
+        "witness_1_name": witness_1_name,
+        "witness_2_name": witness_2_name,
+        "has_witnesses": has_witnesses,
+        "signature_creator": creator_signature,
+        "signature_client": client_signature,
+        "creator_signature": creator_signature,
+        "client_signature": client_signature,
+        "creator_name": contract_data.get("creator_name") or vendor_name,
+        "client_name": contract_data.get("client_name") or purchaser_name,
+        "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
+    }
+
+
 def render_contract_template(
     context: Mapping[str, Any],
     template_path: Path = PDF_TEMPLATE_PATH,
+    template_name: str | None = None,
 ) -> str:
     """Render the Jinja2 contract template with a provided context map."""
     env = Environment(
         loader=FileSystemLoader(str(template_path.parent)),
         autoescape=select_autoescape(enabled_extensions=("html", "xml")),
     )
-    template = env.get_template(template_path.name)
+    selected_template = template_name or template_path.name
+    template = env.get_template(selected_template)
     return template.render(**dict(context))
 
 

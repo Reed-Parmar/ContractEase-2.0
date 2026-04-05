@@ -4,6 +4,7 @@ No JWT, no hashing — just raw inserts / lookups for demo.
 """
 
 from datetime import datetime, timezone
+import re
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -14,11 +15,29 @@ from app.db.mongo import users_collection, clients_collection
 router = APIRouter(tags=["Registration & Login"])
 
 
+def _normalize_email(value: str) -> str:
+    return str(value or "").strip().lower()
+
+
+async def _find_by_email(collection, email: str):
+    """Find by normalized email, with case-insensitive fallback for legacy rows."""
+    normalized = _normalize_email(email)
+    if not normalized:
+        return None
+
+    exact = await collection.find_one({"email": normalized})
+    if exact:
+        return exact
+
+    escaped = re.escape(normalized)
+    return await collection.find_one({"email": {"$regex": f"^{escaped}$", "$options": "i"}})
+
+
 # ── GET /clients/by-email?email=...  ─────────────────────────
 @router.get("/clients/by-email")
 async def get_client_by_email(email: str):
     """Look up a client by email. Returns id, name, email (no password)."""
-    client = await clients_collection.find_one({"email": email})
+    client = await _find_by_email(clients_collection, email)
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     return {
@@ -45,9 +64,14 @@ class LoginBody(BaseModel):
 async def register_user(payload: RegisterBody):
     """Insert a new user document into the *users* collection."""
 
+    normalized_email = _normalize_email(payload.email)
+    existing = await _find_by_email(users_collection, normalized_email)
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     doc = {
         "name": payload.name,
-        "email": payload.email,
+        "email": normalized_email,
         "password": payload.password,       # plain text — demo only
         "role": "user",
         "createdAt": datetime.now(timezone.utc),
@@ -63,7 +87,7 @@ async def register_user(payload: RegisterBody):
         "success": True,
         "user_id": str(doc["_id"]),
         "name": payload.name,
-        "email": payload.email,
+        "email": normalized_email,
         "role": "user",
     }
 
@@ -73,9 +97,14 @@ async def register_user(payload: RegisterBody):
 async def register_client(payload: RegisterBody):
     """Insert a new client document into the *clients* collection."""
 
+    normalized_email = _normalize_email(payload.email)
+    existing = await _find_by_email(clients_collection, normalized_email)
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     doc = {
         "name": payload.name,
-        "email": payload.email,
+        "email": normalized_email,
         "password": payload.password,       # plain text — demo only
         "role": "client",
         "createdAt": datetime.now(timezone.utc),
@@ -92,7 +121,7 @@ async def register_client(payload: RegisterBody):
         "success": True,
         "user_id": str(doc["_id"]),
         "name": payload.name,
-        "email": payload.email,
+        "email": normalized_email,
         "role": "client",
     }
 
@@ -101,8 +130,15 @@ async def register_client(payload: RegisterBody):
 @router.post("/login/user")
 async def login_user(payload: LoginBody):
     """Validate user credentials and return user info (no JWT)."""
-    user = await users_collection.find_one({"email": payload.email})
-    if not user or user.get("password") != payload.password:
+    normalized_email = _normalize_email(payload.email)
+    user = await _find_by_email(users_collection, normalized_email)
+    if not user:
+        client = await _find_by_email(clients_collection, normalized_email)
+        if client:
+            raise HTTPException(status_code=400, detail="This email belongs to a client account. Please use Client Login.")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if user.get("password") != payload.password:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return {
@@ -118,8 +154,15 @@ async def login_user(payload: LoginBody):
 @router.post("/login/client")
 async def login_client(payload: LoginBody):
     """Validate client credentials and return client info (no JWT)."""
-    client = await clients_collection.find_one({"email": payload.email})
-    if not client or client.get("password") != payload.password:
+    normalized_email = _normalize_email(payload.email)
+    client = await _find_by_email(clients_collection, normalized_email)
+    if not client:
+        user = await _find_by_email(users_collection, normalized_email)
+        if user:
+            raise HTTPException(status_code=400, detail="This email belongs to a user account. Please use User Login.")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if client.get("password") != payload.password:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return {
