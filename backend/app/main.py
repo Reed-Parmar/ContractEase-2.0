@@ -7,6 +7,7 @@ Run with:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from urllib.parse import urlsplit
 
 from app.core.config import ALLOWED_ORIGINS, DATABASE_NAME, MONGO_URI
 from app.db.mongo import close_mongo_connection, users_collection, clients_collection
@@ -30,12 +31,19 @@ app.add_middleware(
 )
 
 
+def _summarize_mongo_uri(uri: str) -> str:
+    parsed = urlsplit(uri)
+    netloc = parsed.netloc.split("@", 1)[-1] if "@" in parsed.netloc else parsed.netloc
+    database = parsed.path.lstrip("/") or "(none)"
+    return f"hosts={netloc or '(unknown)'}, db={database}"
+
+
 # ── Startup: ensure database indexes ─────────────────────────
 @app.on_event("startup")
 async def ensure_indexes():
     """Create required database indexes on startup (idempotent)."""
     print(f"[startup] Mongo target DB: {DATABASE_NAME}")
-    print(f"[startup] Mongo URI: {MONGO_URI}")
+    print(f"[startup] Mongo connection: {_summarize_mongo_uri(MONGO_URI)}")
     # Unique email index on users collection (n04 fix)
     await users_collection.create_index("email", unique=True)
     # Unique email index on clients collection (already enforced, kept for safety)

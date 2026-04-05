@@ -6,6 +6,8 @@ service layer so it can be reused by route handlers or background jobs later.
 
 from __future__ import annotations
 
+import logging
+import os
 from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
@@ -21,6 +23,17 @@ from ..config import PDF_FILE_PREFIX, PDF_STORAGE_PATH, PDF_TEMPLATE_PATH
 SUPPORTED_CURRENCIES = {"₹", "$", "€"}
 DEFAULT_CURRENCY = "₹"
 HOUSE_SALE_TYPE = "house_sale"
+LOGGER = logging.getLogger(__name__)
+ALLOWED_SIGNATURE_DATA_MIME_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
+
+
+def _trusted_signature_hosts() -> set[str]:
+    raw_hosts = os.getenv("PDF_SIGNATURE_IMAGE_HOST_ALLOWLIST", "")
+    return {
+        host.strip().lower()
+        for host in raw_hosts.split(",")
+        if host.strip()
+    }
 
 
 def _normalize_currency_symbol(value: Any, fallback: str = DEFAULT_CURRENCY) -> str:
@@ -50,7 +63,7 @@ def _to_display_date(value: Any) -> str:
         return f"{dt.day} {month_name} {dt.year}"
 
     if value is None:
-        return render_long_date(datetime.utcnow())
+        return render_long_date(datetime.now(datetime.UTC))
 
     if isinstance(value, datetime):
         return render_long_date(value)
@@ -60,7 +73,7 @@ def _to_display_date(value: Any) -> str:
 
     value_text = str(value).strip()
     if not value_text:
-        return render_long_date(datetime.utcnow())
+        return render_long_date(datetime.now(datetime.UTC))
 
     try:
         parsed = datetime.fromisoformat(value_text.replace("Z", "+00:00"))
@@ -88,19 +101,33 @@ def validate_signature_src(signature_value: Any) -> str:
 
     lower_text = value_text.lower()
     if lower_text.startswith(("javascript:", "vbscript:", "data:text/html")):
+        LOGGER.warning("Rejected unsafe signature source scheme")
         return ""
 
-    if lower_text.startswith("data:image/"):
+    if lower_text.startswith("data:"):
         if ";base64," not in lower_text:
-            return ""
+            LOGGER.warning("Rejected signature data URI without base64 payload")
+            raise ValueError("Signature image data URI must use base64 encoding")
+
+        mime_section = lower_text[5:].split(";", 1)[0].strip()
+        if mime_section not in ALLOWED_SIGNATURE_DATA_MIME_TYPES:
+            LOGGER.warning("Rejected signature data URI with unsupported MIME type: %s", mime_section)
+            raise ValueError("Unsupported signature image MIME type")
         return value_text
 
     parsed = urlparse(value_text)
-    if parsed.scheme in {"http", "https"} and parsed.netloc:
-        return value_text
+    if parsed.scheme in {"http", "https"}:
+        trusted_hosts = _trusted_signature_hosts()
+        hostname = (parsed.hostname or "").lower()
+        if hostname and hostname in trusted_hosts:
+            return value_text
+
+        LOGGER.warning("Rejected external signature image URL host=%s", hostname or "(missing)")
+        raise ValueError("External signature image URLs are not allowed")
 
     # Reject all other explicit URI schemes.
     if parsed.scheme:
+        LOGGER.warning("Rejected unsupported signature image scheme: %s", parsed.scheme)
         return ""
 
     compact_value = re.sub(r"\s+", "", value_text)

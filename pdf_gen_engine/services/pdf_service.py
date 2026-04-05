@@ -6,7 +6,7 @@ and reuse it without coupling PDF logic to FastAPI endpoints.
 
 from __future__ import annotations
 
-from typing import Literal, Mapping
+from typing import Any, Literal, Mapping
 
 from ..config import PDF_STYLE_PATH
 from ..utils.pdf_utils import (

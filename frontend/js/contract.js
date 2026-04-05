@@ -191,11 +191,19 @@ function getContractPage(typeValue) {
     broker: 'create-contract-broker.html',
   };
 
-  return map[normalizedType];
+  return map[normalizedType] || 'create-contract-custom.html';
 }
 
 function redirectToContractPage(typeValue) {
   const page = getContractPage(typeValue);
+  if (typeof page !== 'string' || !page.trim()) {
+    if (typeof showToast === 'function') {
+      showToast('Unknown contract type selected. Opening the custom contract page instead.', 'warning');
+    }
+    window.location.href = './create-contract-custom.html';
+    return;
+  }
+
   window.location.href = `./${page}`;
 }
 
@@ -221,6 +229,11 @@ function initializeContractPageConfig() {
   const pageTitleEl = document.getElementById('pageTitle');
   if (pageTitleEl && PAGE_CONTRACT_LABEL) {
     pageTitleEl.textContent = PAGE_CONTRACT_LABEL;
+  }
+
+  const previewTitleEl = document.getElementById('previewTitle');
+  if (previewTitleEl && PAGE_CONTRACT_LABEL) {
+    previewTitleEl.textContent = PAGE_CONTRACT_LABEL;
   }
 
   const agreementTitleEl = document.getElementById('contractTitle');
@@ -537,6 +550,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!field) return;
     field.addEventListener('blur', () => {
       if (!field.value.trim()) return;
+      if (field.type === 'date') {
+        saveDraft();
+        return;
+      }
       const normalized = formatDateForInput(field.value);
       if (normalized) {
         field.value = normalized;
@@ -681,11 +698,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const mobileMenuToggle = document.getElementById('mobileMenuBtn');
   const navbarMenu = document.getElementById('navbarMenu');
   if (mobileMenuToggle && navbarMenu) {
+    const navbar = mobileMenuToggle.closest('.navbar');
+    const setMobileMenuState = (isOpen) => {
+      navbarMenu.classList.toggle('active', isOpen);
+      mobileMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      navbarMenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    };
+
     mobileMenuToggle.addEventListener('click', () => {
-      navbarMenu.classList.toggle('active');
-      const isActive = navbarMenu.classList.contains('active');
-      mobileMenuToggle.setAttribute('aria-expanded', isActive ? 'true' : 'false');
-      navbarMenu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+      const isOpen = mobileMenuToggle.getAttribute('aria-expanded') === 'true';
+      setMobileMenuState(!isOpen);
+    });
+
+    mobileMenuToggle.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        const isOpen = mobileMenuToggle.getAttribute('aria-expanded') === 'true';
+        setMobileMenuState(!isOpen);
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        setMobileMenuState(false);
+        mobileMenuToggle.focus();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setMobileMenuState(false);
+      }
+    });
+
+    document.addEventListener('focusin', (event) => {
+      if (!navbar || !navbarMenu.classList.contains('active')) return;
+      if (!navbar.contains(event.target)) {
+        setMobileMenuState(false);
+      }
     });
   }
 
@@ -965,7 +1014,7 @@ function validateGenericForm() {
   if (!dueDateText) {
     addValidationError(errors, 'dueDate', 'Due date is required.');
   } else if (!parsedDueDate) {
-    addValidationError(errors, 'dueDate', 'Due date must be in dd/mm/yyyy format and year between 1900-2100.');
+    addValidationError(errors, 'dueDate', 'Due date must be a valid date in dd/mm/yyyy or yyyy-mm-dd format.');
   }
 
   return {
@@ -2036,7 +2085,7 @@ function updatePreview() {
   if (contractTitle) {
     const previewTitleEl = document.getElementById('previewTitle');
     if (previewTitleEl) {
-      previewTitleEl.textContent = contractTitle.value || 'Service Agreement';
+      previewTitleEl.textContent = contractTitle.value || PAGE_CONTRACT_LABEL || 'Service Agreement';
     }
   }
   if (clientName) {
@@ -2207,7 +2256,9 @@ async function loadCreateContractPage() {
 
     const dueDateEl = document.getElementById('dueDate');
     if (dueDateEl && c.dueDate) {
-      dueDateEl.value = formatDateForInput(c.dueDate);
+      dueDateEl.value = dueDateEl.type === 'date'
+        ? (parseInputDateValue(c.dueDate)?.iso || '')
+        : formatDateForInput(c.dueDate);
     }
 
     const contractDescriptionEl = document.getElementById('contractDescription');

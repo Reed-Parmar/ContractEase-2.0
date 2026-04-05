@@ -66,7 +66,7 @@ async def register_user(payload: RegisterBody):
 
     normalized_email = _normalize_email(payload.email)
     existing = await _find_by_email(users_collection, normalized_email)
-    if existing:
+    if existing or await _find_by_email(clients_collection, normalized_email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     doc = {
@@ -99,7 +99,7 @@ async def register_client(payload: RegisterBody):
 
     normalized_email = _normalize_email(payload.email)
     existing = await _find_by_email(clients_collection, normalized_email)
-    if existing:
+    if existing or await _find_by_email(users_collection, normalized_email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     doc = {
@@ -133,9 +133,7 @@ async def login_user(payload: LoginBody):
     normalized_email = _normalize_email(payload.email)
     user = await _find_by_email(users_collection, normalized_email)
     if not user:
-        client = await _find_by_email(clients_collection, normalized_email)
-        if client:
-            raise HTTPException(status_code=400, detail="This email belongs to a client account. Please use Client Login.")
+        await _find_by_email(clients_collection, normalized_email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if user.get("password") != payload.password:
@@ -157,9 +155,7 @@ async def login_client(payload: LoginBody):
     normalized_email = _normalize_email(payload.email)
     client = await _find_by_email(clients_collection, normalized_email)
     if not client:
-        user = await _find_by_email(users_collection, normalized_email)
-        if user:
-            raise HTTPException(status_code=400, detail="This email belongs to a user account. Please use User Login.")
+        await _find_by_email(users_collection, normalized_email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if client.get("password") != payload.password:

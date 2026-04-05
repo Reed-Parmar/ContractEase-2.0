@@ -96,7 +96,7 @@ function getContractPage(type) {
     broker: 'create-contract-broker.html',
   };
 
-  return map[normalized];
+  return map[normalized] || 'create-contract-custom.html';
 }
 
 let activeLogoutConfirmCard = null;

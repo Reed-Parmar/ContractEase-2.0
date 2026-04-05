@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data: https:; style-src 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline';">
   <title>{{ contract_title or "Agreement for Sale of House" }}</title>
   <style>
     @page {
@@ -28,7 +28,7 @@
     }
 
     h2 {
-      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       color: #0f172a;
       margin-top: 0;
       margin-bottom: 2rem;
@@ -41,7 +41,7 @@
     }
 
     h3 {
-      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       color: #1e293b;
       font-size: 0.95rem;
       margin: 1.5rem 0 0.75rem;

@@ -4,6 +4,7 @@ Handles creation, retrieval, and status updates.
 """
 
 from datetime import datetime, timezone
+import re
 from pathlib import Path
 import sys
 from typing import List, Optional
@@ -65,7 +66,15 @@ def _serialize(doc: dict) -> dict:
         return None
 
     doc["_id"] = str(doc["_id"])
-    doc["amount"] = float(doc.get("amount") or 0)
+    raw_amount = doc.get("amount")
+    amount_value = 0.0
+    if raw_amount:
+        try:
+            cleaned_amount = re.sub(r"[,$€₹\s]", "", str(raw_amount))
+            amount_value = float(cleaned_amount)
+        except (TypeError, ValueError):
+            amount_value = 0.0
+    doc["amount"] = amount_value
 
     parsed_due = _parse_datetime(doc.get("dueDate"))
     if parsed_due is None:
