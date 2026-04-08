@@ -38,6 +38,8 @@ def generate_contract_pdf(
         "house_sale": "house_sale.html",
         "website_development": "website_development.html",
         "broker": "broker.html",
+        "nda": "nda.html",
+        "employment": "employment.html",
     }
     template_name = template_map.get(contract_type)
     rendered_html = render_contract_template(context, template_name=template_name)

@@ -25,6 +25,8 @@ DEFAULT_CURRENCY = "₹"
 HOUSE_SALE_TYPE = "house_sale"
 WEBSITE_DEVELOPMENT_TYPE = "website_development"
 BROKER_TYPE = "broker"
+NDA_TYPE = "nda"
+EMPLOYMENT_TYPE = "employment"
 LOGGER = logging.getLogger(__name__)
 ALLOWED_SIGNATURE_DATA_MIME_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
 
@@ -185,6 +187,10 @@ def build_contract_template_context(contract_data: Mapping[str, Any]) -> dict[st
         return build_website_development_template_context(contract_data)
     if contract_type == BROKER_TYPE:
         return build_broker_template_context(contract_data)
+    if contract_type == NDA_TYPE:
+        return build_nda_template_context(contract_data)
+    if contract_type == EMPLOYMENT_TYPE:
+        return build_employment_template_context(contract_data)
 
     terms_list = normalize_contract_terms(contract_data.get("contract_terms"))
     clauses = contract_data.get("clauses") or {}
@@ -551,6 +557,75 @@ def build_broker_template_context(contract_data: Mapping[str, Any]) -> dict[str,
         "signature_client": normalize_signature_data(contract_data.get("signature_client")),
         "creator_name": contract_data.get("creator_name") or contract_data.get("userName") or "Owner",
         "client_name": contract_data.get("client_name") or "Broker",
+        "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
+    }
+
+
+def build_nda_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
+    """Build NDA template context."""
+    template_data = contract_data.get("templateData") or {}
+    nda = template_data.get("nda") if isinstance(template_data, Mapping) else {}
+    if not isinstance(nda, Mapping):
+        nda = {}
+
+    def text_value(key: str, fallback: str = "") -> str:
+        value = nda.get(key)
+        if value is None:
+            return fallback
+        return str(value).strip() or fallback
+
+    return {
+        "contract_title": contract_data.get("title") or "Non-Disclosure Agreement",
+        "disclosingParty": text_value("disclosingParty", contract_data.get("creator_name") or "Disclosing Party"),
+        "receivingParty": text_value("receivingParty", contract_data.get("client_name") or "Receiving Party"),
+        "purpose": text_value("purpose", contract_data.get("description") or "Confidential business discussions."),
+        "confidentialInfo": text_value("confidentialInfo", "Business, technical, and financial information disclosed by the disclosing party."),
+        "duration": text_value("duration", "1 year"),
+        "effectiveDate": _to_display_date(nda.get("effectiveDate") or contract_data.get("due_date") or contract_data.get("signed_date")),
+        "jurisdiction": "India",
+        "signature_creator": normalize_signature_data(contract_data.get("signature_creator")),
+        "signature_client": normalize_signature_data(contract_data.get("signature_client")),
+        "creator_name": contract_data.get("creator_name") or text_value("disclosingParty", "Disclosing Party"),
+        "client_name": contract_data.get("client_name") or text_value("receivingParty", "Receiving Party"),
+        "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
+    }
+
+
+def build_employment_template_context(contract_data: Mapping[str, Any]) -> dict[str, Any]:
+    """Build Employment template context."""
+    template_data = contract_data.get("templateData") or {}
+    employment = template_data.get("employment") if isinstance(template_data, Mapping) else {}
+    if not isinstance(employment, Mapping):
+        employment = {}
+
+    def text_value(key: str, fallback: str = "") -> str:
+        value = employment.get(key)
+        if value is None:
+            return fallback
+        return str(value).strip() or fallback
+
+    currency = _normalize_currency_symbol(contract_data.get("currency"), DEFAULT_CURRENCY)
+    salary_value = employment.get("salary")
+    if salary_value is None or str(salary_value).strip() == "":
+        salary_value = contract_data.get("amount")
+    salary = _format_currency_amount(salary_value, currency) or "To be confirmed"
+
+    return {
+        "contract_title": contract_data.get("title") or "Employment Agreement",
+        "employerName": text_value("employerName", contract_data.get("creator_name") or "Employer"),
+        "employeeName": text_value("employeeName", contract_data.get("client_name") or "Employee"),
+        "jobTitle": text_value("jobTitle", "Employee"),
+        "jobDescription": text_value("jobDescription", contract_data.get("description") or "Duties as assigned by the employer."),
+        "salary": salary,
+        "paymentFrequency": text_value("paymentFrequency", "Monthly"),
+        "workHours": text_value("workHours", "40 hours per week"),
+        "terminationClause": text_value("terminationClause", "Either party may terminate in accordance with this Agreement and applicable law."),
+        "startDate": _to_display_date(employment.get("startDate") or contract_data.get("due_date") or contract_data.get("signed_date")),
+        "jurisdiction": "India",
+        "signature_creator": normalize_signature_data(contract_data.get("signature_creator")),
+        "signature_client": normalize_signature_data(contract_data.get("signature_client")),
+        "creator_name": contract_data.get("creator_name") or text_value("employerName", "Employer"),
+        "client_name": contract_data.get("client_name") or text_value("employeeName", "Employee"),
         "formatted_date": _to_display_date(contract_data.get("signed_date") or contract_data.get("due_date")),
     }
 

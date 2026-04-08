@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ contract_title|e }}</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 24px;
+      color: #000000;
+    }
+    h1, h3 {
+      margin-bottom: 12px;
+      color: #000000;
+    }
+    .contract-section {
+      margin-top: 18px;
+    }
+    .contract-section p {
+      margin: 0 0 10px 0;
+      color: #000000;
+    }
+    .signature-section {
+      page-break-inside: avoid;
+      margin-top: 32px;
+    }
+    .signature-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-spacing: 16px 0;
+    }
+    .signature-block {
+      display: table-cell;
+      vertical-align: top;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 120px;
+    }
+    .signature-image {
+      max-width: 180px;
+      max-height: 80px;
+      display: block;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="contract-document">
+    <header class="document-header">
+      <h1>EMPLOYMENT AGREEMENT</h1>
+      <p class="document-date">Start Date: {{ startDate|e }}</p>
+    </header>
+
+    <section class="contract-section">
+      <h3>1. Introduction</h3>
+      <p>This Employment Agreement is entered into between {{ employerName|e }} and {{ employeeName|e }}, effective {{ startDate|e }}.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>2. Employment</h3>
+      <p>{{ employerName|e }} hereby employs {{ employeeName|e }} subject to the terms of this Agreement.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>3. Position</h3>
+      <p>{{ employeeName|e }} shall serve as {{ jobTitle|e }}.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>4. Compensation</h3>
+      <p>The Employee shall be paid a salary of {{ salary|e }}.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>5. Benefits</h3>
+      <p>The Employee shall be eligible for benefits in accordance with the Employer's policies and applicable law.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>6. Probationary Period</h3>
+      <p>The initial employment period may include probation, during which performance and fit may be evaluated by the Employer.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>7. Paid Time Off</h3>
+      <p>Paid time off shall be provided in accordance with company policy and applicable law.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>8. Termination</h3>
+      <p>Either party may terminate employment in accordance with this Agreement and applicable law.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>9. Confidentiality &amp; Non-Compete</h3>
+      <p>The Employee must maintain confidentiality of proprietary information and comply with reasonable post-employment restrictions where enforceable.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>10. Entire Agreement</h3>
+      <p>This Agreement constitutes the entire understanding between the parties regarding employment.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>11. Legal Authorization</h3>
+      <p>The Employee represents that they are legally authorized to work and enter into this Agreement.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>12. Severability</h3>
+      <p>If any provision is determined to be invalid or unenforceable, the remainder of this Agreement shall remain in full force and effect.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>13. Jurisdiction</h3>
+      <p>This Agreement shall be governed by and construed in accordance with the laws of {{ jurisdiction|e }}.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>14. Role Description and Work Hours</h3>
+      <p>{{ jobDescription|e }} Standard working hours: {{ workHours|e }}.</p>
+    </section>
+
+    <section class="contract-section signature-section">
+      <h3>Signatures</h3>
+      <p>By signing below, the parties acknowledge acceptance of this Employment Agreement.</p>
+      <div class="signature-grid">
+        <div class="signature-block">
+          <p class="signature-label">Employer Signature</p>
+          {% if signature_creator %}
+          <img class="signature-image" src="{{ signature_creator|e }}" alt="Employer signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ employerName|e }}</p>
+        </div>
+
+        <div class="signature-block">
+          <p class="signature-label">Employee Signature</p>
+          {% if signature_client %}
+          <img class="signature-image" src="{{ signature_client|e }}" alt="Employee signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ employeeName|e }}</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

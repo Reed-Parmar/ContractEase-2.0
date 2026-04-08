@@ -139,16 +139,39 @@ class BrokerAgreementTemplateData(BaseModel):
     witness_2_name: Optional[str] = None
 
 
+class NDATemplateData(BaseModel):
+    disclosingParty: Optional[str] = None
+    receivingParty: Optional[str] = None
+    purpose: Optional[str] = None
+    confidentialInfo: Optional[str] = None
+    duration: Optional[str] = None
+    effectiveDate: Optional[str] = None
+
+
+class EmploymentTemplateData(BaseModel):
+    employerName: Optional[str] = None
+    employeeName: Optional[str] = None
+    jobTitle: Optional[str] = None
+    jobDescription: Optional[str] = None
+    salary: Optional[float] = Field(default=None, ge=0)
+    paymentFrequency: Optional[str] = None
+    workHours: Optional[str] = None
+    terminationClause: Optional[str] = None
+    startDate: Optional[str] = None
+
+
 class TemplateData(BaseModel):
     houseSale: Optional[HouseSaleTemplateData] = None
     websiteDevelopment: Optional[WebsiteDevelopmentTemplateData] = None
     brokerAgreement: Optional[BrokerAgreementTemplateData] = None
+    nda: Optional[NDATemplateData] = None
+    employment: Optional[EmploymentTemplateData] = None
 
 
 # ── Request body for creating a contract ──────────────────────
 class ContractCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, examples=["Website Development Agreement"])
-    type: Literal["house_sale", "website_development", "broker"] = Field(
+    type: Literal["house_sale", "website_development", "broker", "nda", "employment"] = Field(
         ...,
         examples=["website_development"],
     )
@@ -173,7 +196,7 @@ class ContractCreate(BaseModel):
 class ContractOut(BaseModel):
     id: str = Field(..., alias="_id")
     title: str
-    type: Literal["house_sale", "website_development", "broker"]
+    type: Literal["house_sale", "website_development", "broker", "nda", "employment"]
     description: Optional[str] = None
     amount: float
     currency: Literal["₹", "$", "€"] = "₹"

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Employment Agreement - ContractEase</title>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/contract.css">
+</head>
+<body class="bg-page dashboard-layout">
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="user-dashboard.html" class="navbar-logo"><span class="navbar-logo-icon"></span>ContractEase</a>
+      <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-controls="navbarMenu" aria-expanded="false" aria-label="Open mobile menu">☰</button>
+      <div class="navbar-menu" id="navbarMenu" aria-hidden="true">
+        <a href="user-dashboard.html" class="navbar-link">Dashboard</a><a href="create-contract.html" class="navbar-link active">Create Contract</a><div class="navbar-user"><div class="user-avatar" id="userAvatar">U</div><button id="logoutBtn" class="logout-btn">Sign Out</button></div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dashboard-main dashboard-container">
+    <div class="contract-editor">
+      <div class="editor-header">
+        <div class="editor-breadcrumb">
+          <a href="user-dashboard.html" class="breadcrumb-link">Dashboard</a><span class="breadcrumb-separator">/</span><a href="create-contract.html" class="breadcrumb-link">Create Contract</a><span class="breadcrumb-separator">/</span><span id="typeLabel">Employment Agreement</span>
+        </div>
+        <h1 class="editor-title" id="pageTitle">Employment Agreement</h1>
+      </div>
+
+      <div class="progress-steps" id="progressSteps">
+        <div class="progress-step completed" data-step="1"><div class="step-number">1</div><span class="step-label">Type Selected</span></div>
+        <div class="progress-step active" data-step="2"><div class="step-number">2</div><span class="step-label">Details & Clauses</span></div>
+        <div class="progress-step" data-step="3"><div class="step-number">3</div><span class="step-label">Review & Send</span></div>
+      </div>
+
+      <div class="form-section" id="step-2">
+        <h2 class="form-section-title">Contract Details</h2>
+        <input type="hidden" id="contractTitle" value="EMPLOYMENT AGREEMENT">
+        <input type="hidden" id="dueDate" value="">
+        <textarea id="contractDescription" style="display:none;"></textarea>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <input type="hidden" id="clientName" value="">
+          <div class="form-group">
+            <label for="clientEmail" class="form-label">Employee Email <span style="color:var(--danger)">*</span></label>
+            <input type="email" id="clientEmail" class="form-input" placeholder="employee@example.com" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="empEmployerName" class="form-label">Company Name <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="empEmployerName" class="form-input" placeholder="Employer legal name" required>
+          </div>
+          <div class="form-group">
+            <label for="empEmployeeName" class="form-label">Employee Name <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="empEmployeeName" class="form-input" placeholder="Employee legal name" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="empJobTitle" class="form-label">Job Role <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="empJobTitle" class="form-input" placeholder="e.g., Software Engineer" required>
+          </div>
+          <div class="form-group">
+            <label for="empStartDate" class="form-label">Start Date <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="empStartDate" class="form-input" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="empSalary" class="form-label">Salary <span style="color:var(--danger)">*</span></label>
+            <div class="amount-field-group">
+              <select id="currency" class="form-select" aria-label="Select currency">
+                <option value="₹" selected>₹ (INR)</option>
+                <option value="$">$ (USD)</option>
+                <option value="€">€ (EUR)</option>
+              </select>
+              <input type="number" id="empSalary" class="form-input" placeholder="0.00" min="0" step="0.01" required>
+            </div>
+            <input type="hidden" id="contractAmount" value="">
+          </div>
+          <div class="form-group">
+            <label for="empWorkHours" class="form-label">Working Hours <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="empWorkHours" class="form-input" placeholder="e.g., 40 hours/week" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="empJobDescription" class="form-label">Role Description <span style="color:var(--danger)">*</span></label>
+          <textarea id="empJobDescription" class="form-textarea" placeholder="Describe the role and duties" rows="4" required></textarea>
+        </div>
+      </div>
+
+      <div class="form-section hidden" id="step-3">
+        <h2 class="form-section-title">Review & Send</h2>
+        <div class="contract-preview">
+          <div class="preview-content" id="contract-preview"></div>
+          <div class="preview-content" id="previewContent" style="display:none;"></div>
+        </div>
+
+        <div class="creator-signature-panel">
+          <h3 class="creator-signature-title">Creator Signature</h3>
+          <p class="creator-signature-copy">Sign below before sending this contract to the client.</p>
+          <div class="signature-container" id="creatorSignatureContainer">
+            <div class="signature-mode-grid" id="creatorSignatureModeGrid">
+              <label class="signature-card signature-mode-card signature-card-active" data-mode="draw" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="draw" class="signature-radio creator-signature-method-radio" checked>
+                <span class="signature-card-icon">✍️</span>
+                <span class="signature-card-title">Draw</span>
+                <span class="signature-card-copy">Use your mouse or finger to sign.</span>
+              </label>
+              <label class="signature-card signature-mode-card" data-mode="upload" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="upload" class="signature-radio creator-signature-method-radio">
+                <span class="signature-card-icon">📤</span>
+                <span class="signature-card-title">Upload</span>
+                <span class="signature-card-copy">Use a PNG or JPG image up to 2MB.</span>
+              </label>
+              <label class="signature-card signature-mode-card" data-mode="type" tabindex="0">
+                <input type="radio" name="creatorSignatureMethod" value="type" class="signature-radio creator-signature-method-radio">
+                <span class="signature-card-icon">⌨️</span>
+                <span class="signature-card-title">Type</span>
+                <span class="signature-card-copy">Enter your legal name as signature.</span>
+              </label>
+            </div>
+
+            <div id="creatorDrawSignatureWrapper" class="signature-section signature-section-active" data-mode="draw">
+              <h4 class="signature-section-heading">Draw your signature below</h4>
+              <div class="signature-draw-shell"><div class="signature-canvas-wrapper"><canvas id="creatorSignatureCanvas" class="signature-canvas"></canvas></div></div>
+              <div class="signature-actions"><button class="btn btn-outline btn-sm" id="clearCreatorSignatureBtn" type="button">Clear Signature</button></div>
+            </div>
+
+            <div id="creatorUploadSignatureWrapper" class="signature-section" data-mode="upload">
+              <h4 class="signature-section-heading">Upload your signature image</h4>
+              <input type="file" id="creatorSignatureFileInput" accept="image/png,image/jpeg,.png,.jpg,.jpeg" style="display: none;" aria-label="Upload creator signature image">
+              <button type="button" id="creatorSignatureFileChooseBtn" class="signature-upload-dropzone">Click or drag image to upload</button>
+              <p class="signature-upload-meta">Supported: PNG, JPG (maximum 2MB)</p>
+              <div id="creatorSignaturePreviewContainer" style="display: none; margin-top: var(--space-4); margin-bottom: var(--space-4);">
+                <p class="signature-section-heading" style="margin-bottom: var(--space-2);">Preview</p>
+                <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--bg-page); text-align: center;">
+                  <img id="creatorSignaturePreviewImage" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" style="max-width: 100%; max-height: 200px; border: 1px solid var(--border); border-radius: var(--radius-sm);" alt="Creator signature preview">
+                </div>
+              </div>
+              <div class="signature-actions">
+                <button class="btn btn-outline btn-sm" id="clearCreatorUploadedSignatureBtn" type="button">Clear Uploaded Signature</button>
+              </div>
+            </div>
+
+            <div id="creatorTypeSignatureWrapper" class="signature-section" data-mode="type">
+              <h4 class="signature-section-heading">Type your legal name</h4>
+              <input id="creatorTypedSignatureInput" type="text" class="form-input" placeholder="Enter your full legal name" maxlength="100">
+              <div id="creatorTypedSignaturePreview" class="typed-signature-preview">Your typed signature preview will appear here.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <div class="form-actions-left"><button type="button" class="btn btn-outline" id="prevBtn" style="display: none;">Back</button></div>
+        <div class="form-actions-right">
+          <button type="button" class="btn btn-outline-danger" id="cancelDraftBtn">Cancel Draft</button>
+          <button type="button" class="btn btn-primary" id="nextBtn">Continue →</button>
+          <button type="button" class="btn btn-outline" id="saveDraftBtn" style="display: none;">Save Draft</button>
+          <button type="button" class="btn btn-primary" id="submitBtn" style="display: none;">Send ✉️</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script>
+    window.CONTRACT_PAGE_CONFIG = {
+      contractType: 'employment',
+      contractTypeLabel: 'Employment Agreement',
+    };
+  </script>
+  <script src="../js/contract.js"></script>
+</body>
+</html>

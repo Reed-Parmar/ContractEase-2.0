@@ -80,6 +80,25 @@ const BROKER_FIELD_IDS = [
   'brWitness1Name',
   'brWitness2Name',
 ];
+const NDA_FIELD_IDS = [
+  'ndaDisclosingParty',
+  'ndaReceivingParty',
+  'ndaEffectiveDate',
+  'ndaDuration',
+  'ndaPurpose',
+  'ndaConfidentialInfo',
+];
+const EMPLOYMENT_FIELD_IDS = [
+  'empEmployerName',
+  'empEmployeeName',
+  'empJobTitle',
+  'empJobDescription',
+  'empSalary',
+  'empPaymentFrequency',
+  'empWorkHours',
+  'empTerminationClause',
+  'empStartDate',
+];
 
 const previousGlobalErrorHandler = window.onerror;
 window.onerror = function contractGlobalErrorHandler(msg, url, line, column, error) {
@@ -119,7 +138,6 @@ function simplifyBrokerForm() {
   if (contractType !== 'broker') return;
 
   const contractTitleField = document.getElementById('contractTitle');
-  const clientEmailField = document.getElementById('clientEmail');
   const dueDateField = document.getElementById('dueDate');
   if (contractTitleField && !String(contractTitleField.value || '').trim()) {
     contractTitleField.value = 'BROKER AGREEMENT';
@@ -131,8 +149,7 @@ function simplifyBrokerForm() {
     const yyyy = String(today.getFullYear());
     dueDateField.value = `${dd}/${mm}/${yyyy}`;
   }
-  
-  // Hide non-core fields for demo optimization
+
   const detailedFields = [
     'contractTitle', 'dueDate',
     'brAgreementPlace', 'brOwnerResidence', 'brBrokerResidence',
@@ -140,20 +157,18 @@ function simplifyBrokerForm() {
     'brWitness1Name', 'brWitness2Name',
     'contractDescription'
   ];
-  
-  detailedFields.forEach(fieldId => {
+
+  detailedFields.forEach((fieldId) => {
     const field = document.getElementById(fieldId);
-    if (field) {
-      const group = field.closest('.form-group');
-      if (group) group.style.display = 'none';
-    }
+    if (!field) return;
+    const group = field.closest('.form-group');
+    if (group) group.style.display = 'none';
   });
-  
-  // Optionally hide the entire "Witnesses" section heading
+
   const headings = Array.from(document.querySelectorAll('h3'));
-  headings.forEach(h => {
-    if (h.textContent.includes('Witnesses')) {
-      h.style.display = 'none';
+  headings.forEach((heading) => {
+    if (heading.textContent.includes('Witnesses')) {
+      heading.style.display = 'none';
     }
   });
 }
@@ -163,35 +178,31 @@ function simplifyWebsiteDevelopmentForm() {
   if (contractType !== 'website_development') return;
 
   const contractTitleField = document.getElementById('contractTitle');
-  const clientEmailField = document.getElementById('clientEmail');
   if (contractTitleField && !String(contractTitleField.value || '').trim()) {
     contractTitleField.value = 'WEBSITE DEVELOPMENT AGREEMENT';
   }
-  
-  // Hide detailed specification fields for demo optimization
+
   const detailedFields = [
     'contractTitle',
     'wdAgreementPlace', 'wdCompanyAddress', 'wdDeveloperAddress', 'wdProjectPurpose',
     'wdPageCount', 'wdWordsPerPage', 'wdExternalLinksPerPage',
     'wdPhotoGraphicsAverage', 'wdMastheadGraphic',
     'wdCompletionMonths', 'wdContentDueDays', 'wdMaintenanceMonths',
-    'wdHourlyRate','wdAdditionalGraphicsFee', 'wdTransparencyFee',
+    'wdHourlyRate', 'wdAdditionalGraphicsFee', 'wdTransparencyFee',
     'wdContinuationFeePercent', 'contractDescription'
   ];
-  
-  detailedFields.forEach(fieldId => {
+
+  detailedFields.forEach((fieldId) => {
     const field = document.getElementById(fieldId);
-    if (field) {
-      const group = field.closest('.form-group');
-      if (group) group.style.display = 'none';
-    }
+    if (!field) return;
+    const group = field.closest('.form-group');
+    if (group) group.style.display = 'none';
   });
-  
-  // Hide Scope Specifications section heading
+
   const headings = Array.from(document.querySelectorAll('h3'));
-  headings.forEach(h => {
-    if (h.textContent.includes('Scope')) {
-      h.style.display = 'none';
+  headings.forEach((heading) => {
+    if (heading.textContent.includes('Scope')) {
+      heading.style.display = 'none';
     }
   });
 }
@@ -333,6 +344,8 @@ function getContractPagePath(typeValue) {
     house_sale: 'create-contract-house-sale.html',
     website_development: 'create-contract-website-development.html',
     broker: 'create-contract-broker.html',
+    nda: 'create-contract-nda.html',
+    employment: 'create-contract-employment.html',
   };
 
   return map[normalizedType] || '';
@@ -344,6 +357,8 @@ function redirectToContractPage(typeValue) {
     'create-contract-house-sale.html',
     'create-contract-website-development.html',
     'create-contract-broker.html',
+    'create-contract-nda.html',
+    'create-contract-employment.html',
   ]);
 
   if (typeof page !== 'string' || !page.trim() || !allowedPages.has(page)) {
@@ -588,6 +603,36 @@ function collectWebsiteDevelopmentData() {
     transparency_fee: getNumericInputValue('wdTransparencyFee', 1200),
     hourly_rate: getNumericInputValue('wdHourlyRate', 250),
     continuation_fee_percent: getNumericInputValue('wdContinuationFeePercent', 10),
+  };
+}
+
+function collectNdaData() {
+  const collected = collectGenericFormData();
+  const defaultDisclosing = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'Disclosing Party';
+
+  return {
+    disclosingParty: getTrimmedInputValue('ndaDisclosingParty', defaultDisclosing),
+    receivingParty: getTrimmedInputValue('ndaReceivingParty', collected.client_name || 'Receiving Party'),
+    purpose: getTrimmedInputValue('ndaPurpose', collected.description || 'Confidential business discussions.'),
+    confidentialInfo: getTrimmedInputValue('ndaConfidentialInfo', 'Business, technical, and financial information disclosed by the disclosing party.'),
+    duration: getTrimmedInputValue('ndaDuration', '1 year'),
+    effectiveDate: parseInputDateValue(getRawInputValue('ndaEffectiveDate'))?.iso || null,
+  };
+}
+
+function collectEmploymentData() {
+  const collected = collectGenericFormData();
+  const salary = getNumericInputValue('empSalary', Number(collected.amount || 0));
+  const defaultEmployer = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'Employer';
+
+  return {
+    employerName: getTrimmedInputValue('empEmployerName', defaultEmployer),
+    employeeName: getTrimmedInputValue('empEmployeeName', collected.client_name || 'Employee'),
+    jobTitle: getTrimmedInputValue('empJobTitle', 'Employee'),
+    jobDescription: getTrimmedInputValue('empJobDescription', collected.description || 'Duties as assigned by the employer.'),
+    salary,
+    workHours: getTrimmedInputValue('empWorkHours', '40 hours per week'),
+    startDate: parseInputDateValue(getRawInputValue('empStartDate'))?.iso || null,
   };
 }
 
@@ -849,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  [...HOUSE_SALE_FIELD_IDS, ...WEBSITE_DEVELOPMENT_FIELD_IDS, ...BROKER_FIELD_IDS].forEach((fieldId) => {
+  [...HOUSE_SALE_FIELD_IDS, ...WEBSITE_DEVELOPMENT_FIELD_IDS, ...BROKER_FIELD_IDS, ...NDA_FIELD_IDS, ...EMPLOYMENT_FIELD_IDS].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
     field.addEventListener('input', saveDraft);
@@ -857,7 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
     field.addEventListener('input', () => clearFieldError(field));
   });
 
-  ['dueDate', 'hsAgreementDate'].forEach((fieldId) => {
+  ['dueDate', 'hsAgreementDate', 'ndaEffectiveDate', 'empStartDate'].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
     field.addEventListener('blur', () => {
@@ -875,11 +920,84 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const contractAmountField = document.getElementById('contractAmount');
+  const employmentSalaryField = document.getElementById('empSalary');
+  const contractTitleField = document.getElementById('contractTitle');
+  const clientNameField = document.getElementById('clientName');
+  const dueDateField = document.getElementById('dueDate');
+  const ndaReceivingPartyField = document.getElementById('ndaReceivingParty');
+  const ndaEffectiveDateField = document.getElementById('ndaEffectiveDate');
+  const employmentEmployeeField = document.getElementById('empEmployeeName');
+  const employmentStartDateField = document.getElementById('empStartDate');
   const brokerTotalField = document.getElementById('brTotalConsideration');
   const brokerEarnestField = document.getElementById('brEarnestMoneyAmount');
   const brokerBalanceField = document.getElementById('brBalanceAmount');
   const brokerCommissionRateField = document.getElementById('brCommissionRate');
   const brokerCommissionAmountField = document.getElementById('brCommissionAmount');
+
+  if (employmentSalaryField && contractAmountField) {
+    const syncEmploymentAmount = () => {
+      contractAmountField.value = employmentSalaryField.value || '';
+    };
+    employmentSalaryField.addEventListener('input', syncEmploymentAmount);
+    employmentSalaryField.addEventListener('change', syncEmploymentAmount);
+    syncEmploymentAmount();
+  }
+
+  if (getActiveContractType() === 'nda') {
+    if (contractTitleField && !String(contractTitleField.value || '').trim()) {
+      contractTitleField.value = 'NON-DISCLOSURE AGREEMENT';
+    }
+    if (contractAmountField) {
+      contractAmountField.value = '0';
+    }
+    const syncNdaFields = () => {
+      if (clientNameField && ndaReceivingPartyField) {
+        clientNameField.value = ndaReceivingPartyField.value || '';
+      }
+      if (dueDateField && ndaEffectiveDateField) {
+        dueDateField.value = ndaEffectiveDateField.value || '';
+      }
+    };
+    if (ndaReceivingPartyField) {
+      ndaReceivingPartyField.addEventListener('input', syncNdaFields);
+      ndaReceivingPartyField.addEventListener('change', syncNdaFields);
+    }
+    if (ndaEffectiveDateField) {
+      ndaEffectiveDateField.addEventListener('input', syncNdaFields);
+      ndaEffectiveDateField.addEventListener('change', syncNdaFields);
+    }
+    syncNdaFields();
+  }
+
+  if (getActiveContractType() === 'employment') {
+    if (contractTitleField && !String(contractTitleField.value || '').trim()) {
+      contractTitleField.value = 'EMPLOYMENT AGREEMENT';
+    }
+    const syncEmploymentFields = () => {
+      if (clientNameField && employmentEmployeeField) {
+        clientNameField.value = employmentEmployeeField.value || '';
+      }
+      if (dueDateField && employmentStartDateField) {
+        dueDateField.value = employmentStartDateField.value || '';
+      }
+      if (contractAmountField && employmentSalaryField) {
+        contractAmountField.value = employmentSalaryField.value || '';
+      }
+    };
+    if (employmentEmployeeField) {
+      employmentEmployeeField.addEventListener('input', syncEmploymentFields);
+      employmentEmployeeField.addEventListener('change', syncEmploymentFields);
+    }
+    if (employmentStartDateField) {
+      employmentStartDateField.addEventListener('input', syncEmploymentFields);
+      employmentStartDateField.addEventListener('change', syncEmploymentFields);
+    }
+    if (employmentSalaryField) {
+      employmentSalaryField.addEventListener('input', syncEmploymentFields);
+      employmentSalaryField.addEventListener('change', syncEmploymentFields);
+    }
+    syncEmploymentFields();
+  }
 
   const recalculateBrokerTerms = () => {
     if (!brokerTotalField) return;
@@ -1395,6 +1513,7 @@ function validateGenericForm() {
   const contractType = getActiveContractType();
   const isWebsite = contractType === 'website_development';
   const isBroker = contractType === 'broker';
+  const isNda = contractType === 'nda';
   const requiresTitle = !(isWebsite || isBroker);
   const requiresClientEmail = true;
   const requiresDueDate = !isBroker;
@@ -1425,7 +1544,7 @@ function validateGenericForm() {
   if (!clientEmail) addValidationError(errors, 'clientEmail', 'Client email address is required.');
   if (!amountText) {
     addValidationError(errors, 'contractAmount', 'Contract amount is required.');
-  } else if (!(amountValue > 0)) {
+  } else if (!isNda && !(amountValue > 0)) {
     addValidationError(errors, 'contractAmount', 'Contract amount must be greater than 0.');
   }
 
@@ -2384,6 +2503,18 @@ function buildPreviewSignatureGrid({
     </div>`;
 }
 
+function getPreviewContainer() {
+  return document.getElementById('contract-preview')
+    || document.getElementById('previewContent')
+    || document.querySelector('.preview-content');
+}
+
+function injectPreviewHtml(renderedHTML) {
+  const container = getPreviewContainer();
+  if (!container) return;
+  container.innerHTML = renderedHTML;
+}
+
 function applySectionNumbering(sections) {
   return sections.map((section, index) => ({
     ...section,
@@ -2559,6 +2690,116 @@ function buildContractSectionCopy(details) {
   };
 }
 
+function buildNdaClauseSections(ndaData) {
+  return [
+    { title: 'Introduction', body: `This Non-Disclosure Agreement (NDA) is made effective on ${formatLongDate(ndaData.effectiveDate) || 'N/A'} between ${ndaData.disclosingParty || 'Disclosing Party'} and ${ndaData.receivingParty || 'Receiving Party'}.` },
+    { title: 'Purpose', body: ndaData.purpose || 'The parties intend to exchange confidential information for a lawful business purpose.' },
+    { title: 'Definition of Confidential Information', body: ndaData.confidentialInfo || 'Confidential Information includes non-public business, technical, financial, and operational information.' },
+    { title: 'Exclusions from Confidential Information', body: 'Confidential Information does not include information that is publicly known, already known without restriction, independently developed, or lawfully received from a third party.' },
+    { title: 'Obligations of Receiving Party', body: 'The Receiving Party shall protect Confidential Information, use it only for the stated purpose, and restrict access to authorized persons with a need to know.' },
+    { title: 'Time Period / Duration', body: `Confidentiality obligations remain in force for ${ndaData.duration || 'the agreed term'}.` },
+    { title: 'Relationship of Parties', body: 'Nothing in this Agreement creates a partnership, joint venture, employment, or agency relationship between the parties.' },
+    { title: 'Severability', body: 'If any provision is held invalid or unenforceable, the remaining provisions shall continue in full force and effect.' },
+    { title: 'Entire Agreement', body: 'This Agreement constitutes the entire agreement between the parties regarding confidentiality and supersedes prior understandings.' },
+    { title: 'Waiver', body: 'A failure to enforce any provision is not a waiver of future enforcement of that provision or any other provision.' },
+    { title: 'Notice of Immunity', body: 'Nothing in this Agreement prohibits disclosures protected by applicable whistleblower protections, including lawful reports to government authorities.' },
+    { title: 'Governing Law', body: 'This Agreement shall be governed by the laws of India.' },
+  ];
+}
+
+function buildEmploymentClauseSections(employmentData, salaryText) {
+  return [
+    { title: 'Introduction', body: `This Employment Agreement is entered into between ${employmentData.employerName || 'Employer'} and ${employmentData.employeeName || 'Employee'}, effective ${formatLongDate(employmentData.startDate) || 'on the agreed start date'}.` },
+    { title: 'Employment', body: `${employmentData.employerName || 'Employer'} hereby employs ${employmentData.employeeName || 'Employee'} subject to the terms of this Agreement.` },
+    { title: 'Position', body: `${employmentData.employeeName || 'Employee'} shall serve as ${employmentData.jobTitle || 'Employee'}.` },
+    { title: 'Compensation', body: `The Employee shall be paid a salary of ${salaryText} on a ${employmentData.paymentFrequency || 'monthly'} basis.` },
+    { title: 'Benefits', body: 'The Employee shall be entitled to benefits according to the Employer\'s policies and applicable law.' },
+    { title: 'Probationary Period', body: 'The initial employment period may include probation, during which performance and fit may be evaluated by the Employer.' },
+    { title: 'Paid Time Off', body: 'Paid time off shall be provided in accordance with company policy and applicable law.' },
+    { title: 'Termination', body: 'Either party may terminate employment in accordance with this Agreement and applicable law.' },
+    { title: 'Confidentiality & Non-Compete', body: 'The Employee must maintain confidentiality of proprietary information and comply with reasonable post-employment restrictions where enforceable.' },
+    { title: 'Entire Agreement', body: 'This Agreement constitutes the entire understanding between the parties regarding employment.' },
+    { title: 'Legal Authorization', body: 'The Employee represents that they are legally authorized to work and enter into this Agreement.' },
+    { title: 'Severability', body: 'If any provision is invalid or unenforceable, the remaining provisions shall remain effective.' },
+    { title: 'Jurisdiction', body: 'This Agreement shall be governed by the laws of India.' },
+    { title: 'Role Description and Work Hours', body: `${employmentData.jobDescription || 'Duties as assigned by the employer.'} Standard working hours: ${employmentData.workHours || '40 hours per week'}.` },
+  ];
+}
+
+function renderNdaPreview(templateData, options = {}) {
+  const ndaData = templateData?.nda || collectNdaData();
+  const contractTitleText = getTrimmedInputValue('contractTitle', 'Non-Disclosure Agreement');
+  const creatorSignature = options.creatorSignature || getCreatorSignatureValue();
+  const clientSignature = options.clientSignature || '';
+  const creatorName = ndaData.disclosingParty || options.creatorName || localStorage.getItem('user_name') || 'Disclosing Party';
+  const clientName = ndaData.receivingParty || options.clientName || 'Receiving Party';
+  const clauseSections = applySectionNumbering(buildNdaClauseSections(ndaData));
+
+  const clauseHtml = clauseSections
+    .map((section) => `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2><p>${escapeHtml(section.body)}</p></section>`)
+    .join('');
+
+  const renderedHTML = `
+    <h2>NON-DISCLOSURE AGREEMENT</h2>
+    <h3>${escapeHtml(contractTitleText)}</h3>
+    ${clauseHtml}
+    <h3>SIGNATURES</h3>
+    <p>By signing below, the parties acknowledge acceptance of this Non-Disclosure Agreement.</p>
+    ${buildPreviewSignatureGrid({
+      creatorName,
+      clientName,
+      creatorSignature,
+      clientSignature,
+      creatorLabel: 'Disclosing Party Signature',
+      clientLabel: 'Receiving Party Signature',
+      creatorPendingLabel: 'Pending disclosing party signature',
+      clientPendingLabel: 'Pending receiving party signature',
+    })}
+    <p><strong>Disclosing Party:</strong> ${escapeHtml(creatorName)} | <strong>Date:</strong> ${escapeHtml(formatLongDate(ndaData.effectiveDate) || 'N/A')}</p>
+    <p><strong>Receiving Party:</strong> ${escapeHtml(clientName)} | <strong>Date:</strong> ${escapeHtml(formatLongDate(ndaData.effectiveDate) || 'N/A')}</p>
+  `;
+
+  injectPreviewHtml(renderedHTML);
+}
+
+function renderEmploymentPreview(templateData, options = {}) {
+  const employmentData = templateData?.employment || collectEmploymentData();
+  const contractTitleText = getTrimmedInputValue('contractTitle', 'Employment Agreement');
+  const creatorSignature = options.creatorSignature || getCreatorSignatureValue();
+  const clientSignature = options.clientSignature || '';
+  const creatorName = employmentData.employerName || options.creatorName || localStorage.getItem('user_name') || 'Employer';
+  const clientName = employmentData.employeeName || options.clientName || 'Employee';
+  const currency = getSelectedCurrency();
+  const salaryText = formatContractAmount(employmentData.salary, currency, DEFAULT_CURRENCY);
+  const clauseSections = applySectionNumbering(buildEmploymentClauseSections(employmentData, salaryText));
+
+  const clauseHtml = clauseSections
+    .map((section) => `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2><p>${escapeHtml(section.body)}</p></section>`)
+    .join('');
+
+  const renderedHTML = `
+    <h2>EMPLOYMENT AGREEMENT</h2>
+    <h3>${escapeHtml(contractTitleText)}</h3>
+    ${clauseHtml}
+    <h3>SIGNATURES</h3>
+    <p>By signing below, the parties acknowledge acceptance of this Employment Agreement.</p>
+    ${buildPreviewSignatureGrid({
+      creatorName,
+      clientName,
+      creatorSignature,
+      clientSignature,
+      creatorLabel: 'Employer Signature',
+      clientLabel: 'Employee Signature',
+      creatorPendingLabel: 'Pending employer signature',
+      clientPendingLabel: 'Pending employee signature',
+    })}
+    <p><strong>Employer:</strong> ${escapeHtml(creatorName)} | <strong>Date:</strong> ${escapeHtml(formatLongDate(employmentData.startDate) || 'N/A')}</p>
+    <p><strong>Employee:</strong> ${escapeHtml(clientName)} | <strong>Date:</strong> ${escapeHtml(formatLongDate(employmentData.startDate) || 'N/A')}</p>
+  `;
+
+  injectPreviewHtml(renderedHTML);
+}
+
 function buildHouseSaleClauseSections(houseSale, salePrice, earnestMoney) {
   return [
     {
@@ -2702,6 +2943,7 @@ function updatePreview() {
     confidentiality: !!document.querySelector('.toggle-switch[data-clause="confidentiality"]')?.checked,
     termination: !!document.querySelector('.toggle-switch[data-clause="termination"]')?.checked,
   };
+  const activeContractType = getActiveContractType();
 
   if (isHouseSaleType()) {
     renderHouseSalePreview(
@@ -2709,6 +2951,32 @@ function updatePreview() {
       {
         creatorName: (isViewMode ? loadedContractViewState?.creatorName : '') || localStorage.getItem('user_name') || 'Vendor',
         clientName: (isViewMode ? loadedContractViewState?.clientName : '') || getTrimmedInputValue('clientName', 'Purchaser'),
+        creatorSignature,
+        clientSignature,
+      },
+    );
+    return;
+  }
+
+  if (activeContractType === 'nda') {
+    renderNdaPreview(
+      { nda: collectNdaData() },
+      {
+        creatorName: (isViewMode ? loadedContractViewState?.creatorName : '') || localStorage.getItem('user_name') || 'Disclosing Party',
+        clientName: (isViewMode ? loadedContractViewState?.clientName : '') || getTrimmedInputValue('clientName', 'Receiving Party'),
+        creatorSignature,
+        clientSignature,
+      },
+    );
+    return;
+  }
+
+  if (activeContractType === 'employment') {
+    renderEmploymentPreview(
+      { employment: collectEmploymentData() },
+      {
+        creatorName: (isViewMode ? loadedContractViewState?.creatorName : '') || localStorage.getItem('user_name') || 'Employer',
+        clientName: (isViewMode ? loadedContractViewState?.clientName : '') || getTrimmedInputValue('clientName', 'Employee'),
         creatorSignature,
         clientSignature,
       },
@@ -2733,7 +3001,6 @@ function updatePreview() {
     clientSignature,
     status: isViewMode ? loadedContractViewState?.status : 'draft',
   });
-  const activeContractType = getActiveContractType();
 
   if (contractTitle) {
     const previewTitleEl = document.getElementById('previewTitle');
@@ -3153,6 +3420,12 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     if (enforcedType === 'broker' && !String(titleValue || '').trim()) {
       titleValue = 'BROKER AGREEMENT';
     }
+    if (enforcedType === 'nda' && !String(titleValue || '').trim()) {
+      titleValue = 'NON-DISCLOSURE AGREEMENT';
+    }
+    if (enforcedType === 'employment' && !String(titleValue || '').trim()) {
+      titleValue = 'EMPLOYMENT AGREEMENT';
+    }
 
     if (enforcedType === 'website_development') {
       templateDataPayload = { websiteDevelopment: collectWebsiteDevelopmentData() };
@@ -3160,6 +3433,20 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
       templateDataPayload = { brokerAgreement: collectBrokerData() };
       if (!parsedDueDate) {
         parsedDueDate = new Date();
+      }
+    } else if (enforcedType === 'nda') {
+      templateDataPayload = { nda: collectNdaData() };
+      const ndaEffectiveDate = parseContractDate(getRawInputValue('ndaEffectiveDate'));
+      if (!parsedDueDate && ndaEffectiveDate) {
+        parsedDueDate = ndaEffectiveDate;
+      }
+    } else if (enforcedType === 'employment') {
+      const employmentData = collectEmploymentData();
+      templateDataPayload = { employment: employmentData };
+      parsedAmount = Number(employmentData.salary || 0);
+      const startDate = parseContractDate(getRawInputValue('empStartDate'));
+      if (!parsedDueDate && startDate) {
+        parsedDueDate = startDate;
       }
     }
   }
@@ -3181,6 +3468,16 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
 
   if (enforcedType === 'website_development' && !templateDataPayload.websiteDevelopment) {
     showToast('Website development agreement data missing.', 'error');
+    return;
+  }
+
+  if (enforcedType === 'nda' && !templateDataPayload.nda) {
+    showToast('NDA data missing.', 'error');
+    return;
+  }
+
+  if (enforcedType === 'employment' && !templateDataPayload.employment) {
+    showToast('Employment agreement data missing.', 'error');
     return;
   }
 
@@ -3382,58 +3679,81 @@ async function loadSignContractPage() {
         }
         previewContent.innerHTML = html;
       } else {
-        const isWebsiteDevelopment = String(c.type || '').trim().toLowerCase() === 'website_development';
-        const isBrokerAgreement = String(c.type || '').trim().toLowerCase() === 'broker';
-        const sectionCopy = buildContractSectionCopy({
-          type: c.type,
-          title: c.title,
-          creatorName: c.userName || c.userEmail || 'Creator',
-          clientName: c.clientName || c.clientEmail || 'Client',
-          description: c.description,
-          amount: c.amount,
-          currency: c.currency || DEFAULT_CURRENCY,
-          dueDate: c.dueDate,
-          clauses: c.clauses || {},
-          templateData: c.templateData || {},
-          creatorSignature,
-          clientSignature,
-        });
+        const normalizedType = String(c.type || '').trim().toLowerCase();
+        if (normalizedType === 'nda') {
+          renderNdaPreview(
+            { nda: c.templateData?.nda || {} },
+            {
+              creatorName: c.userName || c.userEmail || 'Disclosing Party',
+              clientName: c.clientName || c.clientEmail || 'Receiving Party',
+              creatorSignature,
+              clientSignature,
+            },
+          );
+        } else if (normalizedType === 'employment') {
+          renderEmploymentPreview(
+            { employment: c.templateData?.employment || {} },
+            {
+              creatorName: c.userName || c.userEmail || 'Employer',
+              clientName: c.clientName || c.clientEmail || 'Employee',
+              creatorSignature,
+              clientSignature,
+            },
+          );
+        } else {
+          const isWebsiteDevelopment = String(c.type || '').trim().toLowerCase() === 'website_development';
+          const isBrokerAgreement = String(c.type || '').trim().toLowerCase() === 'broker';
+          const sectionCopy = buildContractSectionCopy({
+            type: c.type,
+            title: c.title,
+            creatorName: c.userName || c.userEmail || 'Creator',
+            clientName: c.clientName || c.clientEmail || 'Client',
+            description: c.description,
+            amount: c.amount,
+            currency: c.currency || DEFAULT_CURRENCY,
+            dueDate: c.dueDate,
+            clauses: c.clauses || {},
+            templateData: c.templateData || {},
+            creatorSignature,
+            clientSignature,
+          });
 
-        const baseSections = isWebsiteDevelopment
-          ? [
-              { title: 'Definitions', bodyHtml: `<p>${escapeHtml(sectionCopy.definitions || '')}</p>` },
-              { title: 'Appointment and Scope', bodyHtml: `<p>${escapeHtml(sectionCopy.services)}</p>` },
-              { title: 'Fee and Payment Terms', bodyHtml: `<p>${sectionCopy.paymentHtml}</p>` },
-              { title: 'Deliverables and Performance', bodyHtml: `<p>${escapeHtml(sectionCopy.deliverables)}</p>` },
-              { title: 'Confidentiality', bodyHtml: `<p>${escapeHtml(sectionCopy.confidentiality)}</p>` },
-              { title: 'Term and Termination', bodyHtml: `<p>${escapeHtml(sectionCopy.termination)}</p>` },
-              { title: 'Governing Law', bodyHtml: `<p>${escapeHtml(sectionCopy.governingLaw || 'This Agreement shall be governed by the laws of India.')}</p>` },
-            ]
-          : isBrokerAgreement
+          const baseSections = isWebsiteDevelopment
             ? [
                 { title: 'Definitions', bodyHtml: `<p>${escapeHtml(sectionCopy.definitions || '')}</p>` },
-                { title: 'Property and Appointment', bodyHtml: `<p>${escapeHtml(sectionCopy.services)}</p>` },
-                { title: 'Sale Terms', bodyHtml: `<p>${sectionCopy.paymentHtml}</p>` },
-                { title: 'Representations and Obligations', bodyHtml: `<p>${escapeHtml(sectionCopy.deliverables)}</p>` },
+                { title: 'Appointment and Scope', bodyHtml: `<p>${escapeHtml(sectionCopy.services)}</p>` },
+                { title: 'Fee and Payment Terms', bodyHtml: `<p>${sectionCopy.paymentHtml}</p>` },
+                { title: 'Deliverables and Performance', bodyHtml: `<p>${escapeHtml(sectionCopy.deliverables)}</p>` },
                 { title: 'Confidentiality', bodyHtml: `<p>${escapeHtml(sectionCopy.confidentiality)}</p>` },
                 { title: 'Term and Termination', bodyHtml: `<p>${escapeHtml(sectionCopy.termination)}</p>` },
                 { title: 'Governing Law', bodyHtml: `<p>${escapeHtml(sectionCopy.governingLaw || 'This Agreement shall be governed by the laws of India.')}</p>` },
               ]
-            : [];
+            : isBrokerAgreement
+              ? [
+                  { title: 'Definitions', bodyHtml: `<p>${escapeHtml(sectionCopy.definitions || '')}</p>` },
+                  { title: 'Property and Appointment', bodyHtml: `<p>${escapeHtml(sectionCopy.services)}</p>` },
+                  { title: 'Sale Terms', bodyHtml: `<p>${sectionCopy.paymentHtml}</p>` },
+                  { title: 'Representations and Obligations', bodyHtml: `<p>${escapeHtml(sectionCopy.deliverables)}</p>` },
+                  { title: 'Confidentiality', bodyHtml: `<p>${escapeHtml(sectionCopy.confidentiality)}</p>` },
+                  { title: 'Term and Termination', bodyHtml: `<p>${escapeHtml(sectionCopy.termination)}</p>` },
+                  { title: 'Governing Law', bodyHtml: `<p>${escapeHtml(sectionCopy.governingLaw || 'This Agreement shall be governed by the laws of India.')}</p>` },
+                ]
+              : [];
 
-        const numberedSections = applySectionNumbering(baseSections);
-        let html = `<h2>${escapeHtml(c.title || 'Contract')}</h2>`;
-        html += `<p>This agreement is entered into as of ${escapeHtml(formatContractDate(c.createdAt))}.</p>`;
-        numberedSections.forEach((section) => {
-          html += `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2>${section.bodyHtml}</section>`;
-        });
-        html += `<section class="preview-section"><h2>${numberedSections.length + 1}. Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p>${buildPreviewSignatureGrid({
-          creatorName: isWebsiteDevelopment ? (c.userName || c.userEmail || 'Company') : isBrokerAgreement ? (c.userName || c.userEmail || 'Owner') : (c.userName || c.userEmail || 'Creator'),
-          clientName: isWebsiteDevelopment ? (c.clientName || c.clientEmail || 'Developer') : isBrokerAgreement ? (c.clientName || c.clientEmail || 'Broker') : (c.clientName || c.clientEmail || 'Client'),
-          creatorSignature,
-          clientSignature,
-        })}</section>`;
-        previewContent.innerHTML = html;
+          const numberedSections = applySectionNumbering(baseSections);
+          let html = `<h2>${escapeHtml(c.title || 'Contract')}</h2>`;
+          html += `<p>This agreement is entered into as of ${escapeHtml(formatContractDate(c.createdAt))}.</p>`;
+          numberedSections.forEach((section) => {
+            html += `<section class="preview-section"><h2>${section.number}. ${escapeHtml(section.title)}</h2>${section.bodyHtml}</section>`;
+          });
+          html += `<section class="preview-section"><h2>${numberedSections.length + 1}. Signatures</h2><p>${escapeHtml(sectionCopy.signatures)}</p>${buildPreviewSignatureGrid({
+            creatorName: isWebsiteDevelopment ? (c.userName || c.userEmail || 'Company') : isBrokerAgreement ? (c.userName || c.userEmail || 'Owner') : (c.userName || c.userEmail || 'Creator'),
+            clientName: isWebsiteDevelopment ? (c.clientName || c.clientEmail || 'Developer') : isBrokerAgreement ? (c.clientName || c.clientEmail || 'Broker') : (c.clientName || c.clientEmail || 'Client'),
+            creatorSignature,
+            clientSignature,
+          })}</section>`;
+          previewContent.innerHTML = html;
+        }
       }
     }
 
