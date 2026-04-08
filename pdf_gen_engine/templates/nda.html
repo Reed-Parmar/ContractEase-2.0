@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ contract_title|e }}</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 24px;
+      color: #000000;
+    }
+    h1, h3 {
+      margin-bottom: 12px;
+      color: #000000;
+    }
+    .contract-section {
+      margin-top: 18px;
+    }
+    .contract-section p {
+      margin: 0 0 10px 0;
+      color: #000000;
+    }
+    .signature-section {
+      page-break-inside: avoid;
+      margin-top: 32px;
+    }
+    .signature-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-spacing: 16px 0;
+    }
+    .signature-block {
+      display: table-cell;
+      vertical-align: top;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 120px;
+    }
+    .signature-image {
+      max-width: 180px;
+      max-height: 80px;
+      display: block;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="contract-document">
+    <header class="document-header">
+      <h1>NON-DISCLOSURE AGREEMENT</h1>
+      <p class="document-date">Date: {{ effectiveDate|e }}</p>
+    </header>
+
+    <section class="contract-section">
+      <h3>1. Introduction</h3>
+      <p>This Non-Disclosure Agreement is made effective on {{ effectiveDate|e }} between {{ disclosingParty|e }} and {{ receivingParty|e }}.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>2. Purpose</h3>
+      <p>{{ purpose|e }}</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>3. Definition of Confidential Information</h3>
+      <p>{{ confidentialInfo|e }}</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>4. Exclusions from Confidential Information</h3>
+      <p>Confidential Information does not include information that is publicly known, already known without restriction, independently developed, or lawfully received from a third party.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>5. Obligations of Receiving Party</h3>
+      <p>The Receiving Party shall protect Confidential Information, use it only for the stated purpose, and restrict access to authorized persons with a need to know.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>6. Time Period / Duration</h3>
+      <p>Confidentiality obligations remain in force for {{ duration|e }}.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>7. Relationship of Parties</h3>
+      <p>Nothing in this Agreement creates a partnership, joint venture, employment, or agency relationship between the parties.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>8. Severability</h3>
+      <p>If any provision is held invalid or unenforceable, the remaining provisions shall continue in full force and effect.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>9. Entire Agreement</h3>
+      <p>This Agreement constitutes the entire agreement between the parties regarding confidentiality and supersedes prior understandings.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>10. Waiver</h3>
+      <p>A failure to enforce any provision is not a waiver of future enforcement of that provision or any other provision.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>11. Notice of Immunity</h3>
+      <p>Nothing in this Agreement prohibits disclosures protected by applicable whistleblower protections, including lawful reports to government authorities.</p>
+    </section>
+
+    <section class="contract-section">
+      <h3>12. Governing Law</h3>
+      <p>This Agreement shall be governed by and construed in accordance with the laws of {{ jurisdiction|e }}.</p>
+    </section>
+
+    <section class="contract-section signature-section">
+      <h3>Signatures</h3>
+      <p>By signing below, each party acknowledges acceptance of this Agreement.</p>
+      <div class="signature-grid">
+        <div class="signature-block">
+          <p class="signature-label">Disclosing Party Signature</p>
+          {% if signature_creator %}
+          <img class="signature-image" src="{{ signature_creator|e }}" alt="Disclosing party signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ disclosingParty|e }}</p>
+        </div>
+
+        <div class="signature-block">
+          <p class="signature-label">Receiving Party Signature</p>
+          {% if signature_client %}
+          <img class="signature-image" src="{{ signature_client|e }}" alt="Receiving party signature">
+          {% else %}
+          <p class="signature-placeholder">Pending signature</p>
+          {% endif %}
+          <p class="signature-name">{{ receivingParty|e }}</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

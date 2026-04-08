@@ -31,7 +31,9 @@ DEFAULT_CURRENCY = "₹"
 HOUSE_SALE_TYPE = "house_sale"
 WEBSITE_DEVELOPMENT_TYPE = "website_development"
 BROKER_TYPE = "broker"
-SUPPORTED_CONTRACT_TYPES = {HOUSE_SALE_TYPE, WEBSITE_DEVELOPMENT_TYPE, BROKER_TYPE}
+NDA_TYPE = "nda"
+EMPLOYMENT_TYPE = "employment"
+SUPPORTED_CONTRACT_TYPES = {HOUSE_SALE_TYPE, WEBSITE_DEVELOPMENT_TYPE, BROKER_TYPE, NDA_TYPE, EMPLOYMENT_TYPE}
 
 
 # ── Helper ────────────────────────────────────────────────────
@@ -362,6 +364,65 @@ def _validate_broker_data(payload: ContractCreate, template_data: dict) -> float
     return payload.amount
 
 
+def _validate_nda_data(payload: ContractCreate, template_data: dict) -> float:
+    if (payload.type or "").strip().lower() != NDA_TYPE:
+        return payload.amount
+
+    nda = template_data.get("nda") if isinstance(template_data, dict) else None
+    if not isinstance(nda, dict):
+        raise HTTPException(status_code=400, detail="templateData.nda is required for nda contracts")
+
+    required_text_fields = {
+        "disclosingParty": "nda contracts require disclosingParty",
+        "receivingParty": "nda contracts require receivingParty",
+        "purpose": "nda contracts require purpose",
+        "confidentialInfo": "nda contracts require confidentialInfo",
+        "duration": "nda contracts require duration",
+        "effectiveDate": "nda contracts require effectiveDate",
+    }
+
+    for field_name, message in required_text_fields.items():
+        value = str(nda.get(field_name) or "").strip()
+        if not value:
+            raise HTTPException(status_code=400, detail=message)
+
+    return payload.amount
+
+
+def _validate_employment_data(payload: ContractCreate, template_data: dict) -> float:
+    if (payload.type or "").strip().lower() != EMPLOYMENT_TYPE:
+        return payload.amount
+
+    employment = template_data.get("employment") if isinstance(template_data, dict) else None
+    if not isinstance(employment, dict):
+        raise HTTPException(status_code=400, detail="templateData.employment is required for employment contracts")
+
+    required_text_fields = {
+        "employerName": "employment contracts require employerName",
+        "employeeName": "employment contracts require employeeName",
+        "jobTitle": "employment contracts require jobTitle",
+        "jobDescription": "employment contracts require jobDescription",
+        "workHours": "employment contracts require workHours",
+        "startDate": "employment contracts require startDate",
+    }
+
+    for field_name, message in required_text_fields.items():
+        value = str(employment.get(field_name) or "").strip()
+        if not value:
+            raise HTTPException(status_code=400, detail=message)
+
+    salary_raw = employment.get("salary")
+    try:
+        salary = float(salary_raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="employment contracts require numeric salary")
+
+    if salary <= 0:
+        raise HTTPException(status_code=400, detail="employment salary must be greater than 0")
+
+    return salary
+
+
 async def _attach_sender_fields(doc: dict) -> dict:
     """Ensure sender name/email are present in contract payloads."""
     if (not doc.get("userName") or not doc.get("userEmail")) and doc.get("userId"):
@@ -435,6 +496,10 @@ async def create_contract(payload: ContractCreate):
         normalized_amount = _validate_website_development_data(payload, template_data)
     elif contract_type == BROKER_TYPE:
         normalized_amount = _validate_broker_data(payload, template_data)
+    elif contract_type == NDA_TYPE:
+        normalized_amount = _validate_nda_data(payload, template_data)
+    elif contract_type == EMPLOYMENT_TYPE:
+        normalized_amount = _validate_employment_data(payload, template_data)
 
     doc = {
         "title": payload.title,
