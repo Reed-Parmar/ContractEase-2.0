@@ -5,9 +5,16 @@ Reads settings from environment variables with sensible defaults.
 
 import os
 
+from dotenv import load_dotenv
 
-# MongoDB connection string — defaults to local instance
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+
+load_dotenv()
+
+
+# MongoDB connection string
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise RuntimeError("MONGO_URI not set")
 
 # Database name
 DATABASE_NAME = (

@@ -48,6 +48,7 @@ def _summarize_mongo_uri(uri: str) -> str:
 @app.on_event("startup")
 async def ensure_indexes():
     """Create required database indexes on startup (idempotent)."""
+    print("Connected to MongoDB:", MONGO_URI)
     print(f"[startup] Mongo target DB: {DATABASE_NAME}")
     print(f"[startup] Mongo connection: {_summarize_mongo_uri(MONGO_URI)}")
 
