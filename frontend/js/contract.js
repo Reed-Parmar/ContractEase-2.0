@@ -23,10 +23,23 @@ let loadedContractViewState = null;
 const DRAFT_STORAGE_KEY = 'contract_wizard_draft';
 const HOUSE_SALE_TYPE = 'house_sale';
 const LEGACY_DRAFT_CLEANUP_FLAG = 'legacy_contract_wizard_draft_removed_v1';
+const BODY_DATA = document.body ? document.body.dataset : {};
 const PAGE_CONFIG = window.CONTRACT_PAGE_CONFIG || {};
-const IS_TYPE_SELECTION_PAGE = Boolean(PAGE_CONFIG.isTypeSelectionPage || window.IS_TYPE_SELECTION_PAGE);
-const PAGE_CONTRACT_TYPE = String(PAGE_CONFIG.contractType || '').trim().toLowerCase();
-const PAGE_CONTRACT_LABEL = String(PAGE_CONFIG.contractTypeLabel || '').trim();
+const IS_TYPE_SELECTION_PAGE = Boolean(
+  PAGE_CONFIG.isTypeSelectionPage ||
+  window.IS_TYPE_SELECTION_PAGE ||
+  BODY_DATA.isTypeSelectionPage === 'true'
+);
+const PAGE_CONTRACT_TYPE = String(
+  PAGE_CONFIG.contractType ||
+  BODY_DATA.contractType ||
+  ''
+).trim().toLowerCase();
+const PAGE_CONTRACT_LABEL = String(
+  PAGE_CONFIG.contractTypeLabel ||
+  BODY_DATA.contractTypeLabel ||
+  ''
+).trim();
 const HOUSE_SALE_FIELD_IDS = [
   'hsAgreementPlace',
   'hsAgreementDate',

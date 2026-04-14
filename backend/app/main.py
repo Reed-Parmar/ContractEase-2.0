@@ -5,6 +5,9 @@ Run with:
     uvicorn app.main:app --reload
 """
 
+import logging
+import time
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter
@@ -30,6 +33,7 @@ app = FastAPI(
     version="1.0.0",
 )
 app.state.limiter = limiter
+logger = logging.getLogger(__name__)
 
 
 @app.exception_handler(RateLimitExceeded)
@@ -47,6 +51,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    start_time = time.perf_counter()
+    logger.info("Request started %s %s", request.method, request.url.path)
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start_time) * 1000
+    logger.info("Request finished %s %s -> %s in %.2fms", request.method, request.url.path, response.status_code, elapsed_ms)
+    return response
 
 
 @app.middleware("http")

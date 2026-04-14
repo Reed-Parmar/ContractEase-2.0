@@ -1,3 +1,24 @@
+// Refactor Summary:
+// - Moved landing-page interaction logic out of inline HTML
+// - Keeps the page behavior in a reusable JS module
+
+function setupLandingCta() {
+  const cta = document.querySelector('.cta-box');
+  if (!cta) return;
+
+  cta.addEventListener('mousemove', (e) => {
+    const rect = cta.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    cta.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.2), rgba(79,70,229,0.96) 46%, rgba(124,58,237,0.98) 100%)`;
+  });
+
+  cta.addEventListener('mouseleave', () => {
+    cta.style.background = '';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', setupLandingCta);
 /* ===== ContractEase Landing Page — JS ===== */
 
 (function () {

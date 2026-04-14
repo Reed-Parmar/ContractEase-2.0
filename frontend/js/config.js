@@ -29,12 +29,6 @@ function getAuthHeaders(baseHeaders = {}) {
   return headers;
 }
 
-function authFetch(url, options = {}) {
-  const nextOptions = { ...options };
-  nextOptions.headers = getAuthHeaders(options.headers || {});
-  return fetch(url, nextOptions);
-}
-
 // ── Toast notification system ────────────────────────────────
 // Usage: showToast('Something went wrong', 'error')
 //        showToast('Contract sent!', 'success')

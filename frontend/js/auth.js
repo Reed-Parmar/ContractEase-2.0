@@ -1,11 +1,47 @@
+// Refactor Summary:
+// - Consolidated login and registration flows into shared handlers
+// - Replaced direct fetch usage with the shared API wrapper for consistent headers and errors
+
 // Authentication Handler
-// Requires: config.js (API_BASE, showToast)
+// Requires: config.js (API_BASE, showToast) and api.js (apiRequest/authRequest)
+
+async function submitAuthPayload(url, payload) {
+  return apiRequest(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+function getAuthErrorMessage(err) {
+  if (typeof err === 'string') return err;
+  const detail = err?.response?.data?.detail ?? err?.detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item?.msg) return item.msg;
+        if (item?.detail) return item.detail;
+        return JSON.stringify(item);
+      })
+      .filter(Boolean)
+      .join(' ');
+  }
+  if (detail) {
+    if (typeof detail === 'string') return detail;
+    if (detail?.msg) return detail.msg;
+    if (detail?.detail) return detail.detail;
+    return JSON.stringify(detail);
+  }
+  if (err?.message) return err.message;
+  return 'Something went wrong. Please try again.';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   const userLoginForm = document.getElementById('userLoginForm');
   const clientLoginForm = document.getElementById('clientLoginForm');
+  const userRegisterForm = document.getElementById('registerForm');
+  const clientRegisterForm = document.getElementById('clientRegisterForm');
 
-  // ── User Login ───────────────────────────────────────────────
   if (userLoginForm) {
     userLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -13,15 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('password').value;
 
       try {
-        const res = await fetch(`${API_BASE}/login/user`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          showToast(data.detail || 'Login failed. Please check your credentials.', 'error');
+        const data = await submitAuthPayload(`${API_BASE}/login/user`, { email, password });
+        if (!data?.success) {
+          showToast('Login failed. Please check your credentials.', 'error');
           return;
         }
 
@@ -29,12 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = './user-dashboard.html';
       } catch (err) {
         console.error(err);
-        showToast('Could not reach the server. Is the backend running?', 'error');
+        showToast(getAuthErrorMessage(err), 'error');
       }
     });
   }
 
-  // ── Client Login ─────────────────────────────────────────────
   if (clientLoginForm) {
     clientLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -42,15 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('password').value;
 
       try {
-        const res = await fetch(`${API_BASE}/login/client`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          showToast(data.detail || 'Login failed. Please check your credentials.', 'error');
+        const data = await submitAuthPayload(`${API_BASE}/login/client`, { email, password });
+        if (!data?.success) {
+          showToast('Login failed. Please check your credentials.', 'error');
           return;
         }
 
@@ -58,12 +81,72 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = './client-dashboard.html';
       } catch (err) {
         console.error(err);
-        showToast('Could not reach the server. Is the backend running?', 'error');
+        showToast(getAuthErrorMessage(err), 'error');
       }
     });
   }
 
-  // ── Logout ───────────────────────────────────────────────────
+  if (userRegisterForm) {
+    userRegisterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (password !== confirmPassword) {
+        showToast('Passwords do not match. Please try again.', 'error');
+        return;
+      }
+
+      try {
+        const data = await submitAuthPayload(`${API_BASE}/register/user`, { name, email, password });
+        if (!data?.success || !data.user_id || !data.email || !data.name) {
+          showToast('Incomplete server response', 'error');
+          return;
+        }
+        _storeSession(data, 'user');
+        showToast('Account created! Welcome to ContractEase.', 'success');
+        setTimeout(() => { window.location.href = 'user-dashboard.html'; }, 800);
+      } catch (err) {
+        console.error(err);
+        showToast(getAuthErrorMessage(err), 'error');
+      }
+    });
+  }
+
+  if (clientRegisterForm) {
+    clientRegisterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('companyName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (password !== confirmPassword) {
+        showToast('Passwords do not match. Please try again.', 'error');
+        return;
+      }
+
+      try {
+        const data = await submitAuthPayload(`${API_BASE}/register/client`, { name, email, password });
+        if (!data?.success) {
+          showToast('Registration failed.', 'error');
+          return;
+        }
+
+        _storeSession(data, 'client');
+        showToast('Account created! Welcome to ContractEase.', 'success');
+        setTimeout(() => { window.location.href = 'client-dashboard.html'; }, 800);
+      } catch (err) {
+        console.error(err);
+        showToast(getAuthErrorMessage(err), 'error');
+      }
+    });
+  }
+
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
@@ -75,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Dynamic avatar initials ──────────────────────────────────
   _setUserInitials();
 });
 

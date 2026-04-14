@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../css/dashboard.css">
   <link rel="stylesheet" href="../css/contract.css">
 </head>
-<body class="bg-page dashboard-layout">
+<body class="bg-page dashboard-layout" data-contract-type="employment" data-contract-type-label="Employment Agreement">
   <nav class="navbar">
     <div class="navbar-container">
       <a href="user-dashboard.html" class="navbar-logo"><span class="navbar-logo-icon"></span>ContractEase</a>
@@ -173,12 +173,8 @@
   </main>
 
   <script src="../js/config.js"></script>
-  <script>
-    window.CONTRACT_PAGE_CONFIG = {
-      contractType: 'employment',
-      contractTypeLabel: 'Employment Agreement',
-    };
-  </script>
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
   <script src="../js/contract.js"></script>
 </body>
 </html>

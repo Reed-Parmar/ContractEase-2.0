@@ -123,38 +123,8 @@
   </div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
   <script src="../js/dashboard.js"></script>
-  <script>
-    // Tab switching logic for the UI
-    document.addEventListener('DOMContentLoaded', () => {
-      const tabs = document.querySelectorAll('.dashboard-tab');
-      const sections = document.querySelectorAll('.dashboard-section');
-
-      tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          tabs.forEach(t => t.classList.remove('active'));
-          sections.forEach(s => s.classList.remove('active'));
-
-          tab.classList.add('active');
-          const target = tab.getAttribute('data-target');
-          if (target && document.getElementById(target)) {
-            document.getElementById(target).classList.add('active');
-          }
-        });
-      });
-      
-      // Mobile menu
-      const mobileBtn = document.getElementById('mobileMenuBtn');
-      if(mobileBtn) {
-        mobileBtn.addEventListener('click', () => {
-          const menu = document.getElementById('navbarMenu');
-          menu.classList.toggle('active');
-          const isActive = menu.classList.contains('active');
-          mobileBtn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
-          menu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
-        });
-      }
-    });
-  </script>
 </body>
 </html>

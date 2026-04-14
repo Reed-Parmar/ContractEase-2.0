@@ -1,45 +1,18 @@
-"""
-Routes for the **clients** collection.
-Handles client registration.
-"""
+"""Routes for the **clients** collection."""
 
-from datetime import datetime, timezone
+from fastapi import APIRouter
 
-from fastapi import APIRouter, HTTPException
-from bson import ObjectId
-from pymongo.errors import DuplicateKeyError
-
-from app.core.security import hash_password
-from app.db.mongo import clients_collection
 from app.models.client import ClientCreate, ClientOut
+from app.services.account_service import create_client as create_client_service, ensure_client_indexes
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
 
-# Ensure a unique index on email so the DB enforces uniqueness
 @router.on_event("startup")
 async def _ensure_indexes():
-    await clients_collection.create_index("email", unique=True)
+    await ensure_client_indexes()
 
 
 @router.post("/", response_model=ClientOut, status_code=201)
 async def create_client(payload: ClientCreate):
-    """Register a new client (contract signer)."""
-
-    doc = {
-        "name": payload.name,
-        "email": payload.email,
-        "password": hash_password(payload.password),
-        "role": "client",
-        "createdAt": datetime.now(timezone.utc),
-    }
-
-    try:
-        result = await clients_collection.insert_one(doc)
-    except DuplicateKeyError:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    doc["_id"] = str(result.inserted_id)
-    doc["role"] = "client"
-    doc.pop("password", None)
-    return doc
+    return await create_client_service(payload)
