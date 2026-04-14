@@ -10,10 +10,10 @@
 // ── API base URL ─────────────────────────────────────────────
 // Environment-aware configuration: use localhost for dev, production URL for deployed environment
 const API_BASE =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : 'https://contractease-2-0.onrender.com';
-
+  window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : "https://contractease-2-0.onrender.com";
+    
 console.log('API_BASE:', API_BASE);
 
 function getAccessToken() {
