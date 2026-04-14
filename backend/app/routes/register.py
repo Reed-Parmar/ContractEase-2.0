@@ -6,10 +6,12 @@ No JWT, no hashing — just raw inserts / lookups for demo.
 from datetime import datetime, timezone
 import re
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, EmailStr, Field
 from pymongo.errors import DuplicateKeyError
 
+from app.core.auth import require_role
+from app.core.security import ACCESS_TOKEN_TTL_SECONDS, create_access_token, hash_password, verify_password
 from app.db.mongo import users_collection, clients_collection
 
 router = APIRouter(tags=["Registration & Login"])
@@ -35,7 +37,10 @@ async def _find_by_email(collection, email: str):
 
 # ── GET /clients/by-email?email=...  ─────────────────────────
 @router.get("/clients/by-email")
-async def get_client_by_email(email: str):
+async def get_client_by_email(
+    email: str,
+    actor: dict = Depends(require_role("user")),
+):
     """Look up a client by email. Returns id, name, email (no password)."""
     client = await _find_by_email(clients_collection, email)
     if not client:
@@ -49,20 +54,20 @@ async def get_client_by_email(email: str):
 
 # ── Shared request bodies ─────────────────────────────────────
 class RegisterBody(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class RegisterClientBody(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
-    password: str = "client123"
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class LoginBody(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=1, max_length=256)
 
 
 # ── POST /register/user ──────────────────────────────────────
@@ -78,7 +83,7 @@ async def register_user(payload: RegisterBody):
     doc = {
         "name": payload.name,
         "email": normalized_email,
-        "password": payload.password,       # plain text — demo only
+        "password": hash_password(payload.password),
         "role": "user",
         "createdAt": datetime.now(timezone.utc),
     }
@@ -89,12 +94,21 @@ async def register_user(payload: RegisterBody):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     doc["_id"] = result.inserted_id
+    token = create_access_token(
+        subject=str(doc["_id"]),
+        role="user",
+        email=normalized_email,
+    )
+
     return {
         "success": True,
         "user_id": str(doc["_id"]),
         "name": payload.name,
         "email": normalized_email,
         "role": "user",
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_TTL_SECONDS,
     }
 
 
@@ -111,7 +125,7 @@ async def register_client(payload: RegisterClientBody):
     doc = {
         "name": payload.name,
         "email": normalized_email,
-        "password": payload.password,       # plain text — demo only
+        "password": hash_password(payload.password),
         "role": "client",
         "createdAt": datetime.now(timezone.utc),
     }
@@ -123,12 +137,21 @@ async def register_client(payload: RegisterClientBody):
 
     doc["_id"] = result.inserted_id
 
+    token = create_access_token(
+        subject=str(doc["_id"]),
+        role="client",
+        email=normalized_email,
+    )
+
     return {
         "success": True,
         "user_id": str(doc["_id"]),
         "name": payload.name,
         "email": normalized_email,
         "role": "client",
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_TTL_SECONDS,
     }
 
 
@@ -142,8 +165,20 @@ async def login_user(payload: LoginBody):
         await _find_by_email(clients_collection, normalized_email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if user.get("password") != payload.password:
+    if not verify_password(payload.password, str(user.get("password") or "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not str(user.get("password") or "").startswith("pbkdf2_sha256$"):
+        await users_collection.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"password": hash_password(payload.password)}},
+        )
+
+    token = create_access_token(
+        subject=str(user["_id"]),
+        role="user",
+        email=user["email"],
+    )
 
     return {
         "success": True,
@@ -151,6 +186,9 @@ async def login_user(payload: LoginBody):
         "name": user.get("name", ""),
         "email": user["email"],
         "role": "user",
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_TTL_SECONDS,
     }
 
 
@@ -164,8 +202,20 @@ async def login_client(payload: LoginBody):
         await _find_by_email(users_collection, normalized_email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if client.get("password") != payload.password:
+    if not verify_password(payload.password, str(client.get("password") or "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not str(client.get("password") or "").startswith("pbkdf2_sha256$"):
+        await clients_collection.update_one(
+            {"_id": client["_id"]},
+            {"$set": {"password": hash_password(payload.password)}},
+        )
+
+    token = create_access_token(
+        subject=str(client["_id"]),
+        role="client",
+        email=client["email"],
+    )
 
     return {
         "success": True,
@@ -173,4 +223,7 @@ async def login_client(payload: LoginBody):
         "name": client.get("name", ""),
         "email": client["email"],
         "role": "client",
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_TTL_SECONDS,
     }

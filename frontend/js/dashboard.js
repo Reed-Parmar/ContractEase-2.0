@@ -171,8 +171,8 @@ async function downloadSignedContract(contractId, buttonEl = null) {
     return;
   }
 
-  const userId = localStorage.getItem('user_id');
-  if (!userId) {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
     showToast('Please sign in again before downloading.', 'error');
     return;
   }
@@ -184,14 +184,23 @@ async function downloadSignedContract(contractId, buttonEl = null) {
   }
 
   try {
+    const res = await authFetch(`${API_BASE}/contracts/${contractId}/download`);
+    if (!res.ok) {
+      throw new Error('Download request failed');
+    }
+
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
     const anchor = document.createElement('a');
-    anchor.href = `${API_BASE}/contracts/${contractId}/download?user_id=${encodeURIComponent(userId)}`;
+    anchor.href = objectUrl;
     anchor.download = `contract_${contractId}.pdf`;
     anchor.style.display = 'none';
 
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
+    URL.revokeObjectURL(objectUrl);
   } catch (error) {
     console.error('Contract download failed:', error);
     showToast('Failed to start contract download.', 'error');
@@ -481,7 +490,7 @@ function bindCardButtons() {
 
 async function loadUserDashboard(userId) {
   try {
-    const res = await fetch(`${API_BASE}/contracts/user/${userId}`);
+    const res = await authFetch(`${API_BASE}/contracts/user/${userId}`);
     if (!res.ok) throw new Error('Failed to load contracts');
     const contracts = await res.json();
 
@@ -510,7 +519,7 @@ async function loadUserDashboard(userId) {
 
 async function loadClientDashboard(clientId) {
   try {
-    const res = await fetch(`${API_BASE}/contracts/client/${clientId}`);
+    const res = await authFetch(`${API_BASE}/contracts/client/${clientId}`);
     if (!res.ok) throw new Error('Failed to load contracts');
     const contracts = await res.json();
 

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 
+from app.core.security import hash_password
 from app.db.mongo import users_collection
 from app.models.user import UserCreate, UserOut
 
@@ -26,7 +27,7 @@ async def create_user(payload: UserCreate):
     doc = {
         "name": payload.name,
         "email": payload.email,
-        "password": payload.password,  # plain text — acceptable for college demo
+        "password": hash_password(payload.password),
         "createdAt": datetime.now(timezone.utc),
     }
 

@@ -9,12 +9,13 @@ from pathlib import Path
 import sys
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from bson import ObjectId
 from pydantic import BaseModel
 from pymongo import ReturnDocument
 
+from app.core.auth import get_current_actor, require_role
 from app.db.mongo import contracts_collection, users_collection, clients_collection, signatures_collection
 from app.models.contract import ContractCreate, ContractOut, ContractStatus
 
@@ -469,8 +470,14 @@ async def _generate_legacy_pdf_path(contract_id: str, doc: dict) -> str:
 
 # ── POST /contracts  ──────────────────────────────────────────
 @router.post("/", response_model=ContractOut, status_code=201)
-async def create_contract(payload: ContractCreate):
+async def create_contract(
+    payload: ContractCreate,
+    actor: dict = Depends(require_role("user")),
+):
     """Create a new contract in 'draft' status."""
+
+    if str(payload.userId) != str(actor.get("sub")):
+        raise HTTPException(status_code=403, detail="Cannot create contracts for another user")
 
     if payload.type not in SUPPORTED_CONTRACT_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported contract type")
@@ -535,8 +542,14 @@ async def create_contract(payload: ContractCreate):
 
 # ── GET /contracts/user/{userId}  ─────────────────────────────
 @router.get("/user/{user_id}", response_model=List[ContractOut])
-async def get_contracts_by_user(user_id: str):
+async def get_contracts_by_user(
+    user_id: str,
+    actor: dict = Depends(require_role("user")),
+):
     """Return all contracts created by a given user."""
+    if str(user_id) != str(actor.get("sub")):
+        raise HTTPException(status_code=403, detail="You can only access your own contracts")
+
     user_oid = _validate_object_id(user_id, "user")
     cursor = contracts_collection.find({"userId": user_oid}).sort("createdAt", -1)
     results = []
@@ -548,8 +561,14 @@ async def get_contracts_by_user(user_id: str):
 
 # ── GET /contracts/client/{clientId}  ──────────────────────────
 @router.get("/client/{client_id}", response_model=List[ContractOut])
-async def get_contracts_by_client(client_id: str):
+async def get_contracts_by_client(
+    client_id: str,
+    actor: dict = Depends(require_role("client")),
+):
     """Return all contracts assigned to a given client."""
+    if str(client_id) != str(actor.get("sub")):
+        raise HTTPException(status_code=403, detail="You can only access your own contracts")
+
     client_oid = _validate_object_id(client_id, "client")
     cursor = contracts_collection.find({"clientId": client_oid}).sort("createdAt", -1)
     results = []
@@ -561,7 +580,10 @@ async def get_contracts_by_client(client_id: str):
 
 # ── GET /contracts/{id}  ──────────────────────────────────────
 @router.get("/{contract_id}", response_model=ContractOut)
-async def get_contract(contract_id: str):
+async def get_contract(
+    contract_id: str,
+    actor: dict = Depends(get_current_actor),
+):
     """Retrieve a single contract by its ID."""
 
     oid = _validate_object_id(contract_id, "contract")
@@ -569,6 +591,11 @@ async def get_contract(contract_id: str):
 
     if not doc:
         raise HTTPException(status_code=404, detail="Contract not found")
+
+    requester_id = str(actor.get("sub") or "")
+    requester_oid = _validate_object_id(requester_id, "authenticated user")
+    if not _is_contract_owner(doc, requester_oid, requester_id):
+        raise HTTPException(status_code=403, detail="You do not have access to this contract")
 
     doc = await _attach_sender_fields(doc)
 
@@ -579,17 +606,18 @@ async def get_contract(contract_id: str):
 @router.get("/{contract_id}/download")
 async def download_contract_pdf(
     contract_id: str,
-    user_id: str = Query(..., description="Requesting user/client id"),
+    actor: dict = Depends(get_current_actor),
 ):
     """Serve a previously generated signed-contract PDF file."""
     contract_oid = _validate_object_id(contract_id, "contract")
-    requester_oid = _validate_object_id(user_id, "requesting user")
+    requester_id = str(actor.get("sub") or "")
+    requester_oid = _validate_object_id(requester_id, "authenticated user")
 
     doc = await contracts_collection.find_one({"_id": contract_oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Contract not found")
 
-    if not _is_contract_owner(doc, requester_oid, user_id):
+    if not _is_contract_owner(doc, requester_oid, requester_id):
         raise HTTPException(status_code=403, detail="You do not have access to this contract")
 
     pdf_path_value = doc.get("pdf_path")
@@ -632,7 +660,7 @@ class StatusUpdate(BaseModel):
 async def update_contract(
     contract_id: str,
     payload: ContractCreate,
-    user_id: str = Query(..., description="Requesting user/client id"),
+    actor: dict = Depends(require_role("user")),
 ):
     """Update an existing contract in-place (used by edit flow)."""
     oid = _validate_object_id(contract_id, "contract")
@@ -641,15 +669,22 @@ async def update_contract(
     if not existing:
         raise HTTPException(status_code=404, detail="Contract not found")
 
-    requester_oid = _validate_object_id(user_id, "requesting user")
-    if not _is_contract_owner(existing, requester_oid, user_id):
+    requester_id = str(actor.get("sub") or "")
+    requester_oid = _validate_object_id(requester_id, "authenticated user")
+    if not _is_contract_owner(existing, requester_oid, requester_id):
         raise HTTPException(status_code=403, detail="You do not have access to this contract")
+
+    if str(existing.get("userId") or "") != requester_id:
+        raise HTTPException(status_code=403, detail="Only contract creator can edit this contract")
 
     if existing.get("status") != ContractStatus.draft.value:
         raise HTTPException(status_code=400, detail="Only draft contracts can be edited")
 
     if payload.type not in SUPPORTED_CONTRACT_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported contract type")
+
+    if str(payload.userId) != requester_id:
+        raise HTTPException(status_code=403, detail="Cannot update contract owner")
 
     user_oid = _validate_object_id(payload.userId, "user")
     user = await users_collection.find_one({"_id": user_oid})
@@ -705,7 +740,7 @@ async def update_contract(
 async def update_contract_status(
     contract_id: str,
     payload: StatusUpdate,
-    user_id: str = Query(..., description="Requesting user/client id"),
+    actor: dict = Depends(get_current_actor),
 ):
     """
     Transition a contract to a new status.
@@ -726,8 +761,9 @@ async def update_contract_status(
     if not existing:
         raise HTTPException(status_code=404, detail="Contract not found")
 
-    requester_oid = _validate_object_id(user_id, "requesting user")
-    if not _is_contract_owner(existing, requester_oid, user_id):
+    requester_id = str(actor.get("sub") or "")
+    requester_oid = _validate_object_id(requester_id, "authenticated user")
+    if not _is_contract_owner(existing, requester_oid, requester_id):
         raise HTTPException(status_code=403, detail="You do not have access to this contract")
 
     current = existing["status"]
@@ -755,13 +791,17 @@ async def update_contract_status(
 
 # ── PUT /contracts/{id}/send  ─────────────────────────────────
 @router.put("/{contract_id}/send", response_model=ContractOut)
-async def send_contract(contract_id: str):
+async def send_contract(
+    contract_id: str,
+    actor: dict = Depends(require_role("user")),
+):
     """
     Mark a contract as 'sent'.
     Only drafts can be sent.
     """
 
     oid = _validate_object_id(contract_id, "contract")
+    requester_oid = _validate_object_id(str(actor.get("sub") or ""), "authenticated user")
     creator_signature_filter = {
         "$exists": True,
         "$nin": [None, ""],
@@ -771,6 +811,7 @@ async def send_contract(contract_id: str):
     result = await contracts_collection.find_one_and_update(
         {
             "_id": oid,
+            "userId": requester_oid,
             "status": ContractStatus.draft.value,
             "signatures.creator": creator_signature_filter,
         },
@@ -783,6 +824,8 @@ async def send_contract(contract_id: str):
         existing = await contracts_collection.find_one({"_id": oid})
         if not existing:
             raise HTTPException(status_code=404, detail="Contract not found")
+        if str(existing.get("userId") or "") != str(actor.get("sub") or ""):
+            raise HTTPException(status_code=403, detail="You do not have access to this contract")
         existing_signatures = existing.get("signatures") or {}
         if not str(existing_signatures.get("creator") or "").strip():
             raise HTTPException(

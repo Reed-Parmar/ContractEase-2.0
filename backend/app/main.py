@@ -7,9 +7,8 @@ Run with:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from urllib.parse import urlsplit
 
-from app.core.config import ALLOWED_ORIGINS, DATABASE_NAME, MONGO_URI
+from app.core.config import ALLOWED_ORIGINS, DATABASE_NAME
 from app.db.mongo import (
     close_mongo_connection,
     users_collection,
@@ -37,20 +36,22 @@ app.add_middleware(
 )
 
 
-def _summarize_mongo_uri(uri: str) -> str:
-    parsed = urlsplit(uri)
-    netloc = parsed.netloc.split("@", 1)[-1] if "@" in parsed.netloc else parsed.netloc
-    database = parsed.path.lstrip("/") or "(none)"
-    return f"hosts={netloc or '(unknown)'}, db={database}"
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 # ── Startup: ensure database indexes ─────────────────────────
 @app.on_event("startup")
 async def ensure_indexes():
     """Create required database indexes on startup (idempotent)."""
-    print("Connected to MongoDB:", MONGO_URI)
     print(f"[startup] Mongo target DB: {DATABASE_NAME}")
-    print(f"[startup] Mongo connection: {_summarize_mongo_uri(MONGO_URI)}")
 
     # Users
     await users_collection.create_index("email", unique=True)

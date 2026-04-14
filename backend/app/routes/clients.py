@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 
+from app.core.security import hash_password
 from app.db.mongo import clients_collection
 from app.models.client import ClientCreate, ClientOut
 
@@ -28,7 +29,7 @@ async def create_client(payload: ClientCreate):
     doc = {
         "name": payload.name,
         "email": payload.email,
-        "password": payload.password,
+        "password": hash_password(payload.password),
         "role": "client",
         "createdAt": datetime.now(timezone.utc),
     }

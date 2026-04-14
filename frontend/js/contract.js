@@ -774,8 +774,8 @@ async function downloadSignedContract(contractId, buttonEl = null) {
     return;
   }
 
-  const userId = localStorage.getItem('user_id');
-  if (!userId) {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
     showToast('Please sign in again before downloading.', 'error');
     return;
   }
@@ -787,14 +787,23 @@ async function downloadSignedContract(contractId, buttonEl = null) {
   }
 
   try {
+    const res = await authFetch(`${API_BASE}/contracts/${contractId}/download`);
+    if (!res.ok) {
+      throw new Error('Download request failed');
+    }
+
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
     const anchor = document.createElement('a');
-    anchor.href = `${API_BASE}/contracts/${contractId}/download?user_id=${encodeURIComponent(userId)}`;
+    anchor.href = objectUrl;
     anchor.download = `contract_${contractId}.pdf`;
     anchor.style.display = 'none';
 
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
+    URL.revokeObjectURL(objectUrl);
   } catch (error) {
     console.error('Contract download failed:', error);
     showToast('Failed to start contract download.', 'error');
@@ -3149,7 +3158,7 @@ async function loadCreateContractPage() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/contracts/${contractId}`);
+    const res = await authFetch(`${API_BASE}/contracts/${contractId}`);
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(
@@ -3294,7 +3303,7 @@ async function findOrCreateClientByEmail(clientEmail, clientName = '') {
 
   let lookupRes;
   try {
-    lookupRes = await fetch(`${API_BASE}/clients/by-email?email=${encodeURIComponent(normalizedEmail)}`);
+    lookupRes = await authFetch(`${API_BASE}/clients/by-email?email=${encodeURIComponent(normalizedEmail)}`);
   } catch (error) {
     console.error('FULL ERROR:', error);
     throw new Error(getErrorMessage(error));
@@ -3326,7 +3335,7 @@ async function findOrCreateClientByEmail(clientEmail, clientName = '') {
 
   let autoRes;
   try {
-    autoRes = await fetch(`${API_BASE}/register/client`, {
+    autoRes = await authFetch(`${API_BASE}/register/client`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -3501,11 +3510,11 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
 
   try {
     const endpoint = isEditingContract
-      ? `${API_BASE}/contracts/${editingContractId}?user_id=${encodeURIComponent(userId)}`
+      ? `${API_BASE}/contracts/${editingContractId}`
       : `${API_BASE}/contracts/`;
     const method = isEditingContract ? 'PATCH' : 'POST';
 
-    const res = await fetch(endpoint, {
+    const res = await authFetch(endpoint, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -3530,7 +3539,7 @@ async function handleSubmit(type, collectFn, sendForSignature = true) {
     }
 
     if (sendForSignature) {
-      const sendRes = await fetch(`${API_BASE}/contracts/${targetContractId}/send`, { method: 'PUT' });
+      const sendRes = await authFetch(`${API_BASE}/contracts/${targetContractId}/send`, { method: 'PUT' });
       if (!sendRes.ok) {
         const sendErrorText = await sendRes.text();
         let sendMessage = `Failed to send contract (${sendRes.status} ${sendRes.statusText})`;
@@ -3600,7 +3609,7 @@ async function loadSignContractPage() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/contracts/${contractId}`);
+    const res = await authFetch(`${API_BASE}/contracts/${contractId}`);
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(
@@ -3785,7 +3794,7 @@ async function loadSignContractPage() {
         const signedDownloadBtnEl = document.getElementById('signedDownloadBtn');
 
         try {
-          const sigRes = await fetch(`${API_BASE}/contracts/${contractId}/signature`);
+          const sigRes = await authFetch(`${API_BASE}/contracts/${contractId}/signature`);
           if (sigRes.ok) {
             const sig = await sigRes.json();
             if (el('signedByName')) el('signedByName').textContent = sig.signerName || '—';
@@ -3873,7 +3882,7 @@ async function signContract() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/contracts/${contractId}/sign`, {
+    const res = await authFetch(`${API_BASE}/contracts/${contractId}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3921,7 +3930,7 @@ async function declineContract() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/contracts/${contractId}/status?user_id=${encodeURIComponent(userId)}`, {
+    const res = await authFetch(`${API_BASE}/contracts/${contractId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'declined' }),
@@ -3953,7 +3962,7 @@ async function populateSignedExecutionDetails(contractId) {
   ensureSignedDetailsSection();
 
   try {
-    const sigRes = await fetch(`${API_BASE}/contracts/${contractId}/signature`);
+    const sigRes = await authFetch(`${API_BASE}/contracts/${contractId}/signature`);
     if (!sigRes.ok) return false;
 
     const sig = await sigRes.json();

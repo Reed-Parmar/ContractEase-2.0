@@ -102,6 +102,9 @@
             localStorage.setItem('user_email', data.email);
             localStorage.setItem('user_role', 'client');
             localStorage.setItem('user_name', data.name);
+            if (data.access_token) {
+              localStorage.setItem('access_token', data.access_token);
+            }
             showToast('Account created! Welcome to ContractEase.', 'success');
             setTimeout(() => { window.location.href = 'client-dashboard.html'; }, 800);
           } else {

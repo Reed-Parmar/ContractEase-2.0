@@ -11,6 +11,25 @@
 // Change this one constant when the backend URL changes.
 const API_BASE = 'http://localhost:8000';
 
+function getAccessToken() {
+  return localStorage.getItem('access_token') || '';
+}
+
+function getAuthHeaders(baseHeaders = {}) {
+  const token = getAccessToken();
+  const headers = { ...baseHeaders };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function authFetch(url, options = {}) {
+  const nextOptions = { ...options };
+  nextOptions.headers = getAuthHeaders(options.headers || {});
+  return fetch(url, nextOptions);
+}
+
 // ── Toast notification system ────────────────────────────────
 // Usage: showToast('Something went wrong', 'error')
 //        showToast('Contract sent!', 'success')

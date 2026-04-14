@@ -8,10 +8,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from bson import ObjectId
 from pymongo import ReturnDocument
 
+from app.core.auth import get_current_actor, require_role
 from app.db.mongo import contracts_collection, signatures_collection, db
 from app.models.signature import SignatureCreate, SignatureOut
 from app.models.contract import ContractStatus
@@ -107,7 +108,11 @@ async def _ensure_signatures_collection() -> None:
 
 # ── POST /contracts/{id}/sign  ────────────────────────────────
 @router.post("/{contract_id}/sign", response_model=SignatureOut, status_code=201)
-async def sign_contract(contract_id: str, payload: SignatureCreate):
+async def sign_contract(
+    contract_id: str,
+    payload: SignatureCreate,
+    actor: dict = Depends(require_role("client")),
+):
     """
     Sign a contract.
     - Contract must exist and have status 'sent'.
@@ -121,6 +126,16 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid contract ID format")
 
+    actor_id = str(actor.get("sub") or "")
+    try:
+        actor_oid = ObjectId(actor_id)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid authentication context")
+    actor_email = str(actor.get("email") or "").strip().lower()
+    payload_email = str(payload.signerEmail).strip().lower()
+    if actor_email and payload_email != actor_email:
+        raise HTTPException(status_code=403, detail="Signer email must match authenticated account")
+
     signed_at = datetime.now(timezone.utc)
     stale_before = signed_at - PENDING_LOCK_TTL
     await cleanup_stale_pending_contracts(signed_at)
@@ -129,6 +144,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
     locked_contract = await contracts_collection.find_one_and_update(
         {
             "_id": oid,
+            "clientId": actor_oid,
             "$and": [
                 {
                     "$or": [
@@ -331,12 +347,23 @@ async def sign_contract(contract_id: str, payload: SignatureCreate):
 
 # ── GET /contracts/{id}/signature  ───────────────────────────
 @router.get("/{contract_id}/signature")
-async def get_contract_signature(contract_id: str):
+async def get_contract_signature(
+    contract_id: str,
+    actor: dict = Depends(get_current_actor),
+):
     """Retrieve the stored signature record for a signed contract."""
     try:
         oid = ObjectId(contract_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid contract ID format")
+
+    contract_doc = await contracts_collection.find_one({"_id": oid}, {"userId": 1, "clientId": 1})
+    if not contract_doc:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    actor_id = str(actor.get("sub") or "")
+    if str(contract_doc.get("userId") or "") != actor_id and str(contract_doc.get("clientId") or "") != actor_id:
+        raise HTTPException(status_code=403, detail="You do not have access to this signature")
 
     sig = await signatures_collection.find_one({
         "$or": [

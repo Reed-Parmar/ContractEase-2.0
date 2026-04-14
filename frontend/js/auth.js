@@ -91,6 +91,9 @@ function _storeSession(data, role) {
   localStorage.setItem('user_email', data.email);
   localStorage.setItem('user_role', role);
   localStorage.setItem('user_name', data.name);
+  if (data.access_token) {
+    localStorage.setItem('access_token', data.access_token);
+  }
 }
 
 /**
