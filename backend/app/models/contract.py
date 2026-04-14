@@ -171,7 +171,7 @@ class TemplateData(BaseModel):
 # ── Request body for creating a contract ──────────────────────
 class ContractCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, examples=["Website Development Agreement"])
-    type: Literal["house_sale", "website_development", "broker", "nda", "employment"] = Field(
+    type: Literal["house_sale", "website_development", "broker", "nda", "employment", "license", "service"] = Field(
         ...,
         examples=["website_development"],
     )
@@ -196,7 +196,7 @@ class ContractCreate(BaseModel):
 class ContractOut(BaseModel):
     id: str = Field(..., alias="_id")
     title: str
-    type: Literal["house_sale", "website_development", "broker", "nda", "employment"]
+    type: Literal["house_sale", "website_development", "broker", "nda", "employment", "license", "service"]
     description: Optional[str] = None
     amount: float
     currency: Literal["₹", "$", "€"] = "₹"

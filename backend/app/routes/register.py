@@ -4,7 +4,9 @@ All business logic lives in `app.services.auth_service`.
 """
 
 from fastapi import APIRouter, Depends, Request
+from fastapi import HTTPException
 from pydantic import BaseModel, EmailStr, Field
+import time
 
 from app.core.auth import require_role
 from app.services.auth_service import (
@@ -17,12 +19,20 @@ from app.services.auth_service import (
 
 router = APIRouter(tags=["Registration & Login"])
 
+_LOGIN_ATTEMPTS: dict[str, list[float]] = {}
+_LOGIN_WINDOW_SECONDS = 60.0
+_LOGIN_MAX_ATTEMPTS = 5
+
 
 async def check_rate_limit(request: Request):
-    """Dependency to check rate limits using the app's limiter."""
-    if hasattr(request.app, 'state') and hasattr(request.app.state, 'limiter'):
-        limiter = request.app.state.limiter
-        await limiter.limit("5/minute")(request)
+    """Lightweight per-IP rate limiting for login endpoints."""
+    client_host = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    attempts = _LOGIN_ATTEMPTS.setdefault(client_host, [])
+    attempts[:] = [stamp for stamp in attempts if now - stamp < _LOGIN_WINDOW_SECONDS]
+    if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
+    attempts.append(now)
     return True
 
 

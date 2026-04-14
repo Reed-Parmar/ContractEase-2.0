@@ -43,6 +43,15 @@ async def rate_limit_exceeded(request, exc):
         content={"detail": "Rate limit exceeded. Please try again later."},
     )
 
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    logger.exception("Unhandled error while processing %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
 # ── CORS — restrict to specific allowed origins ──────────────
 app.add_middleware(
     CORSMiddleware,
