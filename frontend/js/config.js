@@ -8,8 +8,11 @@
  */
 
 // ── API base URL ─────────────────────────────────────────────
-// Change this one constant when the backend URL changes.
-const API_BASE = 'http://localhost:8000';
+// Environment-aware configuration: use localhost for dev, production URL for deployed environment
+const API_BASE =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://your-backend-domain.onrender.com'; // Replace with actual backend URL
 
 function getAccessToken() {
   return localStorage.getItem('access_token') || '';

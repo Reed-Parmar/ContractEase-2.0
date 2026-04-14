@@ -6,7 +6,7 @@ No JWT, no hashing — just raw inserts / lookups for demo.
 from datetime import datetime, timezone
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from pymongo.errors import DuplicateKeyError
 
@@ -15,6 +15,14 @@ from app.core.security import ACCESS_TOKEN_TTL_SECONDS, create_access_token, has
 from app.db.mongo import users_collection, clients_collection
 
 router = APIRouter(tags=["Registration & Login"])
+
+
+async def check_rate_limit(request: Request):
+    """Dependency to check rate limits using the app's limiter."""
+    if hasattr(request.app, 'state') and hasattr(request.app.state, 'limiter'):
+        limiter = request.app.state.limiter
+        await limiter.limit("5/minute")(request)
+    return True
 
 
 def _normalize_email(value: str) -> str:
@@ -157,8 +165,13 @@ async def register_client(payload: RegisterClientBody):
 
 # ── POST /login/user ─────────────────────────────────────────
 @router.post("/login/user")
-async def login_user(payload: LoginBody):
-    """Validate user credentials and return user info (no JWT)."""
+async def login_user(
+    payload: LoginBody,
+    _: bool = Depends(check_rate_limit),
+):
+    """Validate user credentials and return user info (no JWT).
+    
+    Rate limited to 5 login attempts per minute."""
     normalized_email = _normalize_email(payload.email)
     user = await _find_by_email(users_collection, normalized_email)
     if not user:
@@ -194,8 +207,13 @@ async def login_user(payload: LoginBody):
 
 # ── POST /login/client ───────────────────────────────────────
 @router.post("/login/client")
-async def login_client(payload: LoginBody):
-    """Validate client credentials and return client info (no JWT)."""
+async def login_client(
+    payload: LoginBody,
+    _: bool = Depends(check_rate_limit),
+):
+    """Validate client credentials and return client info (no JWT).
+    
+    Rate limited to 5 login attempts per minute."""
     normalized_email = _normalize_email(payload.email)
     client = await _find_by_email(clients_collection, normalized_email)
     if not client:

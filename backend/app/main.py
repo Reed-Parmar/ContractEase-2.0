@@ -7,6 +7,10 @@ Run with:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
 
 from app.core.config import ALLOWED_ORIGINS, DATABASE_NAME
 from app.db.mongo import (
@@ -18,21 +22,30 @@ from app.db.mongo import (
 )
 from app.routes import users, clients, contracts, signatures, register
 
-# ── App instance ──────────────────────────────────────────────
+# ── App instance with rate limiting ──────────────────────
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="ContractEase API",
     description="Backend API for the ContractEase contract creation & e-signing platform.",
     version="1.0.0",
 )
+app.state.limiter = limiter
 
-# ── CORS — allow the frontend to talk to the API ─────────────
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded(request, exc):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Please try again later."},
+    )
+
+# ── CORS — restrict to specific allowed origins ──────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -88,3 +101,8 @@ app.include_router(register.router)
 @app.get("/", tags=["Health"])
 async def root():
     return {"status": "ok", "project": "ContractEase", "version": "1.0.0"}
+
+
+@app.get("/health", tags=["Health"])
+async def health():
+    return {"status": "ok"}
