@@ -81,7 +81,7 @@ def _serialize(doc: dict) -> dict:
 
     raw_amount = doc.get("amount")
     amount_value = 0.0
-    if raw_amount:
+    if raw_amount is not None:
         try:
             cleaned_amount = re.sub(r"[,$€₹\s]", "", str(raw_amount))
             amount_value = float(cleaned_amount)
@@ -499,6 +499,10 @@ async def create_contract(payload: ContractCreate, actor: dict) -> dict:
         normalized_amount = _validate_nda_data(payload, template_data)
     elif contract_type == EMPLOYMENT_TYPE:
         normalized_amount = _validate_employment_data(payload, template_data)
+    elif contract_type == NDA_TYPE:
+        normalized_amount = _validate_nda_data(payload, template_data)
+    elif contract_type == EMPLOYMENT_TYPE:
+        normalized_amount = _validate_employment_data(payload, template_data)
 
     doc = {
         "title": payload.title,
@@ -686,8 +690,8 @@ async def update_contract_status(contract_id: str, payload, actor: dict) -> dict
 
     allowed_transitions = {
         "draft": {"sent", "pending"},
-        "sent": {"declined"},
-        "pending": {"declined"},
+        "sent": {"declined", "signed"},
+        "pending": {"declined", "signed"},
     }
 
     existing = await contracts_collection.find_one({"_id": oid})

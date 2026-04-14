@@ -13,15 +13,12 @@ const API_BASE =
   window.location.hostname === "localhost"
     ? "http://localhost:8000"
     : "https://contractease-2-0.onrender.com";
-    
-console.log('API_BASE:', API_BASE);
 
 function getAccessToken() {
-  return localStorage.getItem('access_token') || '';
+  return sessionStorage.getItem('access_token') || '';
 }
 
-function getAuthHeaders(baseHeaders = {}) {
-  const token = getAccessToken();
+function getAuthHeaders(baseHeaders = {}, token = getAccessToken()) {
   const headers = { ...baseHeaders };
   if (token) {
     headers.Authorization = `Bearer ${token}`;

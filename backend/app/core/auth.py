@@ -27,10 +27,18 @@ async def get_current_actor(
 
 def require_role(*roles: str) -> Callable:
     allowed = {role.strip().lower() for role in roles if role and role.strip()}
+    if not allowed:
+        raise ValueError("require_role() requires at least one non-empty role")
 
     async def _dependency(actor: dict = Depends(get_current_actor)) -> dict:
-        actor_role = str(actor.get("role") or "").strip().lower()
-        if allowed and actor_role not in allowed:
+        raw_role = actor.get("role")
+        if isinstance(raw_role, (list, tuple, set)):
+            roles_list = [str(role).strip().lower() for role in raw_role if str(role).strip()]
+        else:
+            normalized_role = str(raw_role or "").strip().lower()
+            roles_list = [normalized_role] if normalized_role else []
+
+        if not any(role in allowed for role in roles_list):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return actor
 

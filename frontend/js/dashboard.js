@@ -171,7 +171,7 @@ async function downloadSignedContract(contractId, buttonEl = null) {
     return;
   }
 
-  const token = localStorage.getItem('access_token');
+  const token = typeof getAccessToken === 'function' ? getAccessToken() : '';
   if (!token) {
     showToast('Please sign in again before downloading.', 'error');
     return;
@@ -200,7 +200,9 @@ async function downloadSignedContract(contractId, buttonEl = null) {
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(objectUrl);
+    setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 1000);
   } catch (error) {
     console.error('Contract download failed:', error);
     showToast('Failed to start contract download.', 'error');

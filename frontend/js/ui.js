@@ -5,16 +5,62 @@
 function setupDashboardChrome() {
   const tabs = document.querySelectorAll('.dashboard-tab');
   const sections = document.querySelectorAll('.dashboard-section');
+  const tabList = tabs.length ? tabs[0].parentElement : null;
 
-  tabs.forEach((tab) => {
+  if (tabList) {
+    tabList.setAttribute('role', 'tablist');
+  }
+
+  const activateTab = (tab) => {
+    tabs.forEach((t) => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
+    });
+    sections.forEach((section) => section.classList.remove('active'));
+
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('tabindex', '0');
+
+    const target = tab.getAttribute('data-target');
+    if (target) {
+      tab.setAttribute('aria-controls', target);
+      const section = document.getElementById(target);
+      if (section) {
+        section.classList.add('active');
+      }
+    }
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', tab.classList.contains('active') ? 'true' : 'false');
+    tab.setAttribute('tabindex', tab.classList.contains('active') ? '0' : '-1');
+    const target = tab.getAttribute('data-target');
+    if (target) {
+      tab.setAttribute('aria-controls', target);
+    }
+
     tab.addEventListener('click', () => {
-      tabs.forEach((t) => t.classList.remove('active'));
-      sections.forEach((section) => section.classList.remove('active'));
+      activateTab(tab);
+    });
 
-      tab.classList.add('active');
-      const target = tab.getAttribute('data-target');
-      if (target && document.getElementById(target)) {
-        document.getElementById(target).classList.add('active');
+    tab.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        const nextIndex = (index + 1) % tabs.length;
+        const nextTab = tabs[nextIndex];
+        nextTab.focus();
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prevIndex = (index - 1 + tabs.length) % tabs.length;
+        const prevTab = tabs[prevIndex];
+        prevTab.focus();
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        activateTab(tab);
+        tab.focus();
       }
     });
   });

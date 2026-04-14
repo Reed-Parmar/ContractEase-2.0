@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const data = await submitAuthPayload(`${API_BASE}/register/client`, { name, email, password });
-        if (!data?.success) {
+        if (!data?.success || !data.user_id || !data.email || !data.name) {
           showToast('Registration failed.', 'error');
           return;
         }
@@ -174,7 +174,7 @@ function _storeSession(data, role) {
   localStorage.setItem('user_role', role);
   localStorage.setItem('user_name', data.name);
   if (data.access_token) {
-    localStorage.setItem('access_token', data.access_token);
+    sessionStorage.setItem('access_token', data.access_token);
   }
 }
 

@@ -12,9 +12,7 @@ load_dotenv()
 
 
 # MongoDB connection string
-MONGO_URI = os.getenv("MONGO_URI")
-if not MONGO_URI:
-    raise RuntimeError("MONGO_URI not set")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 
 # Database name
 DATABASE_NAME = (

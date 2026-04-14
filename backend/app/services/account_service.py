@@ -17,6 +17,10 @@ async def ensure_client_indexes() -> None:
     await clients_collection.create_index("email", unique=True)
 
 
+async def ensure_user_indexes() -> None:
+    await users_collection.create_index("email", unique=True)
+
+
 async def create_user(payload) -> dict:
     existing = await users_collection.find_one({"email": payload.email})
     if existing:

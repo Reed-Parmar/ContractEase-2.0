@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -11,7 +12,11 @@ import time
 from typing import Any
 
 
-AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "dev-change-this-secret")
+AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY")
+if not AUTH_SECRET_KEY or AUTH_SECRET_KEY.strip() == "dev-change-this-secret":
+    raise RuntimeError(
+        "AUTH_SECRET_KEY must be set to a strong secret value; insecure defaults are not allowed"
+    )
 ACCESS_TOKEN_TTL_SECONDS = int(os.getenv("ACCESS_TOKEN_TTL_SECONDS", "3600"))
 PASSWORD_HASH_ITERATIONS = int(os.getenv("PASSWORD_HASH_ITERATIONS", "200000"))
 
@@ -39,13 +44,19 @@ def hash_password(password: str) -> str:
     )
 
 
-def verify_password(password: str, stored_value: str) -> bool:
-    if not stored_value:
-        return False
+def needs_rehash(password_hash: str) -> bool:
+    return not str(password_hash or "").startswith("pbkdf2_sha256$")
 
-    if not stored_value.startswith("pbkdf2_sha256$"):
-        # Backward-compatible check for legacy plaintext rows.
-        return hmac.compare_digest(str(stored_value), str(password))
+
+def verify_password_with_rehash(password: str, stored_value: str) -> tuple[bool, str | None]:
+    if not stored_value:
+        return False, None
+
+    if needs_rehash(stored_value):
+        matched = hmac.compare_digest(str(stored_value), str(password))
+        if not matched:
+            return False, None
+        return True, hash_password(password)
 
     try:
         _, iter_text, salt_text, digest_text = stored_value.split("$", 3)
@@ -53,7 +64,7 @@ def verify_password(password: str, stored_value: str) -> bool:
         salt = _b64url_decode(salt_text)
         expected = _b64url_decode(digest_text)
     except Exception:
-        return False
+        return False, None
 
     actual = hashlib.pbkdf2_hmac(
         "sha256",
@@ -61,7 +72,12 @@ def verify_password(password: str, stored_value: str) -> bool:
         salt,
         iterations,
     )
-    return hmac.compare_digest(actual, expected)
+    return hmac.compare_digest(actual, expected), None
+
+
+def verify_password(password: str, stored_value: str) -> bool:
+    matched, _new_hash = verify_password_with_rehash(password, stored_value)
+    return matched
 
 
 def create_access_token(subject: str, role: str, email: str) -> str:
@@ -94,7 +110,10 @@ def verify_access_token(token: str) -> dict[str, Any] | None:
         payload_text.encode("utf-8"),
         hashlib.sha256,
     ).digest()
-    actual_signature = _b64url_decode(signature_text)
+    try:
+        actual_signature = _b64url_decode(signature_text)
+    except (ValueError, binascii.Error):
+        return None
     if not hmac.compare_digest(actual_signature, expected_signature):
         return None
 

@@ -6,22 +6,14 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
-import sys
 
 from bson import ObjectId
 from fastapi import HTTPException
 from pymongo import ReturnDocument
 
-from app.core.auth import get_current_actor
 from app.db.mongo import contracts_collection, db, signatures_collection
 from app.models.contract import ContractStatus
 from app.models.signature import SignatureCreate
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.append(str(REPO_ROOT))
-
-from pdf_gen_engine import generate_contract_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +222,13 @@ async def sign_contract(contract_id: str, payload: SignatureCreate, actor: dict)
     }
 
     try:
+        try:
+            from pdf_gen_engine import generate_contract_pdf
+        except ImportError as import_error:
+            raise HTTPException(
+                status_code=500,
+                detail="PDF generator unavailable; ensure pdf_gen_engine is installed and importable",
+            ) from import_error
         pdf_path = await asyncio.to_thread(generate_contract_pdf, contract_payload)
     except ValueError as error:
         logger.warning("PDF validation failed for signed contract %s: %s", contract_id, error)
@@ -269,7 +268,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate, actor: dict)
         try:
             pdf_file = Path(str(pdf_path))
             if pdf_file.exists():
-                pdf_file.unlink()
+                await asyncio.to_thread(pdf_file.unlink)
         except Exception:
             logger.exception("Failed to delete generated PDF during rollback for %s", contract_id)
 
@@ -278,7 +277,7 @@ async def sign_contract(contract_id: str, payload: SignatureCreate, actor: dict)
             {"_id": oid},
             {"$set": {"status": ContractStatus.sent.value, "signedAt": None, "pendingAt": None}},
         )
-        raise HTTPException(status_code=500, detail="Failed to generate signed contract PDF.") from error
+        raise HTTPException(status_code=500, detail=f"Failed to persist contract state: {error}") from error
 
     sig_doc["_id"] = str(result.inserted_id)
     sig_doc["contractId"] = str(sig_doc["contractId"])

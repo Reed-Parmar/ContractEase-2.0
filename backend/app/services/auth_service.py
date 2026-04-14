@@ -7,8 +7,15 @@ import logging
 import re
 
 from fastapi import HTTPException
+from pymongo.errors import DuplicateKeyError
 
-from app.core.security import ACCESS_TOKEN_TTL_SECONDS, create_access_token, hash_password, verify_password
+from app.core.security import (
+    ACCESS_TOKEN_TTL_SECONDS,
+    create_access_token,
+    hash_password,
+    needs_rehash,
+    verify_password_with_rehash,
+)
 from app.db.mongo import clients_collection, users_collection
 
 logger = logging.getLogger(__name__)
@@ -58,9 +65,12 @@ async def register_user(payload) -> dict:
 
     try:
         result = await users_collection.insert_one(doc)
-    except Exception as exc:
-        logger.warning("User registration failed for %s", normalized_email)
+    except DuplicateKeyError as exc:
+        logger.warning("Duplicate user registration attempted for %s", normalized_email)
         raise HTTPException(status_code=400, detail="Email already registered") from exc
+    except Exception as exc:
+        logger.exception("Unexpected user registration error for %s", normalized_email)
+        raise HTTPException(status_code=500, detail="Unexpected registration error") from exc
 
     doc["_id"] = result.inserted_id
     token = create_access_token(subject=str(doc["_id"]), role="user", email=normalized_email)
@@ -92,9 +102,12 @@ async def register_client(payload) -> dict:
 
     try:
         result = await clients_collection.insert_one(doc)
-    except Exception as exc:
-        logger.warning("Client registration failed for %s", normalized_email)
+    except DuplicateKeyError as exc:
+        logger.warning("Duplicate client registration attempted for %s", normalized_email)
         raise HTTPException(status_code=400, detail="Email already registered") from exc
+    except Exception as exc:
+        logger.exception("Unexpected client registration error for %s", normalized_email)
+        raise HTTPException(status_code=500, detail="Unexpected registration error") from exc
 
     doc["_id"] = result.inserted_id
     token = create_access_token(subject=str(doc["_id"]), role="client", email=normalized_email)
@@ -117,11 +130,12 @@ async def login_user(payload) -> dict:
         await _find_by_email(clients_collection, normalized_email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if not verify_password(payload.password, str(user.get("password") or "")):
+    verified, replacement_hash = verify_password_with_rehash(payload.password, str(user.get("password") or ""))
+    if not verified:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if not str(user.get("password") or "").startswith("pbkdf2_sha256$"):
-        await users_collection.update_one({"_id": user["_id"]}, {"$set": {"password": hash_password(payload.password)}})
+    if replacement_hash and needs_rehash(str(user.get("password") or "")):
+        await users_collection.update_one({"_id": user["_id"]}, {"$set": {"password": replacement_hash}})
 
     token = create_access_token(subject=str(user["_id"]), role="user", email=user["email"])
     return {
@@ -143,11 +157,12 @@ async def login_client(payload) -> dict:
         await _find_by_email(users_collection, normalized_email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if not verify_password(payload.password, str(client.get("password") or "")):
+    verified, replacement_hash = verify_password_with_rehash(payload.password, str(client.get("password") or ""))
+    if not verified:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if not str(client.get("password") or "").startswith("pbkdf2_sha256$"):
-        await clients_collection.update_one({"_id": client["_id"]}, {"$set": {"password": hash_password(payload.password)}})
+    if replacement_hash and needs_rehash(str(client.get("password") or "")):
+        await clients_collection.update_one({"_id": client["_id"]}, {"$set": {"password": replacement_hash}})
 
     token = create_access_token(subject=str(client["_id"]), role="client", email=client["email"])
     return {
