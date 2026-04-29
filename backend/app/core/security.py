@@ -122,8 +122,16 @@ def verify_access_token(token: str) -> dict[str, Any] | None:
     except Exception:
         return None
 
+    if not isinstance(payload, dict):
+        return None
+
     now = int(time.time())
-    if int(payload.get("exp", 0)) < now:
+    try:
+        exp = int(payload.get("exp", 0))
+    except (TypeError, ValueError):
+        return None
+
+    if exp < now:
         return None
 
     if not payload.get("sub") or not payload.get("role"):

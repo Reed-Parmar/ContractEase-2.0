@@ -6,6 +6,7 @@ All business logic lives in `app.services.auth_service`.
 from fastapi import APIRouter, Depends, Request
 from fastapi import HTTPException
 from pydantic import BaseModel, EmailStr, Field
+import asyncio
 import time
 
 from app.core.auth import require_role
@@ -22,17 +23,33 @@ router = APIRouter(tags=["Registration & Login"])
 _LOGIN_ATTEMPTS: dict[str, list[float]] = {}
 _LOGIN_WINDOW_SECONDS = 60.0
 _LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_MAX_TRACKED_IPS = 5000
+_LOGIN_ATTEMPTS_LOCK = asyncio.Lock()
 
 
 async def check_rate_limit(request: Request):
     """Lightweight per-IP rate limiting for login endpoints."""
     client_host = request.client.host if request.client else "unknown"
     now = time.monotonic()
-    attempts = _LOGIN_ATTEMPTS.setdefault(client_host, [])
-    attempts[:] = [stamp for stamp in attempts if now - stamp < _LOGIN_WINDOW_SECONDS]
-    if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
-    attempts.append(now)
+
+    async with _LOGIN_ATTEMPTS_LOCK:
+        attempts = _LOGIN_ATTEMPTS.setdefault(client_host, [])
+        attempts[:] = [stamp for stamp in attempts if now - stamp < _LOGIN_WINDOW_SECONDS]
+
+        if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
+
+        attempts.append(now)
+
+        if len(_LOGIN_ATTEMPTS) > _LOGIN_MAX_TRACKED_IPS:
+            stale_hosts = [
+                host
+                for host, stamps in _LOGIN_ATTEMPTS.items()
+                if not stamps or now - stamps[-1] >= _LOGIN_WINDOW_SECONDS
+            ]
+            for host in stale_hosts:
+                _LOGIN_ATTEMPTS.pop(host, None)
+
     return True
 
 

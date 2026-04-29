@@ -6,6 +6,7 @@ the current API contract and MongoDB schema.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 import logging
 import re
@@ -43,6 +44,13 @@ SUPPORTED_CONTRACT_TYPES = {
     BROKER_TYPE,
     NDA_TYPE,
     EMPLOYMENT_TYPE,
+}
+SUPPORTED_CONTRACT_STATUSES = {
+    ContractStatus.draft.value,
+    ContractStatus.sent.value,
+    ContractStatus.signed.value,
+    ContractStatus.declined.value,
+    ContractStatus.pending.value,
 }
 
 
@@ -101,13 +109,33 @@ def _serialize(doc: dict) -> dict:
 
     doc["signedAt"] = _parse_datetime(doc.get("signedAt"))
     doc["currency"] = doc.get("currency") or DEFAULT_CURRENCY
+    doc["status"] = str(doc.get("status") or ContractStatus.draft.value).strip().lower()
+    if doc["status"] not in SUPPORTED_CONTRACT_STATUSES:
+        doc["status"] = ContractStatus.draft.value
+
+    raw_type = str(doc.get("type") or "").strip().lower()
+    doc["type"] = raw_type if raw_type in {"house_sale", "website_development", "broker", "nda", "employment", "license", "service"} else HOUSE_SALE_TYPE
+
+    raw_clauses = doc.get("clauses") if isinstance(doc.get("clauses"), dict) else {}
+    doc["clauses"] = {
+        "payment": bool(raw_clauses.get("payment", True)),
+        "liability": bool(raw_clauses.get("liability", False)),
+        "confidentiality": bool(raw_clauses.get("confidentiality", True)),
+        "termination": bool(raw_clauses.get("termination", False)),
+    }
+
     doc["signatures"] = doc.get("signatures") or {"creator": None, "client": None}
     doc["templateData"] = doc.get("templateData") or {}
 
     if isinstance(doc.get("userId"), ObjectId):
         doc["userId"] = str(doc["userId"])
+    if not doc.get("userId"):
+        doc["userId"] = ""
+
     if isinstance(doc.get("clientId"), ObjectId):
         doc["clientId"] = str(doc["clientId"])
+    if not doc.get("clientId"):
+        doc["clientId"] = ""
 
     return doc
 
@@ -455,7 +483,7 @@ async def _generate_legacy_pdf_path(contract_id: str, doc: dict) -> str:
     doc = await _attach_sender_fields(doc)
 
     try:
-        pdf_path = generate_contract_pdf(_build_pdf_payload(doc, signature_doc))
+        pdf_path = await asyncio.to_thread(generate_contract_pdf, _build_pdf_payload(doc, signature_doc))
     except ValueError as error:
         logger.warning("Legacy PDF validation failed for contract %s: %s", contract_id, error)
         raise HTTPException(status_code=400, detail=str(error)) from error

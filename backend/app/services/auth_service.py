@@ -25,6 +25,14 @@ def _normalize_email(value: str) -> str:
     return str(value or "").strip().lower()
 
 
+def _safe_create_access_token(subject: str, role: str, email: str) -> str:
+    try:
+        return create_access_token(subject=subject, role=role, email=email)
+    except Exception as exc:
+        logger.exception("Access token generation failed for email=%s role=%s", email, role)
+        raise HTTPException(status_code=500, detail="Authentication token generation failed") from exc
+
+
 async def _find_by_email(collection, email: str):
     normalized = _normalize_email(email)
     if not normalized:
@@ -73,7 +81,7 @@ async def register_user(payload) -> dict:
         raise HTTPException(status_code=500, detail="Unexpected registration error") from exc
 
     doc["_id"] = result.inserted_id
-    token = create_access_token(subject=str(doc["_id"]), role="user", email=normalized_email)
+    token = _safe_create_access_token(subject=str(doc["_id"]), role="user", email=normalized_email)
     return {
         "success": True,
         "user_id": str(doc["_id"]),
@@ -110,7 +118,7 @@ async def register_client(payload) -> dict:
         raise HTTPException(status_code=500, detail="Unexpected registration error") from exc
 
     doc["_id"] = result.inserted_id
-    token = create_access_token(subject=str(doc["_id"]), role="client", email=normalized_email)
+    token = _safe_create_access_token(subject=str(doc["_id"]), role="client", email=normalized_email)
     return {
         "success": True,
         "user_id": str(doc["_id"]),
@@ -137,7 +145,7 @@ async def login_user(payload) -> dict:
     if replacement_hash and needs_rehash(str(user.get("password") or "")):
         await users_collection.update_one({"_id": user["_id"]}, {"$set": {"password": replacement_hash}})
 
-    token = create_access_token(subject=str(user["_id"]), role="user", email=user["email"])
+    token = _safe_create_access_token(subject=str(user["_id"]), role="user", email=user["email"])
     return {
         "success": True,
         "user_id": str(user["_id"]),
@@ -164,7 +172,7 @@ async def login_client(payload) -> dict:
     if replacement_hash and needs_rehash(str(client.get("password") or "")):
         await clients_collection.update_one({"_id": client["_id"]}, {"$set": {"password": replacement_hash}})
 
-    token = create_access_token(subject=str(client["_id"]), role="client", email=client["email"])
+    token = _safe_create_access_token(subject=str(client["_id"]), role="client", email=client["email"])
     return {
         "success": True,
         "user_id": str(client["_id"]),

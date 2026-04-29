@@ -10,6 +10,7 @@ import time
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import ResponseValidationError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -18,6 +19,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import ALLOWED_ORIGINS, DATABASE_NAME
 from app.db.mongo import (
     close_mongo_connection,
+    ensure_mongo_ready,
     users_collection,
     clients_collection,
     contracts_collection,
@@ -52,6 +54,15 @@ async def unhandled_exception_handler(request, exc):
         content={"detail": "Internal server error"},
     )
 
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_exception_handler(request, exc):
+    logger.exception("Response validation failed for %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
 # ── CORS — restrict to specific allowed origins ──────────────
 app.add_middleware(
     CORSMiddleware,
@@ -66,7 +77,13 @@ app.add_middleware(
 async def log_requests(request, call_next):
     start_time = time.perf_counter()
     logger.info("Request started %s %s", request.method, request.url.path)
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        logger.exception("Request failed %s %s in %.2fms", request.method, request.url.path, elapsed_ms)
+        raise
+
     elapsed_ms = (time.perf_counter() - start_time) * 1000
     logger.info("Request finished %s %s -> %s in %.2fms", request.method, request.url.path, response.status_code, elapsed_ms)
     return response
@@ -88,6 +105,7 @@ async def add_security_headers(request, call_next):
 async def ensure_indexes():
     """Create required database indexes on startup (idempotent)."""
     print(f"[startup] Mongo target DB: {DATABASE_NAME}")
+    await ensure_mongo_ready()
 
     # Users
     await users_collection.create_index("email", unique=True)
