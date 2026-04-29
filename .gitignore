@@ -237,3 +237,5 @@ contracts_to_be_implemented/
 tools/
 
 .github/
+
+graphify-out/
